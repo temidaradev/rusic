@@ -1,0 +1,19 @@
+[package]
+name = "rusic"
+version = "0.1.0"
+description = "A music tui"
+authors = ["temidaradev <ahmet.affan.ebcioglu@outlook.com>"]
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+crossterm = "0.28.1"
+ratatui = "0.29.0"
+color-eyre = "0.6.3"
+metaflac = "0.2.8"
+ratatui-explorer = "0.2.1"
+rodio = "0.21.1"
+symphonia = "0.5.5"
+clap = "4.5.49"
+colored = "3.0.0"
+ctrlc = "3.5.0"
