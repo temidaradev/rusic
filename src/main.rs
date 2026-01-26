@@ -11,6 +11,7 @@ pub mod player;
 pub mod reader;
 pub mod utils;
 use components::{bottombar::Bottombar, sidebar::Sidebar};
+pub mod remote;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Route {
