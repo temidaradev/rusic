@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 pub fn StatCard(label: &'static str, value: String, icon: &'static str) -> Element {
     rsx! {
         div {
-            class: "bg-[#0A0A0A] border border-white/5 p-5 rounded-xl flex items-center space-x-4",
+            class: " border border-white/5 p-5 rounded-xl flex items-center space-x-4",
             div {
                 class: "w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center shrink-0",
                 i { class: "fa-solid {icon} text-lg text-white/60" }

@@ -36,7 +36,6 @@ pub fn PlaylistDetail(
         .filter_map(|path| lib.tracks.iter().find(|t| t.path == *path).cloned())
         .collect();
 
-    // Determine playlist cover from first track
     let playlist_cover = tracks.first().and_then(|t| {
         lib.albums
             .iter()
@@ -90,23 +89,37 @@ pub fn PlaylistDetail(
                                   Err(_) => return,
                              };
 
-                             player.write().play(source);
-                             current_song_title.set(t.title.clone());
-                             current_song_artist.set(t.artist.clone());
-                             current_song_duration.set(t.duration);
-                             current_song_progress.set(0);
-                             is_playing.set(true);
+                              let lib = library.peek();
+                              let album_info = lib.albums.iter().find(|a| a.id == t.album_id);
+                              let artwork = album_info.and_then(|a| {
+                                  a.cover_path
+                                      .as_ref()
+                                      .map(|p| p.to_string_lossy().into_owned())
+                              });
 
-                             let lib = library.read();
-                             if let Some(album) = lib.albums.iter().find(|a| a.id == t.album_id) {
-                                  if let Some(url) = crate::utils::format_artwork_url(album.cover_path.as_ref()) {
-                                      current_song_cover_url.set(url);
-                                  } else {
-                                      current_song_cover_url.set(String::new());
-                                  }
-                             } else {
-                                  current_song_cover_url.set(String::new());
-                             }
+                              let meta = crate::player::player::NowPlayingMeta {
+                                  title: t.title.clone(),
+                                  artist: t.artist.clone(),
+                                  album: t.album.clone(),
+                                  duration: std::time::Duration::from_secs(t.duration),
+                                  artwork,
+                              };
+                              player.write().play(source, meta);
+                              current_song_title.set(t.title.clone());
+                              current_song_artist.set(t.artist.clone());
+                              current_song_duration.set(t.duration);
+                              current_song_progress.set(0);
+                              is_playing.set(true);
+
+                              if let Some(album) = album_info {
+                                   if let Some(url) = crate::utils::format_artwork_url(album.cover_path.as_ref()) {
+                                       current_song_cover_url.set(url);
+                                   } else {
+                                       current_song_cover_url.set(String::new());
+                                   }
+                              } else {
+                                   current_song_cover_url.set(String::new());
+                              }
                         }
                     }
                 },

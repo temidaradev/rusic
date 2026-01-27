@@ -144,7 +144,18 @@ pub fn LibraryPage(
 
                                 if let Ok(file) = std::fs::File::open(&track_play.path) {
                                      if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                                        player.write().play(source);
+                                         let lib = library.peek();
+                                         let album = lib.albums.iter().find(|a| a.id == track_play.album_id);
+                                         let artwork = album.and_then(|a| a.cover_path.as_ref().map(|p| p.to_string_lossy().into_owned()));
+
+                                         let meta = crate::player::player::NowPlayingMeta {
+                                             title: track_play.title.clone(),
+                                             artist: track_play.artist.clone(),
+                                             album: track_play.album.clone(),
+                                             duration: std::time::Duration::from_secs(track_play.duration),
+                                             artwork,
+                                         };
+                                        player.write().play(source, meta);
                                         current_song_title.set(track_play.title.clone());
                                         current_song_artist.set(track_play.artist.clone());
                                         current_song_duration.set(track_play.duration);

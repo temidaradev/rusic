@@ -18,6 +18,14 @@ uuid = { version = "1.20.0", features = ["v4", "fast-rng", "macro-diagnostics"] 
 rodio = "0.21.1"
 jellyfin-sdk-rust = "0.1.2"
 
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6.3", features = ["std"] }
+objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL"] }
+objc2-media-player = { version = "0.3.2", features = ["MPNowPlayingInfoCenter", "MPMediaItem", "MPRemoteCommandCenter", "MPRemoteCommand"] }
+objc2-app-kit = { version = "0.3.2", features = ["NSImage"] }
+block2 = "0.6"
+
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]

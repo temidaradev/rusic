@@ -35,7 +35,22 @@ pub fn Bottombar(
             let track = &q[index];
             if let Ok(file) = std::fs::File::open(&track.path) {
                 if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                    player.write().play(source);
+                    let lib = library.peek();
+                    let album = lib.albums.iter().find(|a| a.id == track.album_id);
+                    let artwork = album.and_then(|a| {
+                        a.cover_path
+                            .as_ref()
+                            .map(|p| p.to_string_lossy().into_owned())
+                    });
+
+                    let meta = crate::player::player::NowPlayingMeta {
+                        title: track.title.clone(),
+                        artist: track.artist.clone(),
+                        album: track.album.clone(),
+                        duration: std::time::Duration::from_secs(track.duration),
+                        artwork,
+                    };
+                    player.write().play(source, meta);
 
                     player.read().set_volume(*volume.peek());
 
@@ -52,11 +67,17 @@ pub fn Bottombar(
                             current_song_cover_url.set(url);
                         } else {
                             current_song_cover_url.set(String::new());
+                            let _ = rsx! {
+                                div {
+                                    class: "w-full h-full flex items-center justify-center",
+                                    style: "font-size: 1.5em;",
+                                    i { class: "fa-solid fa-music text-white/20" }
+                                }
+                            };
                         }
                     } else {
                         current_song_cover_url.set(String::new());
                     }
-
                     current_queue_index.set(index);
                     is_playing.set(true);
                 }
@@ -72,9 +93,17 @@ pub fn Bottombar(
                 class: "flex items-center gap-4 w-1/4",
                 div {
                     class: "w-14 h-14 bg-white/5 rounded-md flex-shrink-0 overflow-hidden shadow-lg",
-                    img {
-                        src: "{current_song_cover_url}",
-                        class: "w-full h-full object-cover"
+                    if current_song_cover_url.read().is_empty() {
+                        div {
+                            class: "w-full h-full flex items-center justify-center",
+                            style: "font-size: 1.5em;",
+                            i { class: "fa-solid fa-music text-white/20" }
+                        }
+                    } else {
+                        img {
+                            src: "{current_song_cover_url}",
+                            class: "w-full h-full object-cover"
+                        }
                     }
                 }
                 div {

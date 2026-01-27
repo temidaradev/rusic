@@ -86,16 +86,32 @@ pub fn AlbumDetails(
                                 Err(_) => return,
                             };
 
-                            player.write().play(source);
+                            let lib = library.peek();
+                            let album_info = lib.albums.iter().find(|a| a.id == t.album_id);
+                            let artwork = album_info.and_then(|a| {
+                                a.cover_path
+                                    .as_ref()
+                                    .map(|p| p.to_string_lossy().into_owned())
+                            });
+
+                            let meta = crate::player::player::NowPlayingMeta {
+                                title: t.title.clone(),
+                                artist: t.artist.clone(),
+                                album: t.album.clone(),
+                                duration: std::time::Duration::from_secs(t.duration),
+                                artwork,
+                            };
+                            player.write().play(source, meta);
                             current_song_title.set(t.title.clone());
                             current_song_artist.set(t.artist.clone());
                             current_song_duration.set(t.duration);
                             current_song_progress.set(0);
                             is_playing.set(true);
 
-                            let lib = library.read();
-                            if let Some(album) = lib.albums.iter().find(|a| a.id == t.album_id) {
-                                if let Some(url) = crate::utils::format_artwork_url(album.cover_path.as_ref()) {
+                            if let Some(album) = album_info {
+                                if let Some(url) =
+                                    crate::utils::format_artwork_url(album.cover_path.as_ref())
+                                {
                                     current_song_cover_url.set(url);
                                 } else {
                                     current_song_cover_url.set(String::new());

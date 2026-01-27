@@ -113,7 +113,7 @@ fn App() -> Element {
     let mut trigger_rescan = use_signal(|| 0);
     let current_playing = use_signal(|| 0);
     let player = use_signal(Player::new);
-    let mut current_song_cover_url = use_signal(|| String::new());
+    let current_song_cover_url = use_signal(|| String::new());
     let current_song_title = use_signal(|| String::new());
     let current_song_artist = use_signal(|| String::new());
     let current_song_duration = use_signal(|| 0u64);
@@ -167,70 +167,22 @@ fn App() -> Element {
     let queue = use_signal(|| Vec::<reader::Track>::new());
     let current_queue_index = use_signal(|| 0usize);
 
-    use_future(move || {
-        let mut player = player;
-        let mut is_playing = is_playing;
-        let mut current_song_progress = current_song_progress;
-        let mut current_song_duration = current_song_duration;
-        let mut current_song_title = current_song_title;
-        let mut current_song_artist = current_song_artist;
-        let mut current_queue_index = current_queue_index;
-        let queue = queue;
-        let library = library;
+    let ctrl = hooks::use_player_controller(
+        player,
+        is_playing,
+        queue,
+        current_queue_index,
+        current_song_title,
+        current_song_artist,
+        current_song_duration,
+        current_song_progress,
+        current_song_cover_url,
+        volume,
+        library,
+    );
+    provide_context(ctrl);
 
-        async move {
-            loop {
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-                if *is_playing.read() {
-                    let pos = player.read().get_position();
-                    current_song_progress.set(pos.as_secs());
-
-                    if player.read().is_empty() {
-                        let idx = *current_queue_index.read();
-                        let q = queue.read();
-                        if idx + 1 < q.len() {
-                            let next_idx = idx + 1;
-                            let track = &q[next_idx];
-                            if let Ok(file) = std::fs::File::open(&track.path) {
-                                if let Ok(source) =
-                                    rodio::Decoder::new(std::io::BufReader::new(file))
-                                {
-                                    player.write().play(source);
-                                    player.read().set_volume(*volume.peek());
-                                    current_song_title.set(track.title.clone());
-                                    current_song_artist.set(track.artist.clone());
-                                    current_song_duration.set(track.duration);
-                                    current_song_progress.set(0);
-
-                                    // Update cover
-                                    let lib = library.read();
-                                    if let Some(album) =
-                                        lib.albums.iter().find(|a| a.id == track.album_id)
-                                    {
-                                        if let Some(url) = crate::utils::format_artwork_url(
-                                            album.cover_path.as_ref(),
-                                        ) {
-                                            current_song_cover_url.set(url);
-                                        } else {
-                                            current_song_cover_url.set(String::new());
-                                        }
-                                    } else {
-                                        current_song_cover_url.set(String::new());
-                                    }
-
-                                    current_queue_index.set(next_idx);
-                                }
-                            }
-                        } else {
-                            is_playing.set(false);
-                            player.write().pause();
-                        }
-                    }
-                }
-            }
-        }
-    });
+    hooks::use_player_task(ctrl);
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
