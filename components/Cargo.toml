@@ -1,0 +1,13 @@
+[package]
+name = "components"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dioxus = { workspace = true }
+uuid = { workspace = true }
+player = { workspace = true }
+reader = { workspace = true }
+rodio = { workspace = true }
+utils = { workspace = true }
+rusic_route = { workspace = true }
