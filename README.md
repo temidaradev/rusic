@@ -19,25 +19,27 @@ Rusic allows you to scan your local directories for audio files, automatically o
 ## Getting Started
 
 Do a git clone to this project to get the current code.
+`git clone https://github.com/temidaradev/rusic`
+
 Ensure you have Rust and Cargo installed on your system.
 
 ### Prerequisites
 
 * **Rust**: Ensure you have the latest stable Rust installed. Install Rust
 * **Node.js**: Required for Tailwind CSS processing. Install Node.js
-* **dioxus-cli**: You can install dioxus-cli with this command cargo install --locked dioxus-cli (this will take a bit)
+* **dioxus-cli**: You can install dioxus-cli with this command `cargo install --locked dioxus-cli` (this will take a bit)
 * **openssl, xdotool, glib, libsoup3**: (i dont know about what they are equal in another distros sorry, check flake.nix for all packages or just listen rust compiler for missing stuff .d)
 
 ### Quick Start
 
 Install dependencies:
-npm i
+`npm i`
 
 Run the application (dev):
-Use the provided Makefile to handle CSS generation and run the app make run
-or for better experience you can use dx serve for development
+Use the provided Makefile to handle CSS generation and run the app `make run`
+or for better experience you can use `dx serve` for development
 
-For building the app use dx build --release command and you will probably be able to run the executable in the printed location
+For building the app use `dx build --release` command and you will probably be able to run the executable in the printed location
 
 ### Cache
 
