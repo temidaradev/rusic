@@ -38,6 +38,8 @@
           clang
           lld
           mold
+          flatpak
+          flatpak-builder
         ];
       in
       {
@@ -49,6 +51,8 @@
             dioxus-cli
             nodejs_22
             nodePackages.npm
+            flatpak
+            flatpak-builder
           ]);
 
           shellHook = ''

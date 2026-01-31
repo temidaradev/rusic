@@ -9,7 +9,7 @@ build: tailwind
 	@echo ""
 	@echo "Build complete! Run 'make install' to install."
 
-run-release: build
+run-release:
 	cd target/dx/rusic/release/linux/app && ./rusic
 
 clean:
