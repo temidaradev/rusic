@@ -1,8 +1,15 @@
-run:
-	npx @tailwindcss/cli -i ./tailwind.css -o ./rusic/assets/tailwind.css --content './src/**/*.{rs,html}' & cargo run
+serve:
+	dx serve
 
-flatpak-build:
-	flatpak-builder --user --install --force-clean build-dir com.temidaradev.rusic.json
+tailwind:
+	npx @tailwindcss/cli -i ./tailwind.css -o ./rusic/assets/tailwind.css --content './rusic/**/*.rs,./components/**/*.rs,./pages/**/*.rs,./hooks/**/*.rs,./player/**/*.rs,./reader/**/*.rs'
 
-flatpak-run:
-	flatpak run com.temidaradev.rusic
+build: tailwind
+	dx build --package rusic --release
+
+run-release: build
+	cd target/dx/rusic/release/linux/app && ./rusic
+
+clean:
+	cargo clean
+	rm -rf target/dx dist

@@ -1,10 +1,15 @@
 [application]
 name = "rusic"
-bundle_identifier = "com.temidaradev.rusic"
+default_platform = "desktop"
 
 [application.assets]
 # The folder which contains assets
-base_path = "assets"
+base_path = "rusic/assets"
+
+[bundle]
+identifier = "com.temidaradev.rusic"
+publisher = "temidaradev"
+icon = ["assets/logo.png"]
 
 [web.app]
 title = "rusic"
@@ -20,3 +25,4 @@ script = []
 [web.tailwind]
 input = "tailwind.css"
 config = "tailwind.config.js"
+

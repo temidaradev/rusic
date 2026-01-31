@@ -1,0 +1,113 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libasound2-dev \
+            libxdo-dev \
+            pkg-config \
+            curl \
+            wget
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dioxus CLI
+        run: cargo install dioxus-cli
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build Tailwind CSS
+        run: npx @tailwindcss/cli -i ./tailwind.css -o ./rusic/assets/tailwind.css --content './rusic/**/*.rs,./components/**/*.rs,./pages/**/*.rs,./hooks/**/*.rs,./player/**/*.rs,./reader/**/*.rs'
+
+      - name: Build release
+        run: dx build --package rusic --release
+
+      - name: Create distribution package
+        run: |
+          mkdir -p dist/rusic
+          cp target/dx/rusic/release/linux/app/rusic dist/rusic/
+          cp -r target/dx/rusic/release/linux/app/assets dist/rusic/
+          cp rusic/assets/logo.png dist/rusic/
+          cp data/com.temidaradev.rusic.desktop dist/rusic/
+          
+          # Create install script
+          cat > dist/rusic/install.sh << 'EOF'
+          #!/bin/sh
+          set -e
+          
+          INSTALL_DIR="$HOME/.local/share/rusic"
+          BIN_DIR="$HOME/.local/bin"
+          APPS_DIR="$HOME/.local/share/applications"
+          ICONS_DIR="$HOME/.local/share/icons/hicolor/scalable/apps"
+          
+          echo "Installing Rusic..."
+          
+          mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APPS_DIR" "$ICONS_DIR"
+          
+          # Copy files
+          cp -r assets "$INSTALL_DIR/"
+          cp rusic "$INSTALL_DIR/"
+          chmod +x "$INSTALL_DIR/rusic"
+          
+          # Create symlink
+          ln -sf "$INSTALL_DIR/rusic" "$BIN_DIR/rusic"
+          
+          # Install icon
+          cp logo.png "$ICONS_DIR/com.temidaradev.rusic.png"
+          
+          # Install desktop file
+          sed "s|Exec=.*|Exec=sh -c 'cd $INSTALL_DIR \&\& ./rusic'|" com.temidaradev.rusic.desktop > "$APPS_DIR/com.temidaradev.rusic.desktop"
+          
+          echo ""
+          echo "✅ Rusic installed successfully!"
+          echo ""
+          echo "You can now:"
+          echo "  - Find 'Rusic' in your app launcher"
+          echo "  - Run 'rusic' from terminal (if ~/.local/bin is in PATH)"
+          echo ""
+          echo "To uninstall: rm -rf ~/.local/share/rusic ~/.local/bin/rusic ~/.local/share/applications/com.temidaradev.rusic.desktop ~/.local/share/icons/hicolor/scalable/apps/com.temidaradev.rusic.png"
+          EOF
+          chmod +x dist/rusic/install.sh
+          
+          # Create tarball
+          cd dist
+          tar -czvf rusic-linux-x86_64.tar.gz rusic/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rusic-linux-x86_64
+          path: dist/rusic-linux-x86_64.tar.gz
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/rusic-linux-x86_64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

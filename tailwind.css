@@ -1,3 +1,11 @@
 @import "tailwindcss";
-@source "./src/**/*.rs";
-@source "./dist/**/*.html";
+@source "./rusic/**/*.rs";
+@source "./components/**/*.rs";
+@source "./pages/**/*.rs";
+@source "./hooks/**/*.rs";
+@source "./player/**/*.rs";
+@source "./reader/**/*.rs";
+@source "./server/**/*.rs";
+@source "./utils/**/*.rs";
+@source "./config/**/*.rs";
+@source "./rusic_route/**/*.rs";
