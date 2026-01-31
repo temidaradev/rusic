@@ -1,0 +1,45 @@
+[package]
+name = "rusic"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dioxus = { workspace = true }
+uuid = { workspace = true }
+player = { workspace = true }
+components = { workspace = true }
+reader = { workspace = true }
+config = { workspace = true }
+pages = { workspace = true }
+rusic_route = { workspace = true }
+tokio = { workspace = true }
+http = { workspace = true }
+hooks = { workspace = true }
+percent-encoding = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.6.3", features = ["std"] }
+objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL"] }
+objc2-media-player = { version = "0.3.2", features = ["MPNowPlayingInfoCenter", "MPMediaItem", "MPRemoteCommandCenter", "MPRemoteCommand"] }
+objc2-app-kit = { version = "0.3.2", features = ["NSImage"] }
+block2 = "0.6"
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
