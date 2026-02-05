@@ -1,3 +1,5 @@
+pub mod stream_buffer;
+
 use std::path::Path;
 
 pub fn format_artwork_url(path: Option<&impl AsRef<Path>>) -> Option<String> {

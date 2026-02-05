@@ -2,10 +2,19 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub enum MusicSource {
+    #[default]
+    Local,
+    Jellyfin,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub server: Option<JellyfinServer>,
+    #[serde(default)]
+    pub active_source: MusicSource,
     pub music_directory: PathBuf,
     #[serde(default = "default_theme")]
     pub theme: String,
@@ -18,6 +27,7 @@ pub struct JellyfinServer {
     pub name: String,
     pub url: String,
     pub access_token: Option<String>,
+    pub user_id: Option<String>,
 }
 
 fn default_theme() -> String {
@@ -32,6 +42,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             server: None,
+            active_source: MusicSource::Local,
             music_directory: PathBuf::from("./assets"),
             theme: default_theme(),
             device_id: default_device_id(),
@@ -45,6 +56,7 @@ impl Default for JellyfinServer {
             name: String::new(),
             url: String::new(),
             access_token: None,
+            user_id: None,
         }
     }
 }

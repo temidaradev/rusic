@@ -32,6 +32,10 @@ pub struct Library {
     pub root_path: PathBuf,
     pub tracks: Vec<Track>,
     pub albums: Vec<Album>,
+    #[serde(default)]
+    pub jellyfin_tracks: Vec<Track>,
+    #[serde(default)]
+    pub jellyfin_albums: Vec<Album>,
 }
 
 impl Library {

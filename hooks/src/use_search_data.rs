@@ -1,3 +1,4 @@
+use config::{AppConfig, MusicSource};
 use dioxus::prelude::*;
 use reader::Library;
 use reader::models::{Album, Track};
@@ -14,8 +15,16 @@ pub struct SearchData {
     pub search_query: Signal<String>,
 }
 
-pub fn use_search_data(library: Signal<Library>, search_query: Signal<String>) -> SearchData {
+pub fn use_search_data(
+    library: Signal<Library>,
+    search_query: Signal<String>,
+    config: Signal<AppConfig>,
+) -> SearchData {
     let genres = use_memo(move || {
+        if config.read().active_source == MusicSource::Jellyfin {
+            return Vec::new();
+        }
+
         let lib = library.read();
         let mut genre_covers: std::collections::HashMap<String, Vec<std::path::PathBuf>> =
             std::collections::HashMap::new();
@@ -59,49 +68,97 @@ pub fn use_search_data(library: Signal<Library>, search_query: Signal<String>) -
         }
 
         let lib = library.read();
+        let active_source = config.read().active_source.clone();
 
         let album_map: std::collections::HashMap<&String, &Album> =
             lib.albums.iter().map(|a| (&a.id, a)).collect();
 
-        let tracks: Vec<_> = lib
-            .tracks
-            .iter()
-            .filter(|t| {
-                t.title.to_lowercase().contains(&query)
-                    || t.artist.to_lowercase().contains(&query)
-                    || t.album.to_lowercase().contains(&query)
-                    || album_map
-                        .get(&t.album_id)
-                        .map(|a| a.genre.to_lowercase().contains(&query))
-                        .unwrap_or(false)
-            })
-            .take(100)
-            .map(|t| {
-                let cover_url = album_map
-                    .get(&t.album_id)
-                    .and_then(|a| a.cover_path.as_ref())
-                    .and_then(|c| utils::format_artwork_url(Some(c)));
-                (t.clone(), cover_url)
-            })
-            .collect();
+        let mut tracks: Vec<(Track, Option<String>)> = Vec::new();
+        let mut albums: Vec<(Album, Option<String>)> = Vec::new();
 
-        let albums: Vec<_> = lib
-            .albums
-            .iter()
-            .filter(|a| {
-                a.title.to_lowercase().contains(&query)
-                    || a.artist.to_lowercase().contains(&query)
-                    || a.genre.to_lowercase().contains(&query)
-            })
-            .take(50)
-            .map(|a| {
-                let cover_url = a
-                    .cover_path
-                    .as_ref()
-                    .and_then(|c| utils::format_artwork_url(Some(c)));
-                (a.clone(), cover_url)
-            })
-            .collect();
+        match active_source {
+            MusicSource::Local => {
+                tracks = lib
+                    .tracks
+                    .iter()
+                    .filter(|t| {
+                        t.title.to_lowercase().contains(&query)
+                            || t.artist.to_lowercase().contains(&query)
+                            || t.album.to_lowercase().contains(&query)
+                            || album_map
+                                .get(&t.album_id)
+                                .map(|a| a.genre.to_lowercase().contains(&query))
+                                .unwrap_or(false)
+                    })
+                    .take(100)
+                    .map(|t| {
+                        let cover_url = album_map
+                            .get(&t.album_id)
+                            .and_then(|a| a.cover_path.as_ref())
+                            .and_then(|c| utils::format_artwork_url(Some(c)));
+                        (t.clone(), cover_url)
+                    })
+                    .collect();
+
+                albums = lib
+                    .albums
+                    .iter()
+                    .filter(|a| {
+                        a.title.to_lowercase().contains(&query)
+                            || a.artist.to_lowercase().contains(&query)
+                            || a.genre.to_lowercase().contains(&query)
+                    })
+                    .take(50)
+                    .map(|a| {
+                        let cover_url = a
+                            .cover_path
+                            .as_ref()
+                            .and_then(|c| utils::format_artwork_url(Some(c)));
+                        (a.clone(), cover_url)
+                    })
+                    .collect();
+            }
+            MusicSource::Jellyfin => {
+                tracks = lib
+                    .jellyfin_tracks
+                    .iter()
+                    .filter(|t| {
+                        t.title.to_lowercase().contains(&query)
+                            || t.artist.to_lowercase().contains(&query)
+                            || t.album.to_lowercase().contains(&query)
+                    })
+                    .take(100)
+                    .map(|t| {
+                        let cover_url = if let Some(server) = &config.read().server {
+                            let path_str = t.path.to_string_lossy();
+                            let parts: Vec<&str> = path_str.split(':').collect();
+                            if parts.len() >= 2 {
+                                let id = parts[1];
+                                let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
+                                let mut params = Vec::new();
+
+                                if parts.len() >= 3 {
+                                    params.push(format!("tag={}", parts[2]));
+                                }
+                                if let Some(token) = &server.access_token {
+                                    params.push(format!("api_key={}", token));
+                                }
+                                if !params.is_empty() {
+                                    url.push('?');
+                                    url.push_str(&params.join("&"));
+                                }
+                                Some(url)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+                        (t.clone(), cover_url)
+                    })
+                    .collect();
+            }
+        }
 
         Some((tracks, albums))
     });

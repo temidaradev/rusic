@@ -16,3 +16,5 @@ utils = { workspace = true }
 rusic_route = { workspace = true }
 rodio = { workspace = true }
 server = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }

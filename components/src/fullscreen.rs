@@ -1,4 +1,6 @@
+use config::AppConfig;
 use dioxus::prelude::*;
+use hooks::use_player_controller::PlayerController;
 use player::player::Player;
 use reader::Library;
 
@@ -25,6 +27,7 @@ pub fn Fullscreen(
     }
 
     let mut active_tab = use_signal(|| 1usize);
+    let mut ctrl = use_context::<PlayerController>();
 
     let format_time = |seconds: u64| {
         let minutes = seconds / 60;
@@ -41,60 +44,46 @@ pub fn Fullscreen(
     let volume_percent = *volume.read() * 100.0;
 
     let mut play_song_at_index = move |index: usize| {
-        let q = queue.read();
-        if index < q.len() {
-            let track = &q[index];
-            if let Ok(file) = std::fs::File::open(&track.path) {
-                if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                    let lib = library.peek();
-                    let album = lib.albums.iter().find(|a| a.id == track.album_id);
-                    let artwork = album.and_then(|a| {
-                        a.cover_path
-                            .as_ref()
-                            .map(|p| p.to_string_lossy().into_owned())
-                    });
-
-                    let meta = player::player::NowPlayingMeta {
-                        title: track.title.clone(),
-                        artist: track.artist.clone(),
-                        album: track.album.clone(),
-                        duration: std::time::Duration::from_secs(track.duration),
-                        artwork,
-                    };
-                    player.write().play(source, meta);
-                    player.read().set_volume(*volume.peek());
-
-                    current_song_title.set(track.title.clone());
-                    current_song_artist.set(track.artist.clone());
-                    current_song_album.set(track.album.clone());
-                    current_song_khz.set(track.khz);
-                    current_song_bitrate.set(track.bitrate);
-                    current_song_duration.set(track.duration);
-                    current_song_progress.set(0);
-
-                    let lib = library.read();
-                    if let Some(album) = lib.albums.iter().find(|a| a.id == track.album_id) {
-                        if let Some(url) = utils::format_artwork_url(album.cover_path.as_ref()) {
-                            current_song_cover_url.set(url);
-                        } else {
-                            current_song_cover_url.set(String::new());
-                        }
-                    } else {
-                        current_song_cover_url.set(String::new());
-                    }
-                    current_queue_index.set(index);
-                    is_playing.set(true);
-                }
-            }
-        }
+        ctrl.play_track(index);
     };
+
+    let config = use_context::<Signal<AppConfig>>();
 
     let get_track_cover = |track: &reader::Track| -> Option<String> {
         let lib = library.read();
-        lib.albums
-            .iter()
-            .find(|a| a.id == track.album_id)
-            .and_then(|album| utils::format_artwork_url(album.cover_path.as_ref()))
+        let conf = config.read();
+
+        let is_jellyfin_track = track.path.to_string_lossy().starts_with("jellyfin:");
+
+        if is_jellyfin_track {
+            if let Some(server) = &conf.server {
+                let path_str = track.path.to_string_lossy();
+                let parts: Vec<&str> = path_str.split(':').collect();
+                if parts.len() >= 2 {
+                    let id = parts[1];
+                    let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
+                    let mut params = Vec::new();
+
+                    if parts.len() >= 3 {
+                        params.push(format!("tag={}", parts[2]));
+                    }
+                    if let Some(token) = &server.access_token {
+                        params.push(format!("api_key={}", token));
+                    }
+                    if !params.is_empty() {
+                        url.push('?');
+                        url.push_str(&params.join("&"));
+                    }
+                    return Some(url);
+                }
+            }
+            None
+        } else {
+            lib.albums
+                .iter()
+                .find(|a| a.id == track.album_id)
+                .and_then(|album| utils::format_artwork_url(album.cover_path.as_ref()))
+        }
     };
 
     rsx! {
@@ -182,33 +171,21 @@ pub fn Fullscreen(
                     button {
                         class: "text-white hover:text-white/80 transition-colors flex-shrink-0",
                         onclick: move |_| {
-                            let idx = *current_queue_index.read();
-                            if idx > 0 {
-                                play_song_at_index(idx - 1);
-                            }
+                            ctrl.play_prev();
                         },
                         i { class: "fa-solid fa-backward-step text-2xl" }
                     }
                     button {
                         class: "w-16 h-16 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all flex-shrink-0 mx-2",
                         onclick: move |_| {
-                            if *is_playing.read() {
-                                player.write().pause();
-                                is_playing.set(false);
-                            } else {
-                                player.write().play_resume();
-                                is_playing.set(true);
-                            }
+                            ctrl.toggle();
                         },
                         i { class: if *is_playing.read() { "fa-solid fa-pause text-2xl" } else { "fa-solid fa-play text-2xl ml-1" } }
                     }
                     button {
                         class: "text-white hover:text-white/80 transition-colors flex-shrink-0",
                         onclick: move |_| {
-                            let idx = *current_queue_index.read();
-                            if idx + 1 < queue.read().len() {
-                                play_song_at_index(idx + 1);
-                            }
+                            ctrl.play_next();
                         },
                         i { class: "fa-solid fa-forward-step text-2xl" }
                     }

@@ -10,3 +10,4 @@ utils = { workspace = true }
 player = { workspace = true }
 tokio = { workspace = true }
 rodio = { workspace = true }
+config = { workspace = true }

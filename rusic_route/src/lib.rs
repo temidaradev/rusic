@@ -4,6 +4,7 @@ pub enum Route {
     Search,
     Library,
     Album,
+    Artist,
     Playlists,
     Settings,
 }

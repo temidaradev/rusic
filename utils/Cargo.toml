@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 percent-encoding = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }

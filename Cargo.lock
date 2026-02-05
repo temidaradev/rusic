@@ -421,6 +421,7 @@ version = "0.1.0"
 dependencies = [
  "config",
  "dioxus",
+ "hooks",
  "player",
  "reader",
  "rfd",
@@ -1989,6 +1990,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 name = "hooks"
 version = "0.1.0"
 dependencies = [
+ "config",
  "dioxus",
  "player",
  "reader",
@@ -3282,10 +3284,12 @@ dependencies = [
  "hooks",
  "player",
  "reader",
+ "reqwest 0.12.28",
  "rfd",
  "rodio",
  "rusic_route",
  "server",
+ "tokio",
  "utils",
  "uuid",
 ]
@@ -5340,6 +5344,8 @@ name = "utils"
 version = "0.1.0"
 dependencies = [
  "percent-encoding",
+ "reqwest 0.12.28",
+ "tokio",
 ]
 
 [[package]]

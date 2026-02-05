@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use hooks::use_player_controller::PlayerController;
 use player::player::Player;
 use reader::Library;
 
@@ -31,59 +32,7 @@ pub fn Bottombar(
 
     let volume_percent = *volume.read() * 100.0;
 
-    let mut play_song_at_index = move |index: usize| {
-        let q = queue.read();
-        if index < q.len() {
-            let track = &q[index];
-            if let Ok(file) = std::fs::File::open(&track.path) {
-                if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                    let lib = library.peek();
-                    let album = lib.albums.iter().find(|a| a.id == track.album_id);
-                    let artwork = album.and_then(|a| {
-                        a.cover_path
-                            .as_ref()
-                            .map(|p| p.to_string_lossy().into_owned())
-                    });
-
-                    let meta = player::player::NowPlayingMeta {
-                        title: track.title.clone(),
-                        artist: track.artist.clone(),
-                        album: track.album.clone(),
-                        duration: std::time::Duration::from_secs(track.duration),
-                        artwork,
-                    };
-                    player.write().play(source, meta);
-
-                    player.read().set_volume(*volume.peek());
-
-                    current_song_title.set(track.title.clone());
-                    current_song_artist.set(track.artist.clone());
-                    current_song_duration.set(track.duration);
-                    current_song_progress.set(0);
-
-                    let lib = library.read();
-                    if let Some(album) = lib.albums.iter().find(|a| a.id == track.album_id) {
-                        if let Some(url) = utils::format_artwork_url(album.cover_path.as_ref()) {
-                            current_song_cover_url.set(url);
-                        } else {
-                            current_song_cover_url.set(String::new());
-                            let _ = rsx! {
-                                div {
-                                    class: "w-full h-full flex items-center justify-center",
-                                    style: "font-size: 1.5em;",
-                                    i { class: "fa-solid fa-music text-white/20" }
-                                }
-                            };
-                        }
-                    } else {
-                        current_song_cover_url.set(String::new());
-                    }
-                    current_queue_index.set(index);
-                    is_playing.set(true);
-                }
-            }
-        }
-    };
+    let mut ctrl = use_context::<PlayerController>();
 
     rsx! {
         div {
@@ -125,33 +74,21 @@ pub fn Bottombar(
                     button {
                         class: "text-slate-400 hover:text-white transition-all active:scale-90",
                         onclick: move |_| {
-                            let idx = *current_queue_index.read();
-                            if idx > 0 {
-                                play_song_at_index(idx - 1);
-                            }
+                            ctrl.play_prev();
                         },
                         i { class: "fa-solid fa-backward-step text-xl" }
                     }
                     button {
                         class: "w-10 h-10 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 active:scale-95 transition-all",
                         onclick: move |_| {
-                            if *is_playing.read() {
-                                player.write().pause();
-                                is_playing.set(false);
-                            } else {
-                                player.write().play_resume();
-                                is_playing.set(true);
-                            }
+                            ctrl.toggle();
                         },
                         i { class: if *is_playing.read() { "fa-solid fa-pause text-lg" } else { "fa-solid fa-play text-lg ml-0.5" } }
                     }
                     button {
                         class: "text-slate-400 hover:text-white transition-all active:scale-90",
                         onclick: move |_| {
-                            let idx = *current_queue_index.read();
-                            if idx + 1 < queue.read().len() {
-                                play_song_at_index(idx + 1);
-                            }
+                            ctrl.play_next();
                         },
                         i { class: "fa-solid fa-forward-step text-xl" }
                     }

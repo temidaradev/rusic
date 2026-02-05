@@ -114,7 +114,8 @@ fn App() -> Element {
     let is_fullscreen = use_signal(|| false);
 
     let mut selected_album_id = use_signal(String::new);
-    let mut search_query = use_signal(String::new);
+    let mut selected_artist_name = use_signal(String::new);
+    let search_query = use_signal(String::new);
 
     use_effect(move || {
         let _ = config.read().save(&config_path());
@@ -122,6 +123,10 @@ fn App() -> Element {
 
     use_effect(move || {
         let _ = playlist_store.read().save(&playlist_path());
+    });
+
+    use_effect(move || {
+        let _ = library.read().save(&lib_path());
     });
 
     use_hook(move || {
@@ -165,6 +170,7 @@ fn App() -> Element {
         current_queue_index,
         current_song_title,
         current_song_artist,
+        current_song_album,
         current_song_khz,
         current_song_bitrate,
         current_song_duration,
@@ -172,8 +178,10 @@ fn App() -> Element {
         current_song_cover_url,
         volume,
         library,
+        config,
     );
     provide_context(ctrl);
+    provide_context(config);
 
     hooks::use_player_task(ctrl);
 
@@ -194,6 +202,9 @@ fn App() -> Element {
                         if route == Route::Album {
                             selected_album_id.set(String::new());
                         }
+                        if route == Route::Artist {
+                            selected_artist_name.set(String::new());
+                        }
                         if route == Route::Search && !search_query.read().is_empty() {
                             // Keep search query if already set? Or maybe clear it?
                             // For now keep it.
@@ -213,14 +224,15 @@ fn App() -> Element {
                                     current_route.set(Route::Album);
                                 },
                                 on_search_artist: move |artist| {
-                                    search_query.set(artist);
-                                    current_route.set(Route::Search);
+                                    selected_artist_name.set(artist);
+                                    current_route.set(Route::Artist);
                                 }
                             }
                         },
                         Route::Search => rsx! {
                             pages::search::Search {
                                 library: library,
+                                config: config,
                                 playlist_store: playlist_store,
                                 search_query: search_query,
                                 player: player,
@@ -238,6 +250,7 @@ fn App() -> Element {
                         Route::Library => rsx! {
                             pages::library::LibraryPage {
                                 library: library,
+                                config: config,
                                 playlist_store: playlist_store,
                                 on_rescan: move |_| *trigger_rescan.write() += 1,
                                 player: player,
@@ -255,6 +268,7 @@ fn App() -> Element {
                         Route::Album => rsx! {
                             pages::album::Album {
                                 library: library,
+                                config: config,
                                 album_id: selected_album_id,
                                 playlist_store: playlist_store,
                                 player: player,
@@ -283,6 +297,27 @@ fn App() -> Element {
                                 current_song_progress: current_song_progress,
                                 queue: queue,
                                 current_queue_index: current_queue_index,
+                            }
+                        },
+                        Route::Artist => rsx! {
+                            pages::artist::Artist {
+                                library: library,
+                                config: config,
+                                artist_name: selected_artist_name,
+                                playlist_store: playlist_store,
+                                player: player,
+                                is_playing: is_playing,
+                                current_song_cover_url: current_song_cover_url,
+                                current_song_title: current_song_title,
+                                current_song_artist: current_song_artist,
+                                current_song_duration: current_song_duration,
+                                current_song_progress: current_song_progress,
+                                queue: queue,
+                                current_queue_index: current_queue_index,
+                                on_close: move |_evt: ()| {
+                                    selected_artist_name.set(String::new());
+                                    current_route.set(Route::Home);
+                                }
                             }
                         },
                         Route::Settings => rsx! { pages::settings::Settings { config } },

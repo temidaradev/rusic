@@ -33,6 +33,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
             },
             url: server_url(),
             access_token: None,
+            user_id: None,
         };
 
         config.write().server = Some(new_server);
@@ -61,15 +62,16 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
             login_error.set(None);
 
             spawn(async move {
-                let mut remote = JellyfinRemote::new(&server_url, None, &device_id);
+                let mut remote = JellyfinRemote::new(&server_url, None, &device_id, None);
                 let result = remote.login(&user, &pass).await;
 
                 is_loading.set(false);
 
                 match result {
-                    Ok(token) => {
+                    Ok((token, user_id)) => {
                         if let Some(server) = config.write().server.as_mut() {
                             server.access_token = Some(token);
+                            server.user_id = Some(user_id);
                         }
                         username.set(String::new());
                         password.set(String::new());

@@ -40,7 +40,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                     let pos = ctrl.player.read().get_position();
                     ctrl.current_song_progress.set(pos.as_secs());
 
-                    if ctrl.player.read().is_empty() {
+                    if ctrl.player.read().is_empty() && !*ctrl.is_loading.read() {
                         ctrl.play_next();
                     }
                 }

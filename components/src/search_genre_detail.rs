@@ -1,5 +1,6 @@
 use crate::track_row::TrackRow;
 use dioxus::prelude::*;
+use hooks::use_player_controller::PlayerController;
 use player::player;
 use reader::Library;
 use reader::models::Track;
@@ -25,6 +26,8 @@ pub fn SearchGenreDetail(
     mut show_playlist_modal: Signal<bool>,
     mut selected_track_for_playlist: Signal<Option<std::path::PathBuf>>,
 ) -> Element {
+    let mut ctrl = use_context::<PlayerController>();
+
     rsx! {
         div {
             class: "space-y-6",
@@ -58,9 +61,7 @@ pub fn SearchGenreDetail(
                          let track_key = track.path.display().to_string();
                          let track_menu = track.clone();
                          let track_add = track.clone();
-                         let track_play = track.clone();
                          let track_delete = track.clone();
-                         let cover_play = cover_url.clone();
                          let is_menu_open = active_menu_track.read().as_ref() == Some(&track.path);
                          let genre_tracks_list: Vec<Track> = genre_tracks.iter().map(|(t, _)| t.clone()).collect();
 
@@ -94,32 +95,7 @@ pub fn SearchGenreDetail(
                                  },
                                  on_play: move |_| {
                                      queue.set(genre_tracks_list.clone());
-                                     current_queue_index.set(idx);
-
-                                     if let Ok(file) = std::fs::File::open(&track_play.path) {
-                                          if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
-                                             let lib = library.peek();
-                                             let album = lib.albums.iter().find(|a| a.id == track_play.album_id);
-                                             let artwork = album.and_then(|a| a.cover_path.as_ref().map(|p| p.to_string_lossy().into_owned()));
-
-                                             let meta = player::NowPlayingMeta {
-                                                 title: track_play.title.clone(),
-                                                 artist: track_play.artist.clone(),
-                                                 album: track_play.album.clone(),
-                                                 duration: std::time::Duration::from_secs(track_play.duration),
-                                                 artwork,
-                                             };
-                                             player.write().play(source, meta);
-                                             current_song_title.set(track_play.title.clone());
-                                             current_song_artist.set(track_play.artist.clone());
-                                             current_song_duration.set(track_play.duration);
-                                             current_song_progress.set(0);
-                                             is_playing.set(true);
-                                             if let Some(cover) = &cover_play {
-                                                 current_song_cover_url.set(cover.clone());
-                                             }
-                                          }
-                                     }
+                                     ctrl.play_track(idx);
                                  }
                              }
                          }

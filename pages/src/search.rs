@@ -3,6 +3,7 @@ use components::search_bar::SearchBar;
 use components::search_genre_detail::SearchGenreDetail;
 use components::search_genres::SearchGenres;
 use components::search_results::SearchResults;
+use config::AppConfig;
 use dioxus::prelude::*;
 use hooks::use_search_data::use_search_data;
 use player::player;
@@ -11,6 +12,7 @@ use reader::Library;
 #[component]
 pub fn Search(
     library: Signal<Library>,
+    config: Signal<AppConfig>,
     playlist_store: Signal<reader::PlaylistStore>,
     search_query: Signal<String>,
     player: Signal<player::Player>,
@@ -24,7 +26,7 @@ pub fn Search(
     queue: Signal<Vec<reader::models::Track>>,
     current_queue_index: Signal<usize>,
 ) -> Element {
-    let data = use_search_data(library, search_query);
+    let data = use_search_data(library, search_query, config);
     let mut selected_genre = use_signal(|| None::<String>);
 
     let mut active_menu_track = use_signal(|| None::<std::path::PathBuf>);

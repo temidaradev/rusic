@@ -13,3 +13,4 @@ utils = { workspace = true }
 rusic_route = { workspace = true }
 config = { workspace = true }
 rfd = { workspace = true }
+hooks = { workspace = true }

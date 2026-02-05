@@ -1,3 +1,4 @@
+use config::MusicSource;
 use dioxus::desktop::use_window;
 use dioxus::prelude::*;
 use rusic_route::Route;
@@ -51,6 +52,7 @@ pub struct SidebarProps {
 
 #[component]
 pub fn Sidebar(props: SidebarProps) -> Element {
+    let mut config = use_context::<Signal<config::AppConfig>>();
     let mut width = use_signal(|| 240);
     let mut is_collapsed = use_signal(|| false);
     let mut is_resizing = use_signal(|| false);
@@ -84,6 +86,23 @@ pub fn Sidebar(props: SidebarProps) -> Element {
         "pt-10"
     } else {
         ""
+    };
+
+    let is_jellyfin = config.read().active_source == MusicSource::Jellyfin;
+    let local_class = if !is_jellyfin {
+        "text-white"
+    } else {
+        "text-slate-500 hover:text-slate-300"
+    };
+    let jellyfin_class = if is_jellyfin {
+        "text-white"
+    } else {
+        "text-slate-500 hover:text-slate-300"
+    };
+    let slider_style = if is_jellyfin {
+        "left: calc(50% + 2px); width: calc(50% - 4px);"
+    } else {
+        "left: 4px; width: calc(50% - 4px);"
     };
 
     rsx! {
@@ -136,6 +155,29 @@ pub fn Sidebar(props: SidebarProps) -> Element {
 
             div {
                 class: "flex-1 flex flex-col overflow-y-auto overflow-x-hidden",
+
+                if !*is_collapsed.read() {
+                    div {
+                        class: "px-4 mb-6",
+                        div {
+                            class: "bg-white/5 p-1 rounded-xl flex relative h-10 items-center border border-white/5",
+                            div {
+                                class: "absolute h-8 bg-white/10 rounded-lg transition-all duration-300 ease-out",
+                                style: "{slider_style}"
+                            }
+                            button {
+                                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {local_class}",
+                                onclick: move |_| config.write().active_source = MusicSource::Local,
+                                "LOCAL"
+                            }
+                            button {
+                                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {jellyfin_class}",
+                                onclick: move |_| config.write().active_source = MusicSource::Jellyfin,
+                                "JELLYFIN"
+                            }
+                        }
+                    }
+                }
 
                 nav {
                     class: "flex-1 px-3 space-y-1",

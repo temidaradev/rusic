@@ -85,6 +85,15 @@ impl Player {
         self.sink.empty()
     }
 
+    pub fn stop(&mut self) {
+        self.sink.stop();
+        let new_sink = Sink::connect_new(self.stream.mixer());
+        self.sink = new_sink;
+        self.start_time = None;
+        self.elapsed = Duration::from_secs(0);
+        self.now_playing = None;
+    }
+
     pub fn set_volume(&self, volume: f32) {
         self.sink.set_volume(volume);
     }
