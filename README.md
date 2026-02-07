@@ -28,6 +28,7 @@ chmod +x install.sh
 ```
 
 **Note:** If `~/.local/bin` isn't in your PATH, you might need to add it to your `.zshrc` or `.bashrc`:
+
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```

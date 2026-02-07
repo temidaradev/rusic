@@ -1,0 +1,117 @@
+use crate::components::track_row::TrackRow;
+use crate::hooks::PlayerController;
+use crate::player::player;
+use crate::reader::models::Track;
+use crate::reader::Library;
+use crate::web_audio_store;
+use dioxus::prelude::*;
+
+#[component]
+pub fn SearchGenreDetail(
+    genre: String,
+    genre_tracks: Vec<(Track, Option<String>)>,
+    genres: Vec<(String, Option<String>)>,
+    on_back: EventHandler<()>,
+    library: Signal<Library>,
+    playlist_store: Signal<crate::reader::PlaylistStore>,
+    player: Signal<player::Player>,
+    mut is_playing: Signal<bool>,
+    mut current_song_cover_url: Signal<String>,
+    mut current_song_title: Signal<String>,
+    mut current_song_artist: Signal<String>,
+    mut current_song_duration: Signal<u64>,
+    mut current_song_progress: Signal<u64>,
+    mut queue: Signal<Vec<Track>>,
+    mut current_queue_index: Signal<usize>,
+    mut active_menu_track: Signal<Option<std::path::PathBuf>>,
+    mut show_playlist_modal: Signal<bool>,
+    mut selected_track_for_playlist: Signal<Option<std::path::PathBuf>>,
+) -> Element {
+    let mut ctrl = use_context::<PlayerController>();
+
+    rsx! {
+        div {
+            class: "space-y-6",
+            button {
+                class: "mb-4 flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
+                 onclick: move |_| on_back.call(()),
+                 i { class: "fa-solid fa-arrow-left" }
+                 "Back to Browse"
+            }
+
+            div { class: "flex items-end gap-6 mb-8",
+                 if let Some((_, Some(url))) = genres.iter().find(|(g, _)| g == &genre) {
+                     img { src: "{url}", class: "w-48 h-48 rounded-lg shadow-2xl object-cover" }
+                 } else {
+                     div { class: "w-48 h-48 rounded-lg bg-gradient-to-br flex items-center justify-center shadow-2xl",
+                         i { class: "fa-solid fa-music text-6xl text-white/20" }
+                     }
+                 }
+
+                 div {
+                     h2 { class: "text-sm font-bold text-white/60 uppercase tracking-widest mb-2", "Genre" }
+                     h1 { class: "text-5xl font-bold text-white mb-4", "{genre}" }
+                     p { class: "text-slate-400", "{genre_tracks.len()} tracks" }
+                 }
+            }
+
+            div { class: "space-y-1 pb-20",
+                 for (idx, (track, cover_url)) in genre_tracks.iter().enumerate() {
+                     {
+                         let track = track.clone();
+                         let track_key = track.path.display().to_string();
+                         let track_menu = track.clone();
+                         let track_add = track.clone();
+                         let track_delete = track.clone();
+                         let cover_play = cover_url.clone();
+                         let is_menu_open = active_menu_track.read().as_ref() == Some(&track.path);
+                         let genre_tracks_list: Vec<Track> = genre_tracks.iter().map(|(t, _)| t.clone()).collect();
+
+                         rsx! {
+                             TrackRow {
+                                 key: "{track_key}",
+                                 track: track.clone(),
+                                 cover_url: cover_url.clone(),
+                                 is_menu_open: is_menu_open,
+                                 on_click_menu: move |_| {
+                                     if active_menu_track.read().as_ref() == Some(&track_menu.path) {
+                                         active_menu_track.set(None);
+                                     } else {
+                                         active_menu_track.set(Some(track_menu.path.clone()));
+                                     }
+                                 },
+                                 on_add_to_playlist: move |_| {
+                                     selected_track_for_playlist.set(Some(track_add.path.clone()));
+                                     show_playlist_modal.set(true);
+                                     active_menu_track.set(None);
+                                 },
+                                 on_close_menu: move |_| active_menu_track.set(None),
+                                 on_delete: {
+                                     let track_delete = track_delete.clone();
+                                     move |_| {
+                                         active_menu_track.set(None);
+                                         // Remove from audio store and library
+                                         let path_key = track_delete.path.to_string_lossy().to_string();
+                                         web_audio_store::remove_file(&path_key);
+                                         library.write().remove_track(&track_delete.path);
+                                         let _ = library.read().save(&std::path::PathBuf::new());
+                                     }
+                                 },
+                                 on_play: {
+                                     let cover_play = cover_play.clone();
+                                     move |_| {
+                                         ctrl.queue.set(genre_tracks_list.clone());
+                                         ctrl.play_track(idx);
+                                         if let Some(cover) = &cover_play {
+                                             ctrl.current_song_cover_url.set(cover.clone());
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+            }
+        }
+    }
+}

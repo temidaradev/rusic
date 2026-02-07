@@ -1,36 +1,51 @@
-[workspace]
-members = [
-   "rusic",
-   "components",
-   "hooks",
-   "pages",
-   "player",
-   "reader",
-   "server", "utils", "config", "rusic_route",
-]
-resolver = "3"
+[package]
+name = "rusic"
+version = "0.1.0"
+authors = ["temidaradev <temidaradev>"]
+edition = "2021"
 
-[workspace.dependencies]
-dioxus = { version = "0.7.3", features = [] }
+[dependencies]
+dioxus = { version = "0.7.3", features = ["web"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1.0", features = ["full"] }
-async-recursion = "1.0"
-lofty = "0.22.4"
-rfd = "0.17.2"
 percent-encoding = "2.3.2"
 http = "1.4.0"
-uuid = { version = "1.20.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
-rodio = "0.21.1"
-jellyfin-sdk-rust = "0.1.2"
-reqwest = "0.12"
-player = { path = "./player" }
-reader = { path = "./reader" }
-components = { path = "./components" }
-hooks = { path = "./hooks" }
-pages = { path = "./pages" }
-utils = { path = "./utils" }
-config = { path = "./config" }
-rusic = { path = "./rusic" }
-server = { path = "./server" }
-rusic_route = { path = "./rusic_route" }
+uuid = { version = "1.20.0", features = ["v4", "fast-rng", "macro-diagnostics", "js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Window",
+    "Document",
+    "HtmlAudioElement",
+    "HtmlInputElement",
+    "FileList",
+    "File",
+    "Blob",
+    "FileReader",
+    "Storage",
+    "Navigator",
+    "Url",
+] }
+gloo-timers = "0.3"
+gloo-file = { version = "0.3", features = ["futures"] }
+gloo-storage = "0.3"
+
+[features]
+default = ["web"]
+web = []
+
+[profile]
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
