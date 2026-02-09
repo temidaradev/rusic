@@ -1,4 +1,6 @@
-use components::settings_items::{DirectoryPicker, ServerSettings, SettingItem, ThemeSelector};
+use components::settings_items::{
+    DirectoryPicker, DiscordPresenceSettings, ServerSettings, SettingItem, ThemeSelector,
+};
 use components::settings_popups::{AddServerPopup, LoginPopup};
 use config::AppConfig;
 use dioxus::prelude::*;
@@ -136,6 +138,20 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                                     on_add: move |_| show_add_server.set(true),
                                     on_delete: move |_| config.write().server = None,
                                     on_login: move |_| show_login.set(true),
+                                }
+                            }
+                        }
+                        SettingItem {
+                            title: "Discord Presence",
+                            description: if config.read().discord_presence.unwrap_or(true) {
+                                "Discord presence enabled".to_string()
+                            } else {
+                                "Discord presence disabled".to_string()
+                            },
+                            control: rsx! {
+                                DiscordPresenceSettings {
+                                    enabled: config.read().discord_presence.unwrap_or(true),
+                                    on_change: move |val| config.write().discord_presence = Some(val),
                                 }
                             }
                         }

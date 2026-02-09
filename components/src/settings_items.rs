@@ -92,3 +92,44 @@ pub fn ServerSettings(
         }
     }
 }
+
+#[component]
+pub fn DiscordPresenceSettings(enabled: bool, on_change: EventHandler<bool>) -> Element {
+    let slider_style = if enabled {
+        "left: 4px; width: calc(50% - 4px);"
+    } else {
+        "left: calc(50% + 2px); width: calc(50% - 4px);"
+    };
+
+    let enable_class = if enabled {
+        "text-white"
+    } else {
+        "text-slate-500 hover:text-slate-300"
+    };
+
+    let disable_class = if !enabled {
+        "text-white"
+    } else {
+        "text-slate-500 hover:text-slate-300"
+    };
+
+    rsx! {
+        div {
+            class: "bg-white/5 p-1 rounded-xl flex relative h-10 items-center border border-white/5 w-48",
+            div {
+                class: "absolute h-8 bg-white/10 rounded-lg transition-all duration-300 ease-out",
+                style: "{slider_style}"
+            }
+            button {
+                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 cursor-pointer {enable_class}",
+                onclick: move |_| on_change.call(true),
+                "ENABLED"
+            }
+            button {
+                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 cursor-pointer {disable_class}",
+                onclick: move |_| on_change.call(false),
+                "DISABLED"
+            }
+        }
+    }
+}

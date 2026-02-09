@@ -20,6 +20,8 @@ pub struct AppConfig {
     pub theme: String,
     #[serde(default = "default_device_id")]
     pub device_id: String,
+    #[serde(default = "default_discord_presence")]
+    pub discord_presence: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -38,6 +40,10 @@ fn default_device_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
+fn default_discord_presence() -> Option<bool> {
+    Some(true)
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -46,6 +52,7 @@ impl Default for AppConfig {
             music_directory: PathBuf::from("./assets"),
             theme: default_theme(),
             device_id: default_device_id(),
+            discord_presence: Some(true),
         }
     }
 }

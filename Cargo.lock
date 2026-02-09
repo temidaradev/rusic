@@ -3312,6 +3312,7 @@ dependencies = [
  "components",
  "config",
  "dioxus",
+ "discord-presence",
  "hooks",
  "player",
  "reader",

@@ -18,3 +18,4 @@ rodio = { workspace = true }
 server = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
+discord-presence = { workspace = true }

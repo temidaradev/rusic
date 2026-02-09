@@ -1,6 +1,6 @@
 use discord_rich_presence::{
-    activity::{self, Assets, Timestamps},
     DiscordIpc, DiscordIpcClient,
+    activity::{self, Assets, Timestamps},
 };
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};

@@ -159,6 +159,38 @@ impl JellyfinRemote {
         Ok((login_resp.access_token, login_resp.user.id))
     }
 
+    pub async fn get_metadata(&self, user_id: &str, item_id: &str) -> Result<Item, String> {
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!(
+            "{}/Users/{}/Items/{}/Metadata",
+            self.base_url, user_id, item_id
+        );
+        let client = reqwest::Client::new();
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let resp = client
+            .get(&url)
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to get metadata: {}", resp.status()));
+        }
+
+        let metadata_resp: Item = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(metadata_resp)
+    }
+
     pub async fn get_views(&self) -> Result<Vec<ViewItem>, String> {
         let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
         let token = self
@@ -196,76 +228,6 @@ impl JellyfinRemote {
             .filter(|v| v.collection_type.as_deref() == Some("music"))
             .collect();
         Ok(music_libs)
-    }
-
-    pub async fn get_library_items(&self, parent_id: &str) -> Result<Vec<Item>, String> {
-        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
-        let token = self
-            .access_token
-            .as_ref()
-            .ok_or("No access token available")?;
-
-        let url = format!("{}/Users/{}/Items", self.base_url, user_id);
-        let client = reqwest::Client::new();
-
-        let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
-            self.device_id, token
-        );
-
-        let resp = client
-            .get(&url)
-            .query(&[("ParentId", parent_id)])
-            .header("X-Emby-Authorization", auth_header)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if !resp.status().is_success() {
-            return Err(format!("Failed to get library items: {}", resp.status()));
-        }
-
-        let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
-        Ok(items_resp.items)
-    }
-
-    pub async fn get_music_library_items(&self, parent_id: &str) -> Result<Vec<Item>, String> {
-        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
-        let token = self
-            .access_token
-            .as_ref()
-            .ok_or("No access token available")?;
-
-        let url = format!("{}/Users/{}/Items", self.base_url, user_id);
-        let client = reqwest::Client::new();
-
-        let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
-            self.device_id, token
-        );
-
-        let resp = client
-            .get(&url)
-            .query(&[
-                ("ParentId", parent_id),
-                ("Recursive", "true"),
-                ("IncludeItemTypes", "Audio"),
-                (
-                    "Fields",
-                    "DateCreated,DateLastMediaAdded,MediaSources,ImageTags,Genres,ParentIndexNumber,IndexNumber,AlbumId,AlbumArtist,ProductionYear,Container",
-                ),
-            ])
-            .header("X-Emby-Authorization", auth_header)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if !resp.status().is_success() {
-            return Err(format!("Failed to get music items: {}", resp.status()));
-        }
-
-        let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
-        Ok(items_resp.items)
     }
 
     pub async fn get_music_library_items_paginated(
@@ -317,47 +279,6 @@ impl JellyfinRemote {
         Ok(items_resp.items)
     }
 
-    pub async fn get_albums(&self, parent_id: &str) -> Result<Vec<AlbumItem>, String> {
-        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
-        let token = self
-            .access_token
-            .as_ref()
-            .ok_or("No access token available")?;
-
-        let url = format!("{}/Users/{}/Items", self.base_url, user_id);
-        let client = reqwest::Client::new();
-
-        let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
-            self.device_id, token
-        );
-
-        let resp = client
-            .get(&url)
-            .query(&[
-                ("ParentId", parent_id),
-                ("Recursive", "true"),
-                ("IncludeItemTypes", "MusicAlbum"),
-                (
-                    "Fields",
-                    "ImageTags,Genres,ProductionYear,AlbumArtist,ChildCount",
-                ),
-                ("SortBy", "SortName"),
-                ("SortOrder", "Ascending"),
-            ])
-            .header("X-Emby-Authorization", auth_header)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        if !resp.status().is_success() {
-            return Err(format!("Failed to get albums: {}", resp.status()));
-        }
-
-        let albums_resp: AlbumsResponse = resp.json().await.map_err(|e| e.to_string())?;
-        Ok(albums_resp.items)
-    }
-
     pub async fn get_albums_paginated(
         &self,
         parent_id: &str,
@@ -407,22 +328,5 @@ impl JellyfinRemote {
 
         let albums_resp: AlbumsResponse = resp.json().await.map_err(|e| e.to_string())?;
         Ok((albums_resp.items, albums_resp.total_record_count))
-    }
-
-    pub fn build_image_url(&self, item_id: &str, image_tag: Option<&str>) -> String {
-        let mut url = format!("{}/Items/{}/Images/Primary", self.base_url, item_id);
-        let mut params = Vec::new();
-
-        if let Some(tag) = image_tag {
-            params.push(format!("tag={}", tag));
-        }
-        if let Some(token) = &self.access_token {
-            params.push(format!("api_key={}", token));
-        }
-        if !params.is_empty() {
-            url.push('?');
-            url.push_str(&params.join("&"));
-        }
-        url
     }
 }
