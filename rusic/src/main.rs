@@ -16,21 +16,16 @@ const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
 static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
 
 fn main() {
-    let _ = dotenvy::dotenv();
-
-    let presence: Option<Arc<Presence>> =
-        std::env::var("DISCORD_APP_ID")
-            .ok()
-            .and_then(|id| match Presence::new(&id) {
-                Ok(p) => {
-                    println!("Discord presence connected!");
-                    Some(Arc::new(p))
-                }
-                Err(e) => {
-                    eprintln!("Failed to connect to Discord: {e}");
-                    None
-                }
-            });
+    let presence: Option<Arc<Presence>> = match Presence::new("1470087339639443658") {
+        Ok(p) => {
+            println!("Discord presence connected!");
+            Some(Arc::new(p))
+        }
+        Err(e) => {
+            eprintln!("Failed to connect to Discord: {e}");
+            None
+        }
+    };
 
     PRESENCE.set(presence).ok();
     let mut window = dioxus::desktop::WindowBuilder::new()

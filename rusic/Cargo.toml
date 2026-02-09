@@ -1,6 +1,6 @@
 [package]
 name = "rusic"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
@@ -17,7 +17,6 @@ http = { workspace = true }
 hooks = { workspace = true }
 percent-encoding = { workspace = true }
 discord-presence = { workspace = true }
-dotenvy = { workspace = true }
 discord-rich-presence = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
