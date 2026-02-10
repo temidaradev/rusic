@@ -46,10 +46,13 @@ fn default_discord_presence() -> Option<bool> {
 
 impl Default for AppConfig {
     fn default() -> Self {
+        let music_directory = directories::UserDirs::new()
+            .and_then(|u| u.audio_dir().map(|p| p.to_path_buf()))
+            .unwrap_or_else(|| PathBuf::from("./assets"));
         Self {
             server: None,
             active_source: MusicSource::Local,
-            music_directory: PathBuf::from("./assets"),
+            music_directory,
             theme: default_theme(),
             device_id: default_device_id(),
             discord_presence: Some(true),
@@ -74,16 +77,38 @@ impl AppConfig {
             return Self::default();
         }
         match fs::read_to_string(path) {
-            Ok(data) => serde_json::from_str(&data).unwrap_or_default(),
-            Err(_) => Self::default(),
+            Ok(data) => match serde_json::from_str(&data) {
+                Ok(config) => config,
+                Err(e) => {
+                    eprintln!("Failed to parse config at {:?}: {}", path, e);
+                    Self::default()
+                }
+            },
+            Err(e) => {
+                eprintln!("Failed to read config at {:?}: {}", path, e);
+                Self::default()
+            }
         }
     }
 
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            if let Err(e) = fs::create_dir_all(parent) {
+                eprintln!("Failed to create config directory {:?}: {}", parent, e);
+                return Err(e);
+            }
         }
-        let data = serde_json::to_string_pretty(self)?;
-        fs::write(path, data)
+        let data = match serde_json::to_string_pretty(self) {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("Failed to serialize config: {}", e);
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+            }
+        };
+        if let Err(e) = fs::write(path, data) {
+            eprintln!("Failed to write config to {:?}: {}", path, e);
+            return Err(e);
+        }
+        Ok(())
     }
 }

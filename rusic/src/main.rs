@@ -106,17 +106,22 @@ fn main() {
 fn App() -> Element {
     let mut library = use_signal(reader::Library::default);
     let mut current_route = use_signal(|| Route::Home);
-    let cache_dir = use_memo(|| {
-        let path = if let Ok(home) = std::env::var("HOME") {
-            std::path::Path::new(&home).join(".cache/rusic")
-        } else {
-            std::path::Path::new("./cache").to_path_buf()
-        };
+    let cache_dir = use_memo(move || {
+        let path = directories::ProjectDirs::from("com", "temidaradev", "rusic")
+            .map(|dirs| dirs.cache_dir().to_path_buf())
+            .unwrap_or_else(|| std::path::Path::new("./cache").to_path_buf());
+        let _ = std::fs::create_dir_all(&path);
+        path
+    });
+    let config_dir = use_memo(move || {
+        let path = directories::ProjectDirs::from("com", "temidaradev", "rusic")
+            .map(|dirs| dirs.config_dir().to_path_buf())
+            .unwrap_or_else(|| std::path::Path::new("./config").to_path_buf());
         let _ = std::fs::create_dir_all(&path);
         path
     });
     let lib_path = use_memo(move || cache_dir().join("library.json"));
-    let config_path = use_memo(move || cache_dir().join("config.json"));
+    let config_path = use_memo(move || config_dir().join("config.json"));
     let config = use_signal(|| config::AppConfig::load(&config_path()));
     let playlist_path = use_memo(move || cache_dir().join("playlists.json"));
     let playlist_store =
@@ -150,15 +155,21 @@ fn App() -> Element {
     let search_query = use_signal(String::new);
 
     use_effect(move || {
-        let _ = config.read().save(&config_path());
+        if let Err(e) = config.read().save(&config_path()) {
+            eprintln!("Failed to save config: {}", e);
+        }
     });
 
     use_effect(move || {
-        let _ = playlist_store.read().save(&playlist_path());
+        if let Err(e) = playlist_store.read().save(&playlist_path()) {
+            eprintln!("Failed to save playlists: {}", e);
+        }
     });
 
     use_effect(move || {
-        let _ = library.read().save(&lib_path());
+        if let Err(e) = library.read().save(&lib_path()) {
+            eprintln!("Failed to save library: {}", e);
+        }
     });
 
     use_hook(move || {

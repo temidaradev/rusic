@@ -27,6 +27,7 @@ rodio = "0.21.1"
 jellyfin-sdk-rust = "0.1.2"
 reqwest = "0.12"
 rand = "0.8"
+directories = "6.0"
 player = { path = "./player" }
 reader = { path = "./reader" }
 components = { path = "./components" }

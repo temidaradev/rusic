@@ -445,6 +445,7 @@ dependencies = [
 name = "config"
 version = "0.1.0"
 dependencies = [
+ "directories",
  "serde",
  "serde_json",
  "uuid 1.20.0",
@@ -1170,6 +1171,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
+]
+
+[[package]]
+name = "directories"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16f5094c54661b38d03bd7e50df373292118db60b585c08a411c6d840017fe7d"
+dependencies = [
+ "dirs-sys",
 ]
 
 [[package]]
@@ -4049,6 +4059,7 @@ dependencies = [
  "components",
  "config",
  "dioxus",
+ "directories",
  "discord-presence",
  "discord-rich-presence",
  "hooks",

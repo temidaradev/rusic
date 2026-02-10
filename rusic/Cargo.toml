@@ -10,6 +10,7 @@ player = { workspace = true }
 components = { workspace = true }
 reader = { workspace = true }
 config = { workspace = true }
+directories = { workspace = true }
 pages = { workspace = true }
 rusic_route = { workspace = true }
 tokio = { workspace = true }
