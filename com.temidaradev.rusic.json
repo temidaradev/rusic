@@ -1,37 +1,27 @@
 {
     "app-id": "com.temidaradev.rusic",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "49",
+    "runtime-version": "47",
     "sdk": "org.gnome.Sdk",
     "command": "rusic",
     "finish-args": [
         "--share=ipc",
-        "--socket=wayland",
         "--socket=x11",
-        "--socket=fallback-x11",
+        "--socket=wayland",
+        "--socket=pulseaudio",
         "--device=dri",
         "--share=network",
-        "--socket=pulseaudio",
-        "--device=all",
-        "--filesystem=host",
-        "--filesystem=/tmp",
-        "--filesystem=xdg-run/dconf",
-        "--filesystem=~/.config/dconf:ro",
-        "--socket=session-bus",
-        "--socket=system-bus",
+        "--filesystem=xdg-music:ro",
+        "--filesystem=xdg-download:ro",
+        "--filesystem=xdg-run/discord-ipc-0",
         "--talk-name=org.freedesktop.Notifications",
-        "--talk-name=org.freedesktop.portal.Desktop",
-        "--talk-name=org.freedesktop.Flatpak",
-        "--talk-name=org.a11y.Bus",
-        "--talk-name=org.gtk.vfs.*",
+        "--talk-name=org.mpris.MediaPlayer2.*",
         "--own-name=org.mpris.MediaPlayer2.rusic",
-        "--env=LANG=C.UTF-8",
-        "--env=WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1",
-        "--env=NO_AT_BRIDGE=1"
+        "--env=LD_LIBRARY_PATH=/app/lib"
     ],
     "modules": [
         {
-            "name": "libxdo",
+            "name": "xdotool",
             "buildsystem": "simple",
             "build-commands": [
                 "make INSTALL_MAN=0 PREFIX=/app",
@@ -41,36 +31,43 @@
                 {
                     "type": "git",
                     "url": "https://github.com/jordansissel/xdotool.git",
-                    "tag": "v4.20251130.1"
+                    "tag": "v3.20211022.1"
                 }
             ]
         },
         {
             "name": "rusic",
             "buildsystem": "simple",
-            "build-options": {
-                "build-args": [
-                    "--share=network"
-                ],
-                "env": {
-                    "CARGO_HOME": "/run/build/rusic/cargo",
-                    "LIBRARY_PATH": "/app/lib",
-                    "LD_LIBRARY_PATH": "/app/lib",
-                    "PKG_CONFIG_PATH": "/app/lib/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
-                }
-            },
             "build-commands": [
-                "curl https://sh.rustup.rs -sSf | sh -s -- -y",
-                ". $CARGO_HOME/env && rustup default stable && cargo build --release --package rusic",
-                "install -Dm755 target/release/rusic -t /app/bin/",
-                "cp -r rusic/assets /app/bin/",
-                "install -Dm644 data/com.temidaradev.rusic.desktop -t /app/share/applications/",
-                "install -Dm644 rusic/assets/logo.png /app/share/icons/hicolor/scalable/apps/com.temidaradev.rusic.png"
+                "install -Dm755 rusic /app/bin/rusic",
+                "mkdir -p /app/bin/assets",
+                "cp -r assets/* /app/bin/assets/",
+                "install -Dm644 com.temidaradev.rusic.desktop -t /app/share/applications/",
+                "install -Dm644 com.temidaradev.rusic.metainfo.xml -t /app/share/metainfo/",
+                "install -Dm644 logo.png /app/share/icons/hicolor/512x512/apps/com.temidaradev.rusic.png",
+                "install -Dm644 logo.png /app/share/icons/hicolor/128x128/apps/com.temidaradev.rusic.png"
             ],
             "sources": [
                 {
+                    "type": "file",
+                    "path": "target/dx/rusic/release/linux/app/rusic"
+                },
+                {
                     "type": "dir",
-                    "path": "."
+                    "path": "target/dx/rusic/release/linux/app/assets",
+                    "dest": "assets"
+                },
+                {
+                    "type": "file",
+                    "path": "data/com.temidaradev.rusic.desktop"
+                },
+                {
+                    "type": "file",
+                    "path": "data/com.temidaradev.rusic.metainfo.xml"
+                },
+                {
+                    "type": "file",
+                    "path": "rusic/assets/logo.png"
                 }
             ]
         }

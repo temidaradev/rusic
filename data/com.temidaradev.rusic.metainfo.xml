@@ -4,23 +4,50 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <name>Rusic</name>
-  <summary>A modern music player</summary>
+  <summary>A modern, lightweight music player</summary>
+
+  <developer id="com.temidaradev">
+    <name>temidaradev</name>
+  </developer>
+
   <description>
     <p>
-      Rusic is a fast, modern music player built with Rust and Dioxus, 
+      Rusic is a fast, modern music player built with Rust and the Dioxus framework.
+      It scans your local music folders and organizes them into a browsable library
+      by artist and album. Features include full playback controls, an immersive
+      fullscreen player, dynamic theming, and system media integration. And also 
+      We have Jellyfin server integration. To listen to your music from your Jellyfin server.
+    </p>
+    <p>
+      Designed for performance and simplicity.
     </p>
   </description>
+
   <launchable type="desktop-id">com.temidaradev.rusic.desktop</launchable>
+
   <screenshots>
     <screenshot type="default">
       <caption>The main interface</caption>
-      <image>https://raw.githubusercontent.com/temidaradev/rusic/main/assets/header.svg</image>
+      <image>https://github.com/user-attachments/assets/8366b1ea-021f-4631-a97b-5ed6e5bf1562</image>
     </screenshot>
   </screenshots>
+
   <url type="homepage">https://github.com/temidaradev/rusic</url>
-  <developer_name>temidaradev</developer_name>
+  <url type="bugtracker">https://github.com/temidaradev/rusic/issues</url>
+
   <content_rating type="oars-1.1" />
+
   <releases>
+
+    <release version="0.2.0" date="2026-02-10">
+      <description>
+        <p>Added Jellyfin server integration, portable Linux installer, and Flatpak support.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-01-31" />
   </releases>
+
+  <provides>
+    <binary>rusic</binary>
+  </provides>
 </component>

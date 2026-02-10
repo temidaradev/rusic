@@ -6,7 +6,7 @@ Rusic is a modern, lightweight music player application built with Rust and the 
 
 ## Overview
 
-Rusic allows you to scan your local directories for audio files, automatically organizing them into a browsable library. You can navigate by artists, albums, or explore your custom playlists. The application is built for performance and desktop integration, utilizing the power of Rust (well most of it gets demolished by webview .d).
+Rusic allows you to scan your local directories for audio files, automatically organizing them into a browsable library. You can navigate by artists, albums, or explore your custom playlists. The application is built for performance and desktop integration, utilizing the power of Rust.
 
 ## Features
 
@@ -14,34 +14,23 @@ Rusic allows you to scan your local directories for audio files, automatically o
 - **Playback Control**: Full suite of media controls including play, pause, skip, volume, and seeking.
 - **Fullscreen Player**: An immersive mode that focuses on album artwork and playback details.
 - **Theming**: Includes dynamic theming support to customize the visual appearance.
-- **Native Integration**: Integrates with system media controls and "Now Playing" displays (only macOS for now).
+- **Native Integration**: Integrates with system media controls (MPRIS) and "Now Playing" displays.
 
 ## Installation
 
-The easiest way to get Rusic running on Linux is the install script. It handles dependencies, builds the app, and adds it to your application menu automatically.
+### Flatpak (Recommended)
+
+Rusic is available on Flathub (coming soon). To install from source manifest:
 
 ```bash
 git clone https://github.com/temidaradev/rusic
 cd rusic
-chmod +x install.sh
-./install.sh
+flatpak-builder --user --install --force-clean build-dir com.temidaradev.rusic.json
+flatpak run com.temidaradev.rusic
 ```
 
-**Note:** If `~/.local/bin` isn't in your PATH, you might need to add it to your `.zshrc` or `.bashrc`:
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
+### Build from Source
 
-For mac you can just install the dmg file from releases
-
-## Features
-
-- **Blazing fast**: Built with Rust, so it doesn't eat your RAM like Electron players do.
-- **Library Management**: Scans your folders and organizes music by artist and album automatically.
-- **Integrated**: Works with your system media controls and "Now Playing" widgets. (only mac for now)
-- **Clean UI**: Modern interface with Tailwind CSS and Dioxus.
-
-## Development
 
 If you want to hack on it:
 

@@ -7,14 +7,21 @@ tailwind:
 build: tailwind
 	dx build --package rusic --release
 	@echo ""
-	@echo "Build complete! Run 'make install' to install."
+	@echo "Build complete!"
 
 run-release:
 	cd target/dx/rusic/release/linux/app && ./rusic
 
-install:
-	@./install.sh
+flatpak:
+	@chmod +x build-flatpak.sh
+	./build-flatpak.sh
+
+flatpak-install: flatpak
+
+flatpak-run:
+	flatpak run com.temidaradev.rusic
 
 clean:
 	cargo clean
-	rm -rf target/dx dist
+	rm -rf target/dx dist build-dir .flatpak-builder
+
