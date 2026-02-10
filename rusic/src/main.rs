@@ -28,6 +28,19 @@ fn main() {
     };
 
     PRESENCE.set(presence).ok();
+
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
+        let info = NSProcessInfo::processInfo();
+        let options = NSActivityOptions::UserInitiated
+            | NSActivityOptions::LatencyCritical
+            | NSActivityOptions::IdleSystemSleepDisabled;
+        let reason = NSString::from_str("Keep alive");
+        let activity = info.beginActivityWithOptions_reason(options, &reason);
+        std::mem::forget(activity);
+    }
+
     let mut window = dioxus::desktop::WindowBuilder::new()
         .with_title("Rusic")
         .with_resizable(true)

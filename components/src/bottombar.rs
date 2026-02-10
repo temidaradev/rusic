@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use hooks::use_player_controller::PlayerController;
+use hooks::use_player_controller::{LoopMode, PlayerController};
 use player::player::Player;
 use reader::Library;
 
@@ -70,7 +70,15 @@ pub fn Bottombar(
                 class: "flex flex-col items-center max-w-[40%] w-full gap-2",
                 div {
                     class: "flex items-center gap-6",
-                    button { class: "text-slate-400 hover:text-white transition-all active:scale-95", i { class: "fa-solid fa-shuffle text-sm" } }
+                    button {
+                        class: format!("{} transition-all active:scale-95 relative", if *ctrl.shuffle.read() { "text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]" } else { "text-slate-400 hover:text-white" }),
+                        onclick: move |_| ctrl.toggle_shuffle(),
+                        title: if *ctrl.shuffle.read() { "Shuffle: On" } else { "Shuffle: Off" },
+                        i { class: "fa-solid fa-shuffle text-sm" }
+                        if *ctrl.shuffle.read() {
+                            div { class: "absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,1)]" }
+                        }
+                    }
                     button {
                         class: "text-slate-400 hover:text-white transition-all active:scale-90",
                         onclick: move |_| {
@@ -92,7 +100,29 @@ pub fn Bottombar(
                         },
                         i { class: "fa-solid fa-forward-step text-xl" }
                     }
-                    button { class: "text-slate-400 hover:text-white transition-all active:scale-95", i { class: "fa-solid fa-repeat text-sm" } }
+                    button {
+                        class: format!("{} transition-all active:scale-95 relative",
+                            match *ctrl.loop_mode.read() {
+                                LoopMode::None => "text-slate-400 hover:text-white",
+                                LoopMode::Queue => "text-green-500 drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]",
+                                LoopMode::Track => "text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.4)]",
+                            }
+                        ),
+                        onclick: move |_| ctrl.toggle_loop(),
+                        title: match *ctrl.loop_mode.read() {
+                            LoopMode::None => "Repeat: Off",
+                            LoopMode::Queue => "Repeat: Queue",
+                            LoopMode::Track => "Repeat: Track",
+                        },
+                        i { class: "fa-solid fa-repeat text-sm" }
+                        if *ctrl.loop_mode.read() != LoopMode::None {
+                            div {
+                                class: format!("absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full shadow-[0_0_8px_rgba(255,255,255,1)] {}",
+                                    if *ctrl.loop_mode.read() == LoopMode::Track { "bg-indigo-400 shadow-indigo-400/80" } else { "bg-green-500 shadow-green-500/80" }
+                                )
+                            }
+                        }
+                    }
                 }
 
                 div {

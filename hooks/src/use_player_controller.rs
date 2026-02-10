@@ -4,12 +4,31 @@ use player::player::{NowPlayingMeta, Player};
 use reader::{Library, Track};
 use utils;
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum LoopMode {
+    None,
+    Queue,
+    Track,
+}
+
+impl LoopMode {
+    pub fn next(&self) -> Self {
+        match self {
+            LoopMode::None => LoopMode::Queue,
+            LoopMode::Queue => LoopMode::Track,
+            LoopMode::Track => LoopMode::None,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct PlayerController {
     pub player: Signal<Player>,
     pub is_playing: Signal<bool>,
     pub is_loading: Signal<bool>,
     pub queue: Signal<Vec<Track>>,
+    pub shuffle: Signal<bool>,
+    pub loop_mode: Signal<LoopMode>,
     pub current_queue_index: Signal<usize>,
     pub current_song_title: Signal<String>,
     pub current_song_artist: Signal<String>,
@@ -149,18 +168,72 @@ impl PlayerController {
 
     pub fn play_next(&mut self) {
         let idx = *self.current_queue_index.peek();
-        if idx + 1 < self.queue.peek().len() {
-            self.play_track(idx + 1);
-        } else {
-            self.is_playing.set(false);
+        let queue_len = self.queue.peek().len();
+
+        if queue_len == 0 {
+            return;
+        }
+
+        let loop_mode = *self.loop_mode.peek();
+        let shuffle = *self.shuffle.peek();
+
+        match loop_mode {
+            LoopMode::Track => {
+                self.play_track(idx);
+            }
+            _ => {
+                if shuffle && queue_len > 1 {
+                    let mut rng = rand::thread_rng();
+                    use rand::Rng;
+                    let mut next_idx = rng.gen_range(0..queue_len);
+                    while next_idx == idx {
+                        next_idx = rng.gen_range(0..queue_len);
+                    }
+                    self.play_track(next_idx);
+                } else if shuffle && queue_len == 1 {
+                    self.play_track(0);
+                } else if idx + 1 < queue_len {
+                    self.play_track(idx + 1);
+                } else if loop_mode == LoopMode::Queue {
+                    self.play_track(0);
+                } else {
+                    self.is_playing.set(false);
+                }
+            }
         }
     }
 
     pub fn play_prev(&mut self) {
         let idx = *self.current_queue_index.peek();
-        if idx > 0 {
-            self.play_track(idx - 1);
+        let queue_len = self.queue.peek().len();
+
+        if queue_len == 0 {
+            return;
         }
+
+        if *self.shuffle.peek() && queue_len > 1 {
+            let mut rng = rand::thread_rng();
+            use rand::Rng;
+            let mut prev_idx = rng.gen_range(0..queue_len);
+            while prev_idx == idx {
+                prev_idx = rng.gen_range(0..queue_len);
+            }
+            self.play_track(prev_idx);
+        } else if *self.shuffle.peek() && queue_len == 1 {
+            self.play_track(0);
+        } else if idx > 0 {
+            self.play_track(idx - 1);
+        } else if *self.loop_mode.peek() == LoopMode::Queue {
+            self.play_track(queue_len - 1);
+        }
+    }
+
+    pub fn toggle_shuffle(&mut self) {
+        self.shuffle.with_mut(|s| *s = !*s);
+    }
+
+    pub fn toggle_loop(&mut self) {
+        self.loop_mode.with_mut(|l| *l = l.next());
     }
 
     pub fn pause(&mut self) {
@@ -201,11 +274,16 @@ pub fn use_player_controller(
 ) -> PlayerController {
     let play_generation = use_signal(|| 0);
     let is_loading = use_signal(|| false);
+    let shuffle = use_signal(|| false);
+    let loop_mode = use_signal(|| LoopMode::None);
+
     PlayerController {
         player,
         is_playing,
         is_loading,
         queue,
+        shuffle,
+        loop_mode,
         current_queue_index,
         current_song_title,
         current_song_artist,

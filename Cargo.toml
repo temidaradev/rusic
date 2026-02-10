@@ -26,6 +26,7 @@ uuid = { version = "1.20.0", features = ["v4", "fast-rng", "macro-diagnostics"] 
 rodio = "0.21.1"
 jellyfin-sdk-rust = "0.1.2"
 reqwest = "0.12"
+rand = "0.8"
 player = { path = "./player" }
 reader = { path = "./reader" }
 components = { path = "./components" }

@@ -21,7 +21,7 @@ discord-rich-presence = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.3", features = ["std"] }
-objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL"] }
+objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL", "NSProcessInfo"] }
 objc2-media-player = { version = "0.3.2", features = ["MPNowPlayingInfoCenter", "MPMediaItem", "MPRemoteCommandCenter", "MPRemoteCommand"] }
 objc2-app-kit = { version = "0.3.2", features = ["NSImage"] }
 block2 = "0.6"
