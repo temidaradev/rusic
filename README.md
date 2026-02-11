@@ -2,7 +2,7 @@
 
 Rusic is a modern, lightweight music player application built with Rust and the Dioxus framework. It provides a clean and responsive interface for managing and enjoying your local music collection.
 
-![Rusic Interface](https://github.com/user-attachments/assets/8366b1ea-021f-4631-a97b-5ed6e5bf1562)
+![Rusic Interface](https://github.com/user-attachments/assets/d5ece9e3-ca7a-4986-929f-c01198ab6ba1)
 
 ## Overview
 
