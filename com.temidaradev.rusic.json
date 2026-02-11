@@ -1,7 +1,7 @@
 {
     "app-id": "com.temidaradev.rusic",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "47",
+    "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
     "command": "rusic",
     "finish-args": [
@@ -31,7 +31,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/jordansissel/xdotool.git",
-                    "tag": "v3.20211022.1"
+                    "tag": "v4.20251130.1"
                 }
             ]
         },
