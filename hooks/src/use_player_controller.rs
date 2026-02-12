@@ -151,6 +151,7 @@ impl PlayerController {
                     });
                 }
             } else {
+                self.current_queue_index.set(idx);
                 if let Ok(file) = std::fs::File::open(&track.path) {
                     if let Ok(source) = rodio::Decoder::new(std::io::BufReader::new(file)) {
                         let lib = self.library.peek();
@@ -191,7 +192,6 @@ impl PlayerController {
                             self.current_song_cover_url.set(String::new());
                         }
 
-                        self.current_queue_index.set(idx);
                         self.is_playing.set(true);
                     }
                 }
