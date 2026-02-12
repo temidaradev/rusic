@@ -12,40 +12,57 @@ pub fn use_player_task(ctrl: PlayerController) {
 
     use_future(move || {
         let mut ctrl = ctrl;
+        async move {
+            #[cfg(target_os = "macos")]
+            {
+                use player::systemint::{SystemEvent, wait_event};
+                while let Some(event) = wait_event().await {
+                    match event {
+                        SystemEvent::Play => ctrl.resume(),
+                        SystemEvent::Pause => ctrl.pause(),
+                        SystemEvent::Toggle => ctrl.toggle(),
+                        SystemEvent::Next => ctrl.play_next(),
+                        SystemEvent::Prev => ctrl.play_prev(),
+                    }
+                }
+            }
+
+            #[cfg(target_os = "linux")]
+            {
+                use player::systemint::{SystemEvent, poll_event};
+                loop {
+                    let mut processed = false;
+                    while let Some(event) = poll_event() {
+                        processed = true;
+                        match event {
+                            SystemEvent::Play => ctrl.resume(),
+                            SystemEvent::Pause => ctrl.pause(),
+                            SystemEvent::Toggle => ctrl.toggle(),
+                            SystemEvent::Next => ctrl.play_next(),
+                            SystemEvent::Prev => ctrl.play_prev(),
+                        }
+                    }
+                    if !processed {
+                        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                    }
+                }
+            }
+
+            #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+            {
+                std::future::pending::<()>().await;
+            }
+        }
+    });
+
+    use_future(move || {
+        let mut ctrl = ctrl;
         let presence = presence.clone();
         let mut last_discord_enabled = false;
 
         async move {
             loop {
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-
-                #[cfg(target_os = "macos")]
-                {
-                    use player::systemint::{SystemEvent, poll_event};
-                    while let Some(event) = poll_event() {
-                        match event {
-                            SystemEvent::Play => ctrl.resume(),
-                            SystemEvent::Pause => ctrl.pause(),
-                            SystemEvent::Toggle => ctrl.toggle(),
-                            SystemEvent::Next => ctrl.play_next(),
-                            SystemEvent::Prev => ctrl.play_prev(),
-                        }
-                    }
-                }
-
-                #[cfg(target_os = "linux")]
-                {
-                    use player::systemint::{SystemEvent, poll_event};
-                    while let Some(event) = poll_event() {
-                        match event {
-                            SystemEvent::Play => ctrl.resume(),
-                            SystemEvent::Pause => ctrl.pause(),
-                            SystemEvent::Toggle => ctrl.toggle(),
-                            SystemEvent::Next => ctrl.play_next(),
-                            SystemEvent::Prev => ctrl.play_prev(),
-                        }
-                    }
-                }
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
                 let is_playing = *ctrl.is_playing.read();
                 let discord_enabled = config.read().discord_presence.unwrap_or(true);
@@ -83,7 +100,11 @@ pub fn use_player_task(ctrl: PlayerController) {
                         }
                     }
 
-                    if ctrl.player.read().is_empty() && !*ctrl.is_loading.read() {
+                    let duration = *ctrl.current_song_duration.read();
+                    if (ctrl.player.read().is_empty()
+                        || (duration > 0 && pos.as_secs() >= duration))
+                        && !*ctrl.is_loading.read()
+                    {
                         ctrl.play_next();
                     }
                 } else if *was_playing.peek() {

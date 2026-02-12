@@ -104,13 +104,46 @@ impl PlayerController {
                                     artist: track.artist.clone(),
                                     album: track.album.clone(),
                                     duration: std::time::Duration::from_secs(track.duration),
-                                    artwork: Some(cover_url),
+                                    artwork: Some(cover_url.clone()),
                                 };
 
                                 player.write().play(source, meta);
                                 player.read().set_volume(*volume.peek());
                                 is_loading.set(false);
                                 is_playing.set(true);
+
+                                let cover_url = cover_url.clone();
+                                let track = track.clone();
+                                let mut player = player;
+                                let play_generation = play_generation;
+
+                                spawn(async move {
+                                    if let Ok(response) = reqwest::get(&cover_url).await {
+                                        if let Ok(bytes) = response.bytes().await {
+                                            let temp_dir = std::env::temp_dir();
+                                            let random_id: u64 = rand::random();
+                                            let file_path = temp_dir
+                                                .join(format!("rusic_cover_{}.jpg", random_id));
+
+                                            if tokio::fs::write(&file_path, bytes).await.is_ok() {
+                                                if *play_generation.read() == current_gen {
+                                                    let path_str =
+                                                        file_path.to_string_lossy().to_string();
+                                                    let new_meta = NowPlayingMeta {
+                                                        title: track.title,
+                                                        artist: track.artist,
+                                                        album: track.album,
+                                                        duration: std::time::Duration::from_secs(
+                                                            track.duration,
+                                                        ),
+                                                        artwork: Some(path_str),
+                                                    };
+                                                    player.write().update_metadata(new_meta);
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
                             }
                         } else {
                             is_loading.set(false);

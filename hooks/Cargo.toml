@@ -13,3 +13,4 @@ rodio = { workspace = true }
 config = { workspace = true }
 rand = { workspace = true }
 discord-presence = { workspace = true }
+reqwest = { workspace = true }

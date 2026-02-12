@@ -31,11 +31,13 @@ fn main() {
 
     #[cfg(target_os = "macos")]
     {
+        player::systemint::init();
         use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
         let info = NSProcessInfo::processInfo();
         let options = NSActivityOptions::UserInitiated
-            | NSActivityOptions::LatencyCritical
-            | NSActivityOptions::IdleSystemSleepDisabled;
+            | NSActivityOptions::IdleSystemSleepDisabled
+            | NSActivityOptions::SuddenTerminationDisabled
+            | NSActivityOptions::AutomaticTerminationDisabled;
         let reason = NSString::from_str("Keep alive");
         let activity = info.beginActivityWithOptions_reason(options, &reason);
         std::mem::forget(activity);

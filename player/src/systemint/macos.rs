@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
-use std::sync::Mutex;
 use std::sync::OnceLock;
-use std::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::Mutex;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use block2::RcBlock;
 use objc2::AllocAnyThread;
@@ -25,13 +25,13 @@ pub enum SystemEvent {
     Prev,
 }
 
-static EVENT_SENDER: OnceLock<Sender<SystemEvent>> = OnceLock::new();
-static EVENT_RECEIVER: OnceLock<Mutex<Receiver<SystemEvent>>> = OnceLock::new();
+static EVENT_SENDER: OnceLock<UnboundedSender<SystemEvent>> = OnceLock::new();
+static EVENT_RECEIVER: OnceLock<Mutex<UnboundedReceiver<SystemEvent>>> = OnceLock::new();
 
-fn get_tx() -> Sender<SystemEvent> {
+fn get_tx() -> UnboundedSender<SystemEvent> {
     EVENT_SENDER
         .get_or_init(|| {
-            let (tx, rx) = mpsc::channel();
+            let (tx, rx) = mpsc::unbounded_channel();
             let _ = EVENT_RECEIVER.set(Mutex::new(rx));
             tx
         })
@@ -39,10 +39,19 @@ fn get_tx() -> Sender<SystemEvent> {
 }
 
 pub fn poll_event() -> Option<SystemEvent> {
-    EVENT_RECEIVER.get()?.lock().ok()?.try_recv().ok()
+    EVENT_RECEIVER.get()?.try_lock().ok()?.try_recv().ok()
 }
 
-fn setup_command_center() {
+pub async fn wait_event() -> Option<SystemEvent> {
+    if let Some(rx) = EVENT_RECEIVER.get() {
+        let mut guard = rx.lock().await;
+        guard.recv().await
+    } else {
+        None
+    }
+}
+
+pub fn init() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| unsafe {
         let center = MPRemoteCommandCenter::sharedCommandCenter();
@@ -105,7 +114,7 @@ pub fn update_now_playing(
     playing: bool,
     artwork_path: Option<&str>,
 ) {
-    setup_command_center();
+    init();
     unsafe {
         let center = MPNowPlayingInfoCenter::defaultCenter();
 
@@ -159,6 +168,7 @@ pub fn update_now_playing(
                         artwork_ref,
                         ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
                     );
+                    let _: () = msg_send![artwork, release];
                 }
             }
         }

@@ -98,6 +98,11 @@ impl Player {
         self.sink.set_volume(volume);
     }
 
+    pub fn update_metadata(&mut self, meta: NowPlayingMeta) {
+        self.now_playing = Some(meta);
+        self.update_now_playing_system();
+    }
+
     fn update_now_playing_system(&self) {
         #[cfg(target_os = "macos")]
         if let Some(meta) = &self.now_playing {
