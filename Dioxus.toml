@@ -10,6 +10,7 @@ base_path = "rusic/assets"
 identifier = "com.temidaradev.rusic"
 publisher = "temidaradev"
 icon = ["assets/logo.png"]
+category = "public.app-category.music"
 
 [web.app]
 title = "rusic"

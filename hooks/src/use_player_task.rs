@@ -16,13 +16,21 @@ pub fn use_player_task(ctrl: PlayerController) {
             #[cfg(target_os = "macos")]
             {
                 use player::systemint::{SystemEvent, wait_event};
-                while let Some(event) = wait_event().await {
-                    match event {
-                        SystemEvent::Play => ctrl.resume(),
-                        SystemEvent::Pause => ctrl.pause(),
-                        SystemEvent::Toggle => ctrl.toggle(),
-                        SystemEvent::Next => ctrl.play_next(),
-                        SystemEvent::Prev => ctrl.play_prev(),
+                println!("[player_task] Starting macOS event loop");
+                loop {
+                    let event = wait_event().await;
+                    if let Some(event) = event {
+                        println!("[player_task] Received MacOS system event: {:?}", event);
+                        match event {
+                            SystemEvent::Play => ctrl.resume(),
+                            SystemEvent::Pause => ctrl.pause(),
+                            SystemEvent::Toggle => ctrl.toggle(),
+                            SystemEvent::Next => ctrl.play_next(),
+                            SystemEvent::Prev => ctrl.play_prev(),
+                        }
+                    } else {
+                        println!("[player_task] wait_event returned None - channel closed?");
+                        break;
                     }
                 }
             }

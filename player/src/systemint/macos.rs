@@ -16,6 +16,12 @@ use objc2_media_player::{
     MPRemoteCommandHandlerStatus,
 };
 
+// NSActivityOptions value for NSActivityUserInitiated
+// 0x00FFFFFF (NSActivityUserInitiated) includes NSActivityBackgroun (0x000000FF)
+// We want to be very explicit about preventing suspension.
+// NSActivityBackground (0x000000FF) | NSActivityIdleSystemSleepDisabled (1 << 20) | NSActivitySuddenTerminationDisabled (1 << 14) | NSActivityAutomaticTerminationDisabled (1 << 15)
+const NS_ACTIVITY_BACKGROUND_PREVENT_SUSPENSION: u64 = 0x000000FF | (1 << 20) | (1 << 14) | (1 << 15);
+
 #[derive(Debug)]
 pub enum SystemEvent {
     Play,
@@ -24,6 +30,15 @@ pub enum SystemEvent {
     Next,
     Prev,
 }
+
+struct ThreadSafeArtwork(objc2::rc::Retained<MPMediaItemArtwork>);
+
+unsafe impl Send for ThreadSafeArtwork {}
+unsafe impl Sync for ThreadSafeArtwork {}
+
+struct ThreadSafeActivity(objc2::rc::Retained<AnyObject>);
+unsafe impl Send for ThreadSafeActivity {}
+unsafe impl Sync for ThreadSafeActivity {}
 
 static EVENT_SENDER: OnceLock<UnboundedSender<SystemEvent>> = OnceLock::new();
 static EVENT_RECEIVER: OnceLock<Mutex<UnboundedReceiver<SystemEvent>>> = OnceLock::new();
@@ -54,6 +69,28 @@ pub async fn wait_event() -> Option<SystemEvent> {
 pub fn init() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| unsafe {
+        let process_info = objc2_foundation::NSProcessInfo::processInfo();
+        let reason = NSString::from_str("Music Playback Quality of Service");
+        let activity: *mut AnyObject = objc2::msg_send![&process_info, beginActivityWithOptions: NS_ACTIVITY_BACKGROUND_PREVENT_SUSPENSION, reason: &*reason];
+        
+        static ACTIVITY_TOKEN: OnceLock<ThreadSafeActivity> = OnceLock::new();
+        if !activity.is_null() {
+             let retained_activity = objc2::rc::Retained::from_raw(activity).expect("retained activity token");
+             let _ = ACTIVITY_TOKEN.set(ThreadSafeActivity(retained_activity));
+             println!("[macos] Acquired background activity token (Prevent Suspension)");
+        } else {
+             eprintln!("[macos] Failed to acquire background activity token");
+        }
+
+        std::thread::spawn(|| {
+            let mut counter = 0;
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(30));
+                counter += 1;
+                println!("[macos] Background heartbeat tick: {}", counter);
+            }
+        });
+
         let center = MPRemoteCommandCenter::sharedCommandCenter();
         let tx = get_tx();
 
@@ -115,6 +152,11 @@ pub fn update_now_playing(
     artwork_path: Option<&str>,
 ) {
     init();
+
+    // Cache to store the last artwork path and the created MPMediaItemArtwork
+    static ARTWORK_CACHE: OnceLock<std::sync::Mutex<Option<(String, ThreadSafeArtwork)>>> =
+        OnceLock::new();
+
     unsafe {
         let center = MPNowPlayingInfoCenter::defaultCenter();
 
@@ -153,22 +195,52 @@ pub fn update_now_playing(
         );
 
         if let Some(path) = artwork_path {
-            let ns_path = NSString::from_str(path);
-            if let Some(image) = NSImage::initWithContentsOfFile(NSImage::alloc(), &ns_path) {
-                use objc2::msg_send;
+            let cache_lock = ARTWORK_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+            let mut cache = cache_lock.lock().unwrap();
 
-                let artwork_alloc = MPMediaItemArtwork::alloc();
-                let artwork_ptr: *mut MPMediaItemArtwork = std::mem::transmute(artwork_alloc);
-                let artwork: *mut MPMediaItemArtwork =
-                    msg_send![artwork_ptr, initWithImage: &*image];
+            // Check if we have a cached artwork for this path
+            let cached_artwork = if let Some((cached_path, artwork_wrapper)) = &*cache {
+                if cached_path == path {
+                    Some(artwork_wrapper.0.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
 
-                if !artwork.is_null() {
-                    let artwork_ref: &AnyObject = &*(artwork as *const objc2::runtime::AnyObject);
-                    info.setObject_forKey(
-                        artwork_ref,
-                        ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
-                    );
-                    let _: () = msg_send![artwork, release];
+            if let Some(artwork) = cached_artwork {
+                let artwork_ref: &AnyObject =
+                    &*(std::mem::transmute::<_, *const AnyObject>(&*artwork));
+                info.setObject_forKey(
+                    artwork_ref,
+                    ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
+                );
+            } else {
+                // Not cached or path changed, load new artwork
+                let ns_path = NSString::from_str(path);
+                if let Some(image) = NSImage::initWithContentsOfFile(NSImage::alloc(), &ns_path) {
+                    use objc2::msg_send;
+
+                    let artwork_alloc = MPMediaItemArtwork::alloc();
+                    let artwork_ptr: *mut MPMediaItemArtwork = std::mem::transmute(artwork_alloc);
+                    let artwork_raw: *mut MPMediaItemArtwork =
+                        msg_send![artwork_ptr, initWithImage: &*image];
+
+                    if !artwork_raw.is_null() {
+                        let artwork_retained: objc2::rc::Retained<MPMediaItemArtwork> =
+                            objc2::rc::Retained::from_raw(artwork_raw).expect("retained artwork");
+
+                        let artwork_ref: &AnyObject =
+                            &*(std::mem::transmute::<_, *const AnyObject>(&*artwork_retained));
+                        info.setObject_forKey(
+                            artwork_ref,
+                            ProtocolObject::from_ref(MPMediaItemPropertyArtwork),
+                        );
+
+                        // Update cache
+                        *cache = Some((path.to_string(), ThreadSafeArtwork(artwork_retained)));
+                    }
                 }
             }
         }
