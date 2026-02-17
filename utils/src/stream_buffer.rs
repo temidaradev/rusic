@@ -6,6 +6,8 @@ const MIN_PREBUFFER_BYTES: usize = 256 * 1024; // 256KB
 
 const MIN_BUFFER_AHEAD: usize = 128 * 1024; // 128KB
 
+const MAX_BUFFER_SIZE: usize = 1024 * 1024 * 1024; // 1GB
+
 struct SharedState {
     buffer: Vec<u8>,
     done: bool,
@@ -54,6 +56,17 @@ impl StreamBuffer {
 
                     while let Ok(Some(chunk)) = response.chunk().await {
                         let chunk_len = chunk.len();
+
+                        if total_buffered + chunk_len > MAX_BUFFER_SIZE {
+                            let (lock, cvar) = &*state_clone;
+                            let mut state = lock.lock().unwrap();
+                            state.error = Some("Buffer limit exceeded (1GB)".to_string());
+                            state.done = true;
+                            state.prebuffer_ready = true;
+                            cvar.notify_all();
+                            break;
+                        }
+
                         {
                             let (lock, cvar) = &*state_clone;
                             let mut state = lock.lock().unwrap();
