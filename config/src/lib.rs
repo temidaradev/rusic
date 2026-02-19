@@ -9,6 +9,13 @@ pub enum MusicSource {
     Jellyfin,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum SortOrder {
+    Title,
+    Artist,
+    Album,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
@@ -22,6 +29,8 @@ pub struct AppConfig {
     pub device_id: String,
     #[serde(default = "default_discord_presence")]
     pub discord_presence: Option<bool>,
+    #[serde(default = "default_sort_order")]
+    pub sort_order: SortOrder,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -44,6 +53,10 @@ fn default_discord_presence() -> Option<bool> {
     Some(true)
 }
 
+fn default_sort_order() -> SortOrder {
+    SortOrder::Title
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         let music_directory = directories::UserDirs::new()
@@ -56,6 +69,7 @@ impl Default for AppConfig {
             theme: default_theme(),
             device_id: default_device_id(),
             discord_presence: Some(true),
+            sort_order: default_sort_order(),
         }
     }
 }

@@ -3,7 +3,7 @@ use components::stat_card::StatCard;
 use components::track_row::TrackRow;
 use config::{AppConfig, MusicSource};
 use dioxus::prelude::*;
-use hooks::use_library_items::{SortOrder, use_library_items};
+use hooks::use_library_items::use_library_items;
 use hooks::use_player_controller::PlayerController;
 use player::player;
 use reader::Library;
@@ -249,13 +249,13 @@ pub fn LibraryPage(
     } else {
         let mut tracks = library.read().jellyfin_tracks.clone();
         match *sort_order.read() {
-            SortOrder::Title => {
+            config::SortOrder::Title => {
                 tracks.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()))
             }
-            SortOrder::Artist => {
+            config::SortOrder::Artist => {
                 tracks.sort_by(|a, b| a.artist.to_lowercase().cmp(&b.artist.to_lowercase()))
             }
-            SortOrder::Album => {
+            config::SortOrder::Album => {
                 tracks.sort_by(|a, b| a.album.to_lowercase().cmp(&b.album.to_lowercase()))
             }
         }
@@ -418,9 +418,21 @@ pub fn LibraryPage(
                 }
                 div {
                     class: "flex space-x-1 bg-[#0A0A0A] border border-white/5 p-1 rounded-lg",
-                    SortButton { active: *sort_order.read() == SortOrder::Title, label: "Title", onclick: move |_| sort_order.set(SortOrder::Title) }
-                    SortButton { active: *sort_order.read() == SortOrder::Artist, label: "Artist", onclick: move |_| sort_order.set(SortOrder::Artist) }
-                    SortButton { active: *sort_order.read() == SortOrder::Album, label: "Album", onclick: move |_| sort_order.set(SortOrder::Album) }
+                    button {
+                        class: if *sort_order.read() == config::SortOrder::Title { "px-3 py-1 text-xs rounded-md bg-white/10 text-white font-medium transition-all" } else { "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all" },
+                        onclick: move |_| sort_order.set(config::SortOrder::Title),
+                        "Title"
+                    }
+                    button {
+                        class: if *sort_order.read() == config::SortOrder::Artist { "px-3 py-1 text-xs rounded-md bg-white/10 text-white font-medium transition-all" } else { "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all" },
+                        onclick: move |_| sort_order.set(config::SortOrder::Artist),
+                        "Artist"
+                    }
+                    button {
+                        class: if *sort_order.read() == config::SortOrder::Album { "px-3 py-1 text-xs rounded-md bg-white/10 text-white font-medium transition-all" } else { "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all" },
+                        onclick: move |_| sort_order.set(config::SortOrder::Album),
+                        "Album"
+                    }
                 }
             }
             div {

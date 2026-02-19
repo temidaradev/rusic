@@ -1,13 +1,7 @@
+use config::{AppConfig, SortOrder};
 use dioxus::prelude::*;
 use reader::Library;
 use reader::models::Track;
-
-#[derive(PartialEq, Clone, Copy)]
-pub enum SortOrder {
-    Title,
-    Artist,
-    Album,
-}
 
 pub struct LibraryItems {
     pub all_tracks: Vec<(Track, Option<String>)>,
@@ -16,8 +10,22 @@ pub struct LibraryItems {
 }
 
 pub fn use_library_items(library: Signal<Library>) -> LibraryItems {
+    let config = use_context::<Signal<AppConfig>>();
     let lib = library.read();
-    let sort_order = use_signal(|| SortOrder::Title);
+
+    let initial_sort_order = config.read().sort_order.clone();
+    let sort_order = use_signal(move || initial_sort_order);
+
+    use_effect({
+        let mut config = config.clone();
+        let sort_order = sort_order.clone();
+        move || {
+            let curr = sort_order.read().clone();
+            if config.read().sort_order != curr {
+                config.write().sort_order = curr;
+            }
+        }
+    });
 
     let artist_count = {
         let mut artists = std::collections::HashSet::new();
