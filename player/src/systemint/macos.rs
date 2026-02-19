@@ -7,8 +7,8 @@ use block2::RcBlock;
 use objc2::AllocAnyThread;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2_app_kit::NSImage;
-use objc2_foundation::{NSCopying, NSDictionary, NSMutableDictionary, NSNumber, NSString};
 use objc2_avf_audio::{AVAudioSession, AVAudioSessionCategoryPlayback};
+use objc2_foundation::{NSCopying, NSDictionary, NSMutableDictionary, NSNumber, NSString};
 use objc2_media_player::{
     MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle, MPMediaItemPropertyArtist,
     MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration, MPMediaItemPropertyTitle,
@@ -30,16 +30,23 @@ pub fn wake_run_loop() {
     unsafe { CFRunLoopWakeUp(CFRunLoopGetMain()) }
 }
 
-// NSActivityOptions values
-// NSActivityUserInitiated = 0x00FFFFFF
-// NSActivityLatencyCritical = 0xFF00000000
 // NSActivityIdleSystemSleepDisabled = 1 << 20
 // NSActivitySuddenTerminationDisabled = 1 << 14
 // NSActivityAutomaticTerminationDisabled = 1 << 15
+// NSActivityUserInitiated = 0x00FFFFFF | NSActivityIdleSystemSleepDisabled
+// NSActivityBackground = 0x000000FF
+// NSActivityLatencyCritical = 0xFF00000000
 //
-// We combine these to be extremely explicit about preventing suspension.
-// Note: UserInitiated (0x00FFFFFF) includes IdleSystemSleepDisabled.
-const NS_ACTIVITY_PREVENT_SUSPENSION: u64 = 0x00FFFFFF | 0xFF00000000 | (1 << 14) | (1 << 15);
+// We construct the flags manually to be explicit.
+// We used to use UserInitiated, but Background + LatencyCritical is more appropriate for
+// a long-running audio player that shouldn't be throttled.
+//
+// Switching to NSActivityUserInitiated to prevent aggressive throttling.
+const NS_ACTIVITY_PREVENT_SUSPENSION: u64 = (0x00FFFFFF) | // NSActivityUserInitiated
+    (1 << 20) |    // NSActivityIdleSystemSleepDisabled
+    (1 << 14) |    // NSActivitySuddenTerminationDisabled
+    (1 << 15) |    // NSActivityAutomaticTerminationDisabled
+    0xFF00000000; // NSActivityLatencyCritical
 
 #[derive(Debug)]
 pub enum SystemEvent {
@@ -91,7 +98,7 @@ pub fn init() {
         let process_info = objc2_foundation::NSProcessInfo::processInfo();
         let reason = NSString::from_str("Music Playback Quality of Service");
         let activity: *mut AnyObject = objc2::msg_send![&process_info, beginActivityWithOptions: NS_ACTIVITY_PREVENT_SUSPENSION, reason: &*reason];
-        
+
         // Configure AVAudioSession for background playback
         let session = AVAudioSession::sharedInstance();
         if let Err(e) = session.setCategory_error(AVAudioSessionCategoryPlayback.unwrap()) {

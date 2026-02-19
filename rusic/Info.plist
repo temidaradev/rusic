@@ -26,6 +26,8 @@
     <string>Copyright © 2024 Temidara.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSSupportsAppNap</key>
+    <false/>
     
     <!-- Crucial for background audio -->
     <key>UIBackgroundModes</key>
