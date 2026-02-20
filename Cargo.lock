@@ -417,7 +417,7 @@ dependencies = [
 
 [[package]]
 name = "components"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "config",
  "dioxus",
@@ -443,7 +443,7 @@ dependencies = [
 
 [[package]]
 name = "config"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "directories",
  "serde",
@@ -1205,7 +1205,7 @@ dependencies = [
 
 [[package]]
 name = "discord-presence"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "discord-rich-presence",
  "reader",
@@ -3379,7 +3379,7 @@ dependencies = [
 
 [[package]]
 name = "pages"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "components",
  "config",
@@ -3635,7 +3635,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "player"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "block2",
  "mpris-server",
@@ -3940,7 +3940,7 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "reader"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "async-recursion",
  "lofty",
@@ -4121,7 +4121,7 @@ dependencies = [
 
 [[package]]
 name = "rusic"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "block2",
  "components",
@@ -4147,7 +4147,7 @@ dependencies = [
 
 [[package]]
 name = "rusic_route"
-version = "0.1.0"
+version = "0.3.0"
 
 [[package]]
 name = "rustc-hash"
@@ -4411,7 +4411,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "jellyfin-sdk-rust",
  "reqwest 0.12.28",
@@ -5450,7 +5450,7 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "utils"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "percent-encoding",
  "reqwest 0.12.28",

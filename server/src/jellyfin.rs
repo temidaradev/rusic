@@ -155,7 +155,7 @@ impl JellyfinRemote {
         let body = LoginRequest { username, password };
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\"",
             self.device_id
         );
 
@@ -197,7 +197,7 @@ impl JellyfinRemote {
         );
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -227,7 +227,7 @@ impl JellyfinRemote {
         let url = format!("{}/Users/{}/Views", self.base_url, user_id);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -271,7 +271,7 @@ impl JellyfinRemote {
         let url = format!("{}/Users/{}/Items", self.base_url, user_id);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -319,7 +319,7 @@ impl JellyfinRemote {
         let url = format!("{}/Users/{}/Items", self.base_url, user_id);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -363,7 +363,7 @@ impl JellyfinRemote {
         let url = format!("{}/Sessions/Playing", self.base_url);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -406,7 +406,7 @@ impl JellyfinRemote {
         let url = format!("{}/Sessions/Playing/Progress", self.base_url);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
@@ -448,7 +448,7 @@ impl JellyfinRemote {
         let url = format!("{}/Sessions/Playing/Stopped", self.base_url);
 
         let auth_header = format!(
-            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.1.0\", Token=\"{}\"",
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
             self.device_id, token
         );
 
