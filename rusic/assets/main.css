@@ -69,8 +69,8 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-xl, 0.75rem);
     padding: 24px;
-    min-width: 400px;
-    max-width: 500px;
+    min-width: min(400px, 90vw);
+    max-width: min(500px, 90vw);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
@@ -96,10 +96,8 @@ body {
     font-family: inherit;
     transition-property: border-color, background-color;
     transition-duration: var(--default-transition-duration, 150ms);
-    transition-timing-function: var(
-        --default-transition-timing-function,
-        cubic-bezier(0.4, 0, 0.2, 1)
-    );
+    transition-timing-function: var(--default-transition-timing-function,
+            cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .popup input:focus {
@@ -138,10 +136,8 @@ body {
     cursor: pointer;
     transition-property: background-color, transform, color;
     transition-duration: var(--default-transition-duration, 150ms);
-    transition-timing-function: var(
-        --default-transition-timing-function,
-        cubic-bezier(0.4, 0, 0.2, 1)
-    );
+    transition-timing-function: var(--default-transition-timing-function,
+            cubic-bezier(0.4, 0, 0.2, 1));
     border: none;
 }
 

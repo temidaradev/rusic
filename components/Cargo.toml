@@ -12,6 +12,8 @@ rodio = { workspace = true }
 utils = { workspace = true }
 rusic_route = { workspace = true }
 config = { workspace = true }
-rfd = { workspace = true }
 hooks = { workspace = true }
 rand = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+rfd = { workspace = true }

@@ -23,7 +23,7 @@ pub fn PlaylistsPage(
 
     rsx! {
         div {
-            class: "p-8",
+            class: "p-4 md:p-8",
             if let Some(pid) = selected_playlist_id.read().clone() {
                  PlaylistDetail {
                      playlist_id: pid,

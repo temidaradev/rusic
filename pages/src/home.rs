@@ -322,12 +322,12 @@ pub fn Home(
 
     rsx! {
         div {
-            class: "p-8 space-y-12 pb-24",
+            class: "p-4 md:p-8 space-y-8 md:space-y-12 pb-24",
 
             if is_jellyfin {
                 section {
                     div { class: "flex items-center justify-between mb-4",
-                        h2 { class: "text-2xl font-bold text-white", "Artists" }
+                        h2 { class: "text-xl md:text-2xl font-bold text-white", "Artists" }
                         div { class: "flex gap-2",
                             button {
                                 class: "w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors",
@@ -346,12 +346,12 @@ pub fn Home(
                         class: "flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth",
                         for (artist, cover_url) in jellyfin_artists() {
                             div {
-                                class: "flex-none w-48 group cursor-pointer",
+                                class: "flex-none w-20 md:w-48 group cursor-pointer",
                                 onclick: {
                                     let artist = artist.clone();
                                     move |_| on_search_artist.call(artist.clone())
                                 },
-                                div { class: "w-48 h-48 rounded-full bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
+                                div { class: "w-20 h-20 md:w-48 md:h-48 rounded-full bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
                                     if let Some(url) = cover_url {
                                         img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }
                                     } else {
@@ -369,7 +369,7 @@ pub fn Home(
 
                 section {
                     div { class: "flex items-center justify-between mb-4",
-                         h2 { class: "text-2xl font-bold text-white", "Albums" }
+                         h2 { class: "text-xl md:text-2xl font-bold text-white", "Albums" }
                          div { class: "flex gap-2",
                             button {
                                 class: "w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors",
@@ -388,12 +388,12 @@ pub fn Home(
                         class: "flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth",
                         for (album_id, title, artist, cover_url) in jellyfin_albums() {
                             div {
-                               class: "flex-none w-48 group cursor-pointer",
+                               class: "flex-none w-20 md:w-48 group cursor-pointer",
                                onclick: {
                                    let id = album_id.clone();
                                    move |_| on_select_album.call(id.clone())
                                },
-                               div { class: "w-48 h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
+                               div { class: "w-20 h-20 md:w-48 md:h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
                                     if let Some(url) = cover_url {
                                         img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }
                                     } else {
@@ -412,7 +412,7 @@ pub fn Home(
             } else {
                 section {
                     div { class: "flex items-center justify-between mb-4",
-                        h2 { class: "text-2xl font-bold text-white", "Artists" }
+                        h2 { class: "text-xl md:text-2xl font-bold text-white", "Artists" }
                         div { class: "flex gap-2",
                             button {
                                 class: "w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors",
@@ -431,12 +431,12 @@ pub fn Home(
                         class: "flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth",
                         for (artist, cover_path) in artists() {
                             div {
-                                class: "flex-none w-48 group cursor-pointer",
+                                class: "flex-none w-20 md:w-48 group cursor-pointer",
                                 onclick: {
                                     let artist = artist.clone();
                                     move |_| on_search_artist.call(artist.clone())
                                 },
-                                div { class: "w-48 h-48 rounded-full bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
+                                div { class: "w-20 h-20 md:w-48 md:h-48 rounded-full bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
                                     if let Some(path) = cover_path {
                                         if let Some(url) = utils::format_artwork_url(Some(&path)) {
                                             img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }
@@ -456,7 +456,7 @@ pub fn Home(
 
                 section {
                     div { class: "flex items-center justify-between mb-4",
-                         h2 { class: "text-2xl font-bold text-white", "Albums" }
+                         h2 { class: "text-xl md:text-2xl font-bold text-white", "Albums" }
                          div { class: "flex gap-2",
                             button {
                                 class: "w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors",
@@ -475,12 +475,12 @@ pub fn Home(
                         class: "flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth",
                         for album in recent_albums() {
                             div {
-                               class: "flex-none w-48 group cursor-pointer",
+                               class: "flex-none w-20 md:w-48 group cursor-pointer",
                                onclick: {
                                    let id = album.id.clone();
                                    move |_| on_select_album.call(id.clone())
                                },
-                               div { class: "w-48 h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
+                               div { class: "w-20 h-20 md:w-48 md:h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative",
                                     if let Some(url) = utils::format_artwork_url(album.cover_path.as_ref()) {
                                         img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }
                                     } else {
@@ -500,7 +500,7 @@ pub fn Home(
             if !recent_playlists().is_empty() {
                 section {
                     div { class: "flex items-center justify-between mb-4",
-                         h2 { class: "text-2xl font-bold text-white", "Playlists" }
+                         h2 { class: "text-xl md:text-2xl font-bold text-white", "Playlists" }
                          div { class: "flex gap-2",
                             button {
                                 class: "w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors",
@@ -519,8 +519,8 @@ pub fn Home(
                         class: "flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth",
                         for playlist in recent_playlists() {
                             div {
-                               class: "flex-none w-48 group cursor-pointer",
-                               div { class: "w-48 h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative grid grid-cols-2 gap-0.5 p-0.5",
+                               class: "flex-none w-20 md:w-48 group cursor-pointer",
+                               div { class: "w-20 h-20 md:w-48 md:h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative grid grid-cols-2 gap-0.5 p-0.5",
                                     div { class: "col-span-2 row-span-2 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center",
                                         i { class: "fa-solid fa-list-ul text-4xl text-white/50" }
                                     }

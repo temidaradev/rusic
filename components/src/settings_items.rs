@@ -1,5 +1,7 @@
 use config::JellyfinServer;
 use dioxus::prelude::*;
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use rfd::AsyncFileDialog;
 
 #[component]
@@ -31,6 +33,7 @@ pub fn ThemeSelector(current_theme: String, on_change: EventHandler<String>) -> 
     }
 }
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[component]
 pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
     rsx! {
@@ -45,6 +48,33 @@ pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
             },
             class: "bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm text-white transition-colors",
             "Change"
+        }
+    }
+}
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+#[component]
+pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
+    let mut path_input = use_signal(|| String::new());
+
+    rsx! {
+        div { class: "flex items-center gap-2",
+            input {
+                class: "bg-white/5 border border-white/10 rounded px-3 py-1 text-sm text-white focus:outline-none focus:border-white/20 w-48",
+                placeholder: "Enter path...",
+                value: "{path_input}",
+                oninput: move |evt| path_input.set(evt.value()),
+            }
+            button {
+                onclick: move |_| {
+                    let p = path_input.read().clone();
+                    if !p.is_empty() {
+                        on_change.call(std::path::PathBuf::from(p));
+                    }
+                },
+                class: "bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm text-white transition-colors",
+                "Set"
+            }
         }
     }
 }

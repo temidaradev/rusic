@@ -25,7 +25,7 @@ http = "1.4.0"
 uuid = { version = "1.20.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
 rodio = "0.21.1"
 jellyfin-sdk-rust = "0.1.2"
-reqwest = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 rand = "0.8"
 directories = "6.0"
 player = { path = "./player" }

@@ -262,7 +262,7 @@ pub fn Album(
 
     rsx! {
         div {
-            class: "p-8 pb-24",
+            class: "p-4 md:p-8 pb-24",
 
             if album_id.read().is_empty() {
                 div {
@@ -539,7 +539,7 @@ fn JellyfinAlbumDetails(
 
             div {
                 class: "flex flex-col md:flex-row items-end gap-8 mb-12",
-                div { class: "w-64 h-64 rounded-xl bg-stone-800 shadow-2xl overflow-hidden relative flex-shrink-0",
+                div { class: "w-40 h-40 md:w-64 md:h-64 rounded-xl bg-stone-800 shadow-2xl overflow-hidden relative flex-shrink-0",
                     if let Some(url) = &cover_url {
                         img { src: "{url}", class: "w-full h-full object-cover" }
                     } else {

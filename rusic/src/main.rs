@@ -1,11 +1,18 @@
-use components::{bottombar::Bottombar, fullscreen::Fullscreen, sidebar::Sidebar};
+use components::{
+    bottombar::Bottombar, fullscreen::Fullscreen, mobile::mobile_bottombar::MobileBottombar,
+    mobile::mobile_fullscreen::MobileFullscreen, mobile::mobile_sidebar::MobileSidebar,
+    sidebar::Sidebar,
+};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use dioxus::desktop::tao::dpi::LogicalSize;
 #[cfg(target_os = "macos")]
 use dioxus::desktop::tao::platform::macos::WindowBuilderExtMacOS;
 use dioxus::prelude::*;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use discord_presence::Presence;
 use player::player::Player;
 use rusic_route::Route;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use std::{borrow::Cow, sync::Arc};
 
 const FAVICON: Asset = asset!("../assets/favicon.ico");
@@ -13,8 +20,10 @@ const MAIN_CSS: Asset = asset!("../assets/main.css");
 const THEME_CSS: Asset = asset!("../assets/themes.css");
 const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn main() {
     let presence: Option<Arc<Presence>> = match Presence::new("1470087339639443658") {
         Ok(p) => {
@@ -95,11 +104,19 @@ fn main() {
         .launch(App);
 }
 
+#[cfg(any(target_os = "android", target_os = "ios"))]
+fn main() {
+    dioxus::launch(App);
+}
+
 #[component]
 fn App() -> Element {
     let mut library = use_signal(reader::Library::default);
     let mut current_route = use_signal(|| Route::Home);
     let cache_dir = use_memo(move || {
+        #[cfg(target_os = "android")]
+        let path = std::path::Path::new("/data/user/0/com.temidaradev.rusic/cache").to_path_buf();
+        #[cfg(not(target_os = "android"))]
         let path = directories::ProjectDirs::from("com", "temidaradev", "rusic")
             .map(|dirs| dirs.cache_dir().to_path_buf())
             .unwrap_or_else(|| std::path::Path::new("./cache").to_path_buf());
@@ -107,6 +124,9 @@ fn App() -> Element {
         path
     });
     let config_dir = use_memo(move || {
+        #[cfg(target_os = "android")]
+        let path = std::path::Path::new("/data/user/0/com.temidaradev.rusic/files").to_path_buf();
+        #[cfg(not(target_os = "android"))]
         let path = directories::ProjectDirs::from("com", "temidaradev", "rusic")
             .map(|dirs| dirs.config_dir().to_path_buf())
             .unwrap_or_else(|| std::path::Path::new("./config").to_path_buf());
@@ -138,10 +158,17 @@ fn App() -> Element {
 
     let is_playing = use_signal(|| false);
     let is_fullscreen = use_signal(|| false);
+    let mut is_sidebar_open = use_signal(|| false);
 
-    let presence = PRESENCE.get().cloned().flatten();
-
-    provide_context(presence.clone());
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        let presence = PRESENCE.get().cloned().flatten();
+        provide_context(presence);
+    }
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        provide_context::<Option<std::sync::Arc<discord_presence::Presence>>>(None);
+    }
 
     let mut selected_album_id = use_signal(String::new);
     let mut selected_artist_name = use_signal(String::new);
@@ -240,24 +267,45 @@ fn App() -> Element {
                 }
             },
             div {
-                class: "flex flex-1 overflow-hidden",
-                Sidebar {
-                    current_route,
-                    on_navigate: move |route| {
-                        if route == Route::Album {
-                            selected_album_id.set(String::new());
+                class: "flex flex-1 overflow-hidden relative",
+                if !cfg!(any(target_os = "android", target_os = "ios")) {
+                    Sidebar {
+                        current_route,
+                        on_navigate: move |route| {
+                            if route == Route::Album {
+                                selected_album_id.set(String::new());
+                            }
+                            if route == Route::Artist {
+                                selected_artist_name.set(String::new());
+                            }
+                            if route == Route::Search && !search_query.read().is_empty() {
+                                // Keep search query if already set? Or maybe clear it?
+                                // For now keep it.
+                            }
+                            current_route.set(route);
+                            is_sidebar_open.set(false);
                         }
-                        if route == Route::Artist {
-                            selected_artist_name.set(String::new());
-                        }
-                        if route == Route::Search && !search_query.read().is_empty() {
-                            // Keep search query if already set? Or maybe clear it?
-                            // For now keep it.
-                        }
-                        current_route.set(route);
                     }
                 }
                 div {
+                    class: "flex-1 flex flex-col overflow-hidden relative",
+                    if cfg!(any(target_os = "android", target_os = "ios")) {
+                        div {
+                            class: "flex items-center justify-between px-4 py-3 shrink-0 bg-[#121212]/95 backdrop-blur-xl border-b border-white/5 z-30",
+                            button {
+                                class: "w-10 h-10 flex items-center justify-center rounded-lg bg-white/5 text-white active:scale-95 transition-all text-lg",
+                                onclick: move |_| is_sidebar_open.set(true),
+                                i { class: "fa-solid fa-bars" }
+                            }
+                            h1 {
+                                class: "text-lg font-bold tracking-widest text-white/90 uppercase",
+                                style: "font-family: 'JetBrains Mono', monospace;",
+                                "RUSIC"
+                            }
+                            div { class: "w-10" }
+                        }
+                    }
+                    div {
                     class: "flex-1 overflow-y-auto",
                     match *current_route.read() {
                         Route::Home => rsx! {
@@ -368,38 +416,92 @@ fn App() -> Element {
                         },
                         Route::Settings => rsx! { pages::settings::Settings { config } },
                     }
+                    }
                 }
             }
-            Fullscreen {
-                library: library,
-                player: player,
-                is_playing: is_playing,
-                is_fullscreen: is_fullscreen,
-                current_song_duration: current_song_duration,
-                current_song_progress: current_song_progress,
-                queue: queue,
-                current_song_album: current_song_album,
-                current_queue_index: current_queue_index,
-                current_song_title: current_song_title,
-                current_song_khz: current_song_khz,
-                current_song_bitrate: current_song_bitrate,
-                current_song_artist: current_song_artist,
-                current_song_cover_url: current_song_cover_url,
-                volume: volume,
+            if !cfg!(any(target_os = "android", target_os = "ios")) {
+                Fullscreen {
+                    library: library,
+                    player: player,
+                    is_playing: is_playing,
+                    is_fullscreen: is_fullscreen,
+                    current_song_duration: current_song_duration,
+                    current_song_progress: current_song_progress,
+                    queue: queue,
+                    current_song_album: current_song_album,
+                    current_queue_index: current_queue_index,
+                    current_song_title: current_song_title,
+                    current_song_khz: current_song_khz,
+                    current_song_bitrate: current_song_bitrate,
+                    current_song_artist: current_song_artist,
+                    current_song_cover_url: current_song_cover_url,
+                    volume: volume,
+                }
+            } else {
+                MobileFullscreen {
+                    library: library,
+                    player: player,
+                    is_playing: is_playing,
+                    is_fullscreen: is_fullscreen,
+                    current_song_duration: current_song_duration,
+                    current_song_progress: current_song_progress,
+                    queue: queue,
+                    current_song_album: current_song_album,
+                    current_queue_index: current_queue_index,
+                    current_song_title: current_song_title,
+                    current_song_khz: current_song_khz,
+                    current_song_bitrate: current_song_bitrate,
+                    current_song_artist: current_song_artist,
+                    current_song_cover_url: current_song_cover_url,
+                    volume: volume,
+                }
             }
-            Bottombar {
-                library: library,
-                current_song_cover_url: current_song_cover_url,
-                current_song_title: current_song_title,
-                current_song_artist: current_song_artist,
-                player: player,
-                is_playing: is_playing,
-                is_fullscreen: is_fullscreen,
-                current_song_duration: current_song_duration,
-                current_song_progress: current_song_progress,
-                queue: queue,
-                current_queue_index: current_queue_index,
-                volume: volume,
+            if !cfg!(any(target_os = "android", target_os = "ios")) {
+                Bottombar {
+                    library: library,
+                    current_song_cover_url: current_song_cover_url,
+                    current_song_title: current_song_title,
+                    current_song_artist: current_song_artist,
+                    player: player,
+                    is_playing: is_playing,
+                    is_fullscreen: is_fullscreen,
+                    current_song_duration: current_song_duration,
+                    current_song_progress: current_song_progress,
+                    queue: queue,
+                    current_queue_index: current_queue_index,
+                    volume: volume,
+                }
+            } else {
+                div {
+                    class: "flex flex-col w-full shrink-0 z-50",
+                    MobileBottombar {
+                        library: library,
+                        current_song_cover_url: current_song_cover_url,
+                        current_song_title: current_song_title,
+                        current_song_artist: current_song_artist,
+                        player: player,
+                        is_playing: is_playing,
+                        is_fullscreen: is_fullscreen,
+                        current_song_duration: current_song_duration,
+                        current_song_progress: current_song_progress,
+                        queue: queue,
+                        current_queue_index: current_queue_index,
+                        volume: volume,
+                    }
+                    MobileSidebar {
+                        current_route: current_route,
+                        is_sidebar_open: is_sidebar_open,
+                        on_navigate: move |route| {
+                            if route == Route::Album {
+                                selected_album_id.set(String::new());
+                            }
+                            if route == Route::Artist {
+                                selected_artist_name.set(String::new());
+                            }
+                            current_route.set(route);
+                        }
+                    }
+                }
             }
         }
     }

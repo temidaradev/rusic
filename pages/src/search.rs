@@ -65,7 +65,7 @@ pub fn Search(
 
     rsx! {
         div {
-            class: "p-8",
+            class: "p-4 md:p-8",
 
             if *show_playlist_modal.read() {
                 PlaylistModal {

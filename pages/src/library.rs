@@ -353,7 +353,7 @@ pub fn LibraryPage(
 
     rsx! {
         div {
-            class: "p-8 relative min-h-full",
+            class: "p-4 md:p-8 relative min-h-full",
             if *show_playlist_modal.read() {
                 PlaylistModal {
                     playlist_store: playlist_store,
@@ -387,7 +387,7 @@ pub fn LibraryPage(
 
             div {
                 class: "flex items-center justify-between mb-6",
-                h1 { class: "text-3xl font-bold text-white", "Your Library" }
+                h1 { class: "text-2xl md:text-3xl font-bold text-white", "Your Library" }
                 button {
                     onclick: move |_| {
                         if !is_jellyfin {

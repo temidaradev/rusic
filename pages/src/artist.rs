@@ -128,7 +128,7 @@ pub fn Artist(
 
     rsx! {
         div {
-            class: "p-8 pb-24",
+            class: "p-4 md:p-8 pb-24",
 
             if name.is_empty() {
                 div {
