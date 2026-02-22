@@ -222,6 +222,10 @@ pub fn LibraryPage(
                                     break;
                                 }
                             }
+                            if let Ok(genres) = remote.get_genres().await {
+                                let mut lib_write = library.write();
+                                lib_write.jellyfin_genres = genres.into_iter().map(|g| (g.name, g.id)).collect();
+                            }
                         }
                     }
                 }
@@ -229,6 +233,7 @@ pub fn LibraryPage(
             is_loading_jellyfin.set(false);
         });
     };
+
 
     use_effect(move || {
         let is_jelly = config.read().active_source == MusicSource::Jellyfin;
@@ -357,6 +362,7 @@ pub fn LibraryPage(
             if *show_playlist_modal.read() {
                 PlaylistModal {
                     playlist_store: playlist_store,
+                    is_jellyfin: is_jellyfin,
                     on_close: move |_| show_playlist_modal.set(false),
                     on_add_to_playlist: move |playlist_id: String| {
                         if let Some(path) = selected_track_for_playlist.read().clone() {

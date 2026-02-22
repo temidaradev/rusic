@@ -3,17 +3,22 @@ use reader::PlaylistStore;
 
 #[derive(PartialEq, Clone, Copy, Props)]
 pub struct PlaylistModalProps {
-    playlist_store: Signal<PlaylistStore>,
-    on_close: EventHandler,
-    on_add_to_playlist: EventHandler<String>,
-    on_create_playlist: EventHandler<String>,
+    pub playlist_store: Signal<PlaylistStore>,
+    pub is_jellyfin: bool,
+    pub on_close: EventHandler,
+    pub on_add_to_playlist: EventHandler<String>,
+    pub on_create_playlist: EventHandler<String>,
 }
 
 #[component]
 pub fn PlaylistModal(props: PlaylistModalProps) -> Element {
     let mut new_playlist_name = use_signal(String::new);
     let store = props.playlist_store.read();
-    let playlists = store.playlists.clone();
+    let playlists: Vec<_> = if props.is_jellyfin {
+        store.jellyfin_playlists.iter().map(|p| (p.id.clone(), p.name.clone(), p.tracks.len())).collect()
+    } else {
+        store.playlists.iter().map(|p| (p.id.clone(), p.name.clone(), p.tracks.len())).collect()
+    };
 
     rsx! {
         div {
@@ -22,18 +27,20 @@ pub fn PlaylistModal(props: PlaylistModalProps) -> Element {
             div {
                 class: "bg-neutral-900 rounded-xl border border-white/10 w-full max-w-md p-6 shadow-2xl",
                 onclick: move |e| e.stop_propagation(),
-                h2 { class: "text-xl font-bold text-white mb-4", "Add to Playlist" }
+                h2 { class: "text-xl font-bold text-white mb-4", 
+                    if props.is_jellyfin { "Add to Jellyfin Playlist" } else { "Add to Playlist" }
+                }
 
                 div { class: "max-h-60 overflow-y-auto mb-4 space-y-2",
-                    if store.playlists.is_empty() {
+                    if playlists.is_empty() {
                         p { class: "text-slate-500 text-sm italic", "No playlists found." }
                     }
-                    for playlist in playlists {
+                    for (id, name, track_count) in playlists {
                         button {
                             class: "w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors flex items-center justify-between group",
-                            onclick: move |_| props.on_add_to_playlist.call(playlist.id.clone()),
-                            span { "{playlist.name}" }
-                            span { class: "text-xs text-slate-500 group-hover:text-slate-400", "{playlist.tracks.len()} tracks" }
+                            onclick: move |_| props.on_add_to_playlist.call(id.clone()),
+                            span { "{name}" }
+                            span { class: "text-xs text-slate-500 group-hover:text-slate-400", "{track_count} tracks" }
                         }
                     }
                 }

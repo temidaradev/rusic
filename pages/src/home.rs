@@ -175,12 +175,17 @@ pub fn Home(
                                     break;
                                 }
                             }
+                            if let Ok(genres) = remote.get_genres().await {
+                                let mut lib_write = library.write();
+                                lib_write.jellyfin_genres = genres.into_iter().map(|g| (g.name, g.id)).collect();
+                            }
                         }
                     }
                 }
             }
         });
     };
+
 
     use_effect(move || {
         let is_jelly = config.read().active_source == MusicSource::Jellyfin;
@@ -520,9 +525,9 @@ pub fn Home(
                         for playlist in recent_playlists() {
                             div {
                                class: "flex-none w-48 group cursor-pointer",
-                               div { class: "w-48 h-48 rounded-md bg-stone-800 mb-4 overflow-hidden shadow-lg relative grid grid-cols-2 gap-0.5 p-0.5",
-                                    div { class: "col-span-2 row-span-2 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center",
-                                        i { class: "fa-solid fa-list-ul text-4xl text-white/50" }
+                               div { class: "w-48 h-48 rounded-md bg-white/5 mb-4 overflow-hidden shadow-lg relative grid grid-cols-2 gap-0.5 p-0.5",
+                                    div { class: "col-span-2 row-span-2 flex items-center justify-center", style: "background: color-mix(in srgb, var(--color-indigo-500), transparent 80%)",
+                                        i { class: "fa-solid fa-list-ul text-4xl", style: "color: var(--color-indigo-400)" }
                                     }
                                }
                                h3 { class: "text-white font-medium truncate", "{playlist.name}" }

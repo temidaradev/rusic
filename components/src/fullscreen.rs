@@ -1,6 +1,6 @@
 use config::AppConfig;
 use dioxus::prelude::*;
-use hooks::use_player_controller::PlayerController;
+use hooks::use_player_controller::{LoopMode, PlayerController};
 use player::player::Player;
 use reader::Library;
 
@@ -165,8 +165,10 @@ pub fn Fullscreen(
                 div {
                     class: "flex items-center justify-center gap-8 mb-6 w-full px-10",
                     button {
-                        class: "text-white/50 hover:text-white transition-colors flex-shrink-0",
-                        i { class: "fa-solid fa-shuffle" }
+                        class: format!("{} transition-all active:scale-95 relative flex-shrink-0", if *ctrl.shuffle.read() { "text-white" } else { "text-white/50 hover:text-white" }),
+                        onclick: move |_| ctrl.toggle_shuffle(),
+                        title: if *ctrl.shuffle.read() { "Shuffle: On" } else { "Shuffle: Off" },
+                        i { class: "fa-solid fa-shuffle text-sm" }
                     }
                     button {
                         class: "text-white hover:text-white/80 transition-colors flex-shrink-0",
@@ -190,8 +192,26 @@ pub fn Fullscreen(
                         i { class: "fa-solid fa-forward-step text-2xl" }
                     }
                     button {
-                        class: "text-white/50 hover:text-white transition-colors flex-shrink-0",
-                        i { class: "fa-solid fa-repeat" }
+                        class: format!("{} transition-all active:scale-95 relative flex-shrink-0",
+                            match *ctrl.loop_mode.read() {
+                                LoopMode::None => "text-white/50 hover:text-white",
+                                LoopMode::Queue => "text-white",
+                                LoopMode::Track => "text-white",
+                            }
+                        ),
+                        onclick: move |_| ctrl.toggle_loop(),
+                        title: match *ctrl.loop_mode.read() {
+                            LoopMode::None => "Repeat: Off",
+                            LoopMode::Queue => "Repeat: Queue",
+                            LoopMode::Track => "Repeat: Track",
+                        },
+                        i { class: "fa-solid fa-repeat text-sm" }
+                        match *ctrl.loop_mode.read() {
+                             LoopMode::Track => rsx! {
+                                 span { class: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white leading-none", "1" }
+                             },
+                             _ => rsx! {}
+                        }
                     }
                 }
 

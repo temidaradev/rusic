@@ -354,6 +354,7 @@ fn App() -> Element {
                             pages::playlists::PlaylistsPage {
                                 playlist_store: playlist_store,
                                 library: library,
+                                config: config,
                                 player: player,
                                 is_playing: is_playing,
                                 current_playing: current_playing,

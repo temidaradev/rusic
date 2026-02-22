@@ -21,11 +21,49 @@ pub fn use_search_data(
     config: Signal<AppConfig>,
 ) -> SearchData {
     let genres = use_memo(move || {
-        if config.read().active_source == MusicSource::Jellyfin {
-            return Vec::new();
+        let active_source = config.read().active_source.clone();
+        let lib = library.read();
+
+        if active_source == MusicSource::Jellyfin {
+            let mut genre_items = std::collections::HashMap::new();
+            for album in &lib.jellyfin_albums {
+                for g in album.genre.split(|c| c == '/' || c == ';' || c == ',') {
+                    let g = g.trim();
+                    if !g.is_empty() && !genre_items.contains_key(g) {
+                        let cover_url = if let Some(server) = &config.read().server {
+                            if let Some(cover_path) = &album.cover_path {
+                                let path_str = cover_path.to_string_lossy();
+                                let parts: Vec<&str> = path_str.split(':').collect();
+                                if parts.len() >= 2 {
+                                    let id = parts[1];
+                                    let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
+                                    let mut query_params = Vec::new();
+                                    
+                                    if parts.len() >= 3 {
+                                        query_params.push(format!("tag={}", parts[2]));
+                                    }
+                                    if let Some(token) = &server.access_token {
+                                        query_params.push(format!("api_key={}", token));
+                                    }
+                                    
+                                    if !query_params.is_empty() {
+                                        url.push('?');
+                                        url.push_str(&query_params.join("&"));
+                                    }
+                                    Some(url)
+                                } else { None }
+                            } else { None }
+                        } else { None };
+                        genre_items.insert(g.to_string(), cover_url);
+                    }
+                }
+            }
+            let mut result: Vec<(String, Option<String>)> = genre_items.into_iter().collect();
+            result.sort_by(|a, b| a.0.cmp(&b.0));
+            return result;
         }
 
-        let lib = library.read();
+
         let mut genre_covers: std::collections::HashMap<String, Vec<std::path::PathBuf>> =
             std::collections::HashMap::new();
 

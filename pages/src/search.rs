@@ -35,25 +35,46 @@ pub fn Search(
 
     let genre_tracks = use_memo(move || {
         let genre = selected_genre.read();
+        let active_source = config.read().active_source.clone();
+        
         if let Some(g) = &*genre {
             let lib = library.read();
-            let valid_album_ids: std::collections::HashSet<&String> = lib
-                .albums
+            let is_jellyfin = active_source == config::MusicSource::Jellyfin;
+            
+            let albums = if is_jellyfin { &lib.jellyfin_albums } else { &lib.albums };
+            let tracks = if is_jellyfin { &lib.jellyfin_tracks } else { &lib.tracks };
+
+            let valid_album_ids: std::collections::HashSet<&String> = albums
                 .iter()
-                .filter(|a| a.genre.eq_ignore_ascii_case(g))
+                .filter(|a| a.genre.to_lowercase().contains(&g.to_lowercase()))
                 .map(|a| &a.id)
                 .collect();
 
             let album_map: std::collections::HashMap<&String, &reader::models::Album> =
-                lib.albums.iter().map(|a| (&a.id, a)).collect();
+                albums.iter().map(|a| (&a.id, a)).collect();
 
             let mut matching_tracks = Vec::new();
-            for track in &lib.tracks {
+            for track in tracks {
                 if valid_album_ids.contains(&track.album_id) {
-                    let cover = album_map
-                        .get(&track.album_id)
-                        .and_then(|a| a.cover_path.as_ref())
-                        .and_then(|c| utils::format_artwork_url(Some(c)));
+                    let cover = if is_jellyfin {
+                        if let Some(server) = &config.read().server {
+                            let path_str = track.path.to_string_lossy();
+                            let parts: Vec<&str> = path_str.split(':').collect();
+                            if parts.len() >= 2 {
+                                let id = parts[1];
+                                let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
+                                if let Some(token) = &server.access_token {
+                                    url.push_str(&format!("?api_key={}", token));
+                                }
+                                Some(url)
+                            } else { None }
+                        } else { None }
+                    } else {
+                        album_map
+                            .get(&track.album_id)
+                            .and_then(|a| a.cover_path.as_ref())
+                            .and_then(|c| utils::format_artwork_url(Some(c)))
+                    };
                     matching_tracks.push((track.clone(), cover));
                 }
             }
@@ -63,6 +84,7 @@ pub fn Search(
         }
     });
 
+
     rsx! {
         div {
             class: "p-8",
@@ -70,6 +92,7 @@ pub fn Search(
             if *show_playlist_modal.read() {
                 PlaylistModal {
                     playlist_store: playlist_store,
+                    is_jellyfin: config.read().active_source == config::MusicSource::Jellyfin,
                     on_close: move |_| show_playlist_modal.set(false),
                     on_add_to_playlist: move |playlist_id: String| {
                         if let Some(path) = selected_track_for_playlist.read().clone() {

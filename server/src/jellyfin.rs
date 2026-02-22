@@ -25,6 +25,20 @@ struct PlaybackStopRequest<'a> {
     position_ticks: Option<u64>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "PascalCase")]
+struct CreatePlaylistRequest<'a> {
+    name: &'a str,
+    user_id: &'a str,
+    media_type: &'a str,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct PlaylistCreationResult {
+    pub id: String,
+}
+
 pub struct JellyfinRemote {
     client: JellyfinSDK,
     http_client: reqwest::Client,
@@ -123,6 +137,21 @@ pub struct AlbumsResponse {
     pub items: Vec<AlbumItem>,
     pub total_record_count: u32,
 }
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct Genre {
+    pub name: String,
+    pub id: String,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct GenresResponse {
+    pub items: Vec<Genre>,
+    pub total_record_count: u32,
+}
+
 
 impl JellyfinRemote {
     pub fn new(
@@ -302,6 +331,182 @@ impl JellyfinRemote {
 
         let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
         Ok(items_resp.items)
+    }
+
+    pub async fn get_playlists(&self) -> Result<Vec<Item>, String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Users/{}/Items", self.base_url, user_id);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let fields = "DateCreated,DateLastMediaAdded".to_string();
+        let resp = self
+            .http_client
+            .get(&url)
+            .query(&[
+                ("IncludeItemTypes", "Playlist"),
+                ("Recursive", "true"),
+                ("Fields", &fields),
+            ])
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to get playlists: {}", resp.status()));
+        }
+
+        let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(items_resp.items)
+    }
+
+    pub async fn create_playlist(&self, name: &str) -> Result<String, String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Playlists", self.base_url);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let body = CreatePlaylistRequest {
+            name,
+            user_id,
+            media_type: "Audio",
+        };
+
+        let resp = self
+            .http_client
+            .post(&url)
+            .header("X-Emby-Authorization", auth_header)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to create playlist: {}", resp.status()));
+        }
+
+        let result: PlaylistCreationResult = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(result.id)
+    }
+
+    pub async fn add_to_playlist(&self, playlist_id: &str, item_id: &str) -> Result<(), String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Playlists/{}/Items", self.base_url, playlist_id);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let resp = self
+            .http_client
+            .post(&url)
+            .query(&[
+                ("Ids", item_id),
+                ("UserId", user_id),
+            ])
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to add item to playlist: {}", resp.status()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_playlist_items(&self, playlist_id: &str) -> Result<Vec<Item>, String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Playlists/{}/Items", self.base_url, playlist_id);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let fields = "DateCreated,DateLastMediaAdded,MediaSources,ImageTags,Genres,ParentIndexNumber,IndexNumber,AlbumId,AlbumArtist,ProductionYear,Container".to_string();
+        let resp = self
+            .http_client
+            .get(&url)
+            .query(&[
+                ("UserId", user_id),
+                ("Fields", &fields),
+            ])
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to get playlist items: {}", resp.status()));
+        }
+
+        let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(items_resp.items)
+    }
+
+    pub async fn get_genres(&self) -> Result<Vec<Genre>, String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Genres", self.base_url);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.0\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let resp = self
+            .http_client
+            .get(&url)
+            .query(&[
+                ("UserId", user_id.as_str()),
+                ("Recursive", "true"),
+                ("IncludeItemTypes", "Audio"),
+            ])
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to get genres: {}", resp.status()));
+        }
+
+        let genres_resp: GenresResponse = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(genres_resp.items)
     }
 
     pub async fn get_albums_paginated(

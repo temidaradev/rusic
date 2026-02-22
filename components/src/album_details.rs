@@ -151,6 +151,7 @@ pub fn AlbumDetails(
             if *show_playlist_modal.read() {
                 crate::playlist_modal::PlaylistModal {
                     playlist_store: playlist_store,
+                    is_jellyfin: false,
                     on_close: move |_| show_playlist_modal.set(false),
                     on_add_to_playlist: move |playlist_id: String| {
                         if let Some(path) = selected_track_for_playlist.read().clone() {

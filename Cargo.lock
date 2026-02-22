@@ -428,6 +428,7 @@ dependencies = [
  "rfd",
  "rodio",
  "rusic_route",
+ "server",
  "utils",
  "uuid 1.20.0",
 ]
