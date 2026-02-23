@@ -542,12 +542,10 @@ fn JellyfinAlbumDetails(
                                             &conf.device_id,
                                             Some(user_id),
                                         );
-                                        if let Ok(new_pid) = remote.create_playlist(&playlist_name).await {
-                                            let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
-                                            if parts.len() >= 2 {
-                                                let item_id = parts[1];
-                                                let _ = remote.add_to_playlist(&new_pid, item_id).await;
-                                            }
+                                        let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                        if parts.len() >= 2 {
+                                            let item_id = parts[1];
+                                            let _ = remote.create_playlist(&playlist_name, &[item_id]).await;
                                         }
                                     }
                                 }

@@ -31,6 +31,9 @@ struct CreatePlaylistRequest<'a> {
     name: &'a str,
     user_id: &'a str,
     media_type: &'a str,
+    is_public: bool,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    ids: Vec<&'a str>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -151,7 +154,6 @@ pub struct GenresResponse {
     pub items: Vec<Genre>,
     pub total_record_count: u32,
 }
-
 
 impl JellyfinRemote {
     pub fn new(
@@ -355,6 +357,7 @@ impl JellyfinRemote {
                 ("IncludeItemTypes", "Playlist"),
                 ("Recursive", "true"),
                 ("Fields", &fields),
+                ("MediaTypes", "Audio"),
             ])
             .header("X-Emby-Authorization", auth_header)
             .send()
@@ -369,7 +372,7 @@ impl JellyfinRemote {
         Ok(items_resp.items)
     }
 
-    pub async fn create_playlist(&self, name: &str) -> Result<String, String> {
+    pub async fn create_playlist(&self, name: &str, item_ids: &[&str]) -> Result<String, String> {
         let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
         let token = self
             .access_token
@@ -387,6 +390,8 @@ impl JellyfinRemote {
             name,
             user_id,
             media_type: "Audio",
+            is_public: true,
+            ids: item_ids.to_vec(),
         };
 
         let resp = self
@@ -399,7 +404,9 @@ impl JellyfinRemote {
             .map_err(|e| e.to_string())?;
 
         if !resp.status().is_success() {
-            return Err(format!("Failed to create playlist: {}", resp.status()));
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(format!("Failed to create playlist: {} - {}", status, text));
         }
 
         let result: PlaylistCreationResult = resp.json().await.map_err(|e| e.to_string())?;
@@ -423,10 +430,7 @@ impl JellyfinRemote {
         let resp = self
             .http_client
             .post(&url)
-            .query(&[
-                ("Ids", item_id),
-                ("UserId", user_id),
-            ])
+            .query(&[("Ids", item_id), ("UserId", user_id)])
             .header("X-Emby-Authorization", auth_header)
             .send()
             .await
@@ -457,10 +461,7 @@ impl JellyfinRemote {
         let resp = self
             .http_client
             .get(&url)
-            .query(&[
-                ("UserId", user_id),
-                ("Fields", &fields),
-            ])
+            .query(&[("UserId", user_id), ("Fields", &fields)])
             .header("X-Emby-Authorization", auth_header)
             .send()
             .await

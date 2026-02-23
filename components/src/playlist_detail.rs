@@ -24,13 +24,18 @@ pub fn PlaylistDetail(
     let mut show_playlist_modal = use_signal(|| false);
     let mut selected_track_for_playlist = use_signal(|| None::<std::path::PathBuf>);
 
-    let (playlist_name, local_tracks_paths, is_jellyfin) = if let Some(p) = store.playlists.iter().find(|p| p.id == playlist_id) {
-        (p.name.clone(), p.tracks.clone(), false)
-    } else if let Some(p) = store.jellyfin_playlists.iter().find(|p| p.id == playlist_id) {
-        (p.name.clone(), vec![], true)
-    } else {
-        return rsx! { div { "Playlist not found" } };
-    };
+    let (playlist_name, local_tracks_paths, is_jellyfin) =
+        if let Some(p) = store.playlists.iter().find(|p| p.id == playlist_id) {
+            (p.name.clone(), p.tracks.clone(), false)
+        } else if let Some(p) = store
+            .jellyfin_playlists
+            .iter()
+            .find(|p| p.id == playlist_id)
+        {
+            (p.name.clone(), vec![], true)
+        } else {
+            return rsx! { div { "Playlist not found" } };
+        };
 
     let lib = library.read();
     let mut tracks = use_signal(Vec::<reader::models::Track>::new);
@@ -53,7 +58,9 @@ pub fn PlaylistDetail(
                 spawn(async move {
                     let conf = config.peek();
                     if let Some(server) = &conf.server {
-                        if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                        if let (Some(token), Some(user_id)) =
+                            (&server.access_token, &server.user_id)
+                        {
                             let remote = server::jellyfin::JellyfinRemote::new(
                                 &server.url,
                                 Some(token),
@@ -61,32 +68,44 @@ pub fn PlaylistDetail(
                                 Some(user_id),
                             );
 
-                            if let Ok(items) = remote.get_music_library_items_paginated(&pid_clone, 0, 1000).await {
+                            if let Ok(items) = remote.get_playlist_items(&pid_clone).await {
                                 let mut new_tracks = Vec::new();
                                 for (_, item) in items.into_iter().enumerate() {
-                                     let duration_secs = item.run_time_ticks.unwrap_or(0) / 10_000_000;
-                                     let mut path_str = format!("jellyfin:{}", item.id);
-                                     if let Some(tags) = &item.image_tags {
-                                         if let Some(tag) = tags.get("Primary") {
-                                             path_str.push_str(&format!(":{}", tag));
-                                         }
-                                     }
-                                     let bitrate_kbps = item.bitrate.unwrap_or(0) / 1000;
-                                     let bitrate_u8 = if bitrate_kbps > 255 { 255 } else { bitrate_kbps as u8 };
-                                     
-                                     let artist_str = item.album_artist.clone().or_else(|| item.artists.as_ref().map(|a| a.join(", "))).unwrap_or_default();
-                                     new_tracks.push(reader::models::Track {
-                                         path: std::path::PathBuf::from(path_str),
-                                         album_id: item.album_id.map(|id| format!("jellyfin:{}", id)).unwrap_or_default(),
-                                         title: item.name,
-                                         artist: artist_str,
-                                         album: item.album.unwrap_or_default(),
-                                         duration: duration_secs,
-                                         khz: item.sample_rate.unwrap_or(0),
-                                         bitrate: bitrate_u8,
-                                         track_number: item.index_number,
-                                         disc_number: item.parent_index_number,
-                                     });
+                                    let duration_secs =
+                                        item.run_time_ticks.unwrap_or(0) / 10_000_000;
+                                    let mut path_str = format!("jellyfin:{}", item.id);
+                                    if let Some(tags) = &item.image_tags {
+                                        if let Some(tag) = tags.get("Primary") {
+                                            path_str.push_str(&format!(":{}", tag));
+                                        }
+                                    }
+                                    let bitrate_kbps = item.bitrate.unwrap_or(0) / 1000;
+                                    let bitrate_u8 = if bitrate_kbps > 255 {
+                                        255
+                                    } else {
+                                        bitrate_kbps as u8
+                                    };
+
+                                    let artist_str = item
+                                        .album_artist
+                                        .clone()
+                                        .or_else(|| item.artists.as_ref().map(|a| a.join(", ")))
+                                        .unwrap_or_default();
+                                    new_tracks.push(reader::models::Track {
+                                        path: std::path::PathBuf::from(path_str),
+                                        album_id: item
+                                            .album_id
+                                            .map(|id| format!("jellyfin:{}", id))
+                                            .unwrap_or_default(),
+                                        title: item.name,
+                                        artist: artist_str,
+                                        album: item.album.unwrap_or_default(),
+                                        duration: duration_secs,
+                                        khz: item.sample_rate.unwrap_or(0),
+                                        bitrate: bitrate_u8,
+                                        track_number: item.index_number,
+                                        disc_number: item.parent_index_number,
+                                    });
                                 }
                                 tracks.set(new_tracks);
                                 has_loaded_jellyfin_tracks.set(true);
@@ -107,27 +126,37 @@ pub fn PlaylistDetail(
                 .and_then(|a| utils::format_artwork_url(a.cover_path.as_ref()))
         })
     } else {
-        if let Some(p) = store.jellyfin_playlists.iter().find(|p| p.id == playlist_id) {
-             tracks_val.first().and_then(|t| {
-                 if let Some(server) = &config.read().server {
-                     let path_str = t.path.to_string_lossy();
-                     let parts: Vec<&str> = path_str.split(':').collect();
-                     if parts.len() >= 2 {
-                         let id = parts[1];
-                         let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                         if parts.len() >= 3 {
-                             url.push_str(&format!("?tag={}", parts[2]));
-                             if let Some(token) = &server.access_token {
-                                 url.push_str(&format!("&api_key={}", token));
-                             }
-                         } else if let Some(token) = &server.access_token {
-                             url.push_str(&format!("?api_key={}", token));
-                         }
-                         Some(url)
-                     } else { None }
-                 } else { None }
-             })
-        } else { None }
+        if let Some(p) = store
+            .jellyfin_playlists
+            .iter()
+            .find(|p| p.id == playlist_id)
+        {
+            tracks_val.first().and_then(|t| {
+                if let Some(server) = &config.read().server {
+                    let path_str = t.path.to_string_lossy();
+                    let parts: Vec<&str> = path_str.split(':').collect();
+                    if parts.len() >= 2 {
+                        let id = parts[1];
+                        let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
+                        if parts.len() >= 3 {
+                            url.push_str(&format!("?tag={}", parts[2]));
+                            if let Some(token) = &server.access_token {
+                                url.push_str(&format!("&api_key={}", token));
+                            }
+                        } else if let Some(token) = &server.access_token {
+                            url.push_str(&format!("?api_key={}", token));
+                        }
+                        Some(url)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+        } else {
+            None
+        }
     };
 
     let pid_for_delete = playlist_id.clone();
@@ -274,12 +303,10 @@ pub fn PlaylistDetail(
                                                 &conf.device_id,
                                                 Some(user_id),
                                             );
-                                            if let Ok(new_pid) = remote.create_playlist(&playlist_name).await {
-                                                let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
-                                                if parts.len() >= 2 {
-                                                    let item_id = parts[1];
-                                                    let _ = remote.add_to_playlist(&new_pid, item_id).await;
-                                                }
+                                            let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                            if parts.len() >= 2 {
+                                                let item_id = parts[1];
+                                                let _ = remote.create_playlist(&playlist_name, &[item_id]).await;
                                             }
                                         }
                                     }
