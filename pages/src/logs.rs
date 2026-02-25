@@ -62,7 +62,7 @@ pub fn Logs(library: Signal<Library>, config: Signal<AppConfig>) -> Element {
                 }
 
                 div { class: "flex items-center px-4 py-3 mb-2 text-xs font-semibold tracking-wider text-slate-400 uppercase border-b border-white/10",
-                    div { class: "w-12 shrink-0 text-right pr-4", "#" }
+                    div { class: "w-12 shrink-0 text-center", "#" }
                     div { class: "flex-1 min-w-0 pl-14 pr-4", "Title" }
                     div { class: "w-48 lg:w-64 shrink-0 hidden md:block pr-4", "Album" }
                     div { class: "w-24 shrink-0 hidden lg:block pr-4", "Genre" }
@@ -127,9 +127,9 @@ pub fn Logs(library: Signal<Library>, config: Signal<AppConfig>) -> Element {
                                         ctrl.queue.set(sorted_tracks.read().clone());
                                         ctrl.play_track(idx);
                                     },
-                                    div { class: "w-12 shrink-0 text-right pr-4 tabular-nums text-slate-500 font-medium group-hover:text-white transition-colors relative",
+                                    div { class: "w-12 shrink-0 flex items-center justify-center tabular-nums text-slate-500 font-medium group-hover:text-white transition-colors relative",
                                         span { class: "group-hover:opacity-0 transition-opacity", "{idx + 1}" }
-                                        i { class: "fa-solid fa-play absolute top-1/2 right-4 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" }
+                                        i { class: "fa-solid fa-play absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" }
                                     }
 
                                     div { class: "flex-1 min-w-0 pr-4 flex items-center",
