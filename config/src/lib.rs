@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -31,6 +32,8 @@ pub struct AppConfig {
     pub discord_presence: Option<bool>,
     #[serde(default = "default_sort_order")]
     pub sort_order: SortOrder,
+    #[serde(default)]
+    pub listen_counts: HashMap<String, u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -70,6 +73,7 @@ impl Default for AppConfig {
             device_id: default_device_id(),
             discord_presence: Some(true),
             sort_order: default_sort_order(),
+            listen_counts: HashMap::new(),
         }
     }
 }

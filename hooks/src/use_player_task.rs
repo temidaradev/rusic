@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 pub fn use_player_task(ctrl: PlayerController) {
     let presence: Option<Arc<Presence>> = use_context();
-    let config: Signal<AppConfig> = use_context();
+    let mut config: Signal<AppConfig> = use_context();
     let mut last_title = use_signal(String::new);
     let mut was_playing = use_signal(|| false);
 
@@ -183,6 +183,15 @@ pub fn use_player_task(ctrl: PlayerController) {
                         || (duration > 0 && pos.as_secs() >= duration))
                         && !*ctrl.is_loading.read()
                     {
+                        {
+                            let mut config_write = config.write();
+                            let q = ctrl.queue.peek();
+                            let idx = *ctrl.current_queue_index.peek();
+                            if let Some(track) = q.get(idx) {
+                                let track_id = track.path.to_string_lossy().to_string();
+                                *config_write.listen_counts.entry(track_id).or_insert(0) += 1;
+                            }
+                        }
                         ctrl.play_next();
                     }
                 } else if *was_playing.peek() {

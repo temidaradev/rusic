@@ -37,7 +37,9 @@ pub fn PlaylistsPage(
                 let (server_config, device_id) = {
                     let conf = config.peek();
                     if let Some(server) = &conf.server {
-                        if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                        if let (Some(token), Some(user_id)) =
+                            (&server.access_token, &server.user_id)
+                        {
                             (
                                 Some((server.url.clone(), token.clone(), user_id.clone())),
                                 conf.device_id.clone(),
@@ -61,7 +63,8 @@ pub fn PlaylistsPage(
                         let mut jelly_playlists = Vec::new();
                         for p in playlists {
                             if let Ok(items) = remote.get_playlist_items(&p.id).await {
-                                let tracks: Vec<String> = items.into_iter().map(|item| item.id).collect();
+                                let tracks: Vec<String> =
+                                    items.into_iter().map(|item| item.id).collect();
                                 jelly_playlists.push(reader::models::JellyfinPlaylist {
                                     id: p.id.clone(),
                                     name: p.name.clone(),
@@ -128,7 +131,7 @@ pub fn PlaylistsPage(
                                         let id = playlist.id.clone();
                                         move |_| selected_playlist_id.set(Some(id.clone()))
                                     },
-                                    div { 
+                                    div {
                                         class: "mb-4 w-12 h-12 rounded-full flex items-center justify-center transition-colors",
                                         style: "background: color-mix(in srgb, var(--color-indigo-500), transparent 80%); color: var(--color-indigo-400)",
                                         i { class: "fa-solid fa-list-ul" }
@@ -147,7 +150,7 @@ pub fn PlaylistsPage(
                                         let id = playlist.id.clone();
                                         move |_| selected_playlist_id.set(Some(id.clone()))
                                     },
-                                    div { 
+                                    div {
                                         class: "mb-4 w-12 h-12 rounded-full flex items-center justify-center transition-colors",
                                         style: "background: color-mix(in srgb, var(--color-indigo-500), transparent 80%); color: var(--color-indigo-400)",
                                         i { class: "fa-solid fa-server" }

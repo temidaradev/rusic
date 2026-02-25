@@ -367,6 +367,12 @@ fn App() -> Element {
                                 current_queue_index: current_queue_index,
                             }
                         },
+                        Route::Logs => rsx! {
+                          pages::logs::Logs {
+                              library: library,
+                              config: config,
+                          }
+                        },
                         Route::Settings => rsx! { pages::settings::Settings { config } },
                     }
                 }
