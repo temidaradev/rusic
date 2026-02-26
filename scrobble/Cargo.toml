@@ -1,0 +1,8 @@
+[package]
+name = "scrobble"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+musicbrainz = "0.8.1"
+lastfm = "*"
