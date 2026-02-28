@@ -1,5 +1,5 @@
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,7 +15,8 @@ pub struct TrackMetadata<'a> {
 
 #[derive(Serialize)]
 pub struct Listen<'a> {
-    listened_at: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    listened_at: Option<i64>,
     track_metadata: TrackMetadata<'a>,
 }
 
@@ -25,14 +26,42 @@ pub struct SubmitListens<'a> {
     payload: Vec<Listen<'a>>,
 }
 
+#[derive(Deserialize)]
+struct ValidateResponse {
+    valid: bool,
+    user_name: Option<String>,
+}
+
+pub async fn validate_token(token: &str) -> Result<Option<String>, reqwest::Error> {
+    let client = Client::new();
+    let url = "https://api.listenbrainz.org/1/validate-token";
+
+    let resp = client
+        .get(url)
+        .header("Authorization", token)
+        .send()
+        .await?;
+
+    resp.error_for_status_ref()?;
+
+    let body: ValidateResponse = resp.json().await?;
+
+    if body.valid {
+        Ok(body.user_name)
+    } else {
+        Ok(None)
+    }
+}
+
 pub async fn submit_listens(
     token: &str,
     listens: Vec<Listen<'_>>,
+    listen_type: &str,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let client = Client::new();
     let url = "https://api.listenbrainz.org/1/submit-listens";
     let body = SubmitListens {
-        listen_type: "single",
+        listen_type,
         payload: listens,
     };
 
@@ -55,7 +84,23 @@ pub fn make_listen<'a>(artist: &'a str, track: &'a str, release: Option<&'a str>
         .as_secs() as i64;
 
     Listen {
-        listened_at: now_unix,
+        listened_at: Some(now_unix),
+        track_metadata: TrackMetadata {
+            artist_name: artist,
+            track_name: track,
+            release_name: release.filter(|s| !s.is_empty()),
+            additional_info: None,
+        },
+    }
+}
+
+pub fn make_playing_now<'a>(
+    artist: &'a str,
+    track: &'a str,
+    release: Option<&'a str>,
+) -> Listen<'a> {
+    Listen {
+        listened_at: None,
         track_metadata: TrackMetadata {
             artist_name: artist,
             track_name: track,

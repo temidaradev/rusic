@@ -158,24 +158,24 @@ pub fn MusicBrainzSettings(current: String, on_save: EventHandler<String>) -> El
     }
 }
 
-#[component]
-pub fn LastFmSettings(current: String, on_save: EventHandler<String>) -> Element {
-    let mut input = use_signal(move || current.clone());
+// #[component]
+// pub fn LastFmSettings(current: String, on_save: EventHandler<String>) -> Element {
+//     let mut input = use_signal(move || current.clone());
 
-    rsx! {
-        div { class: "flex items-center gap-2 w-full max-w-xl",
-            div { class: "flex-1 bg-white/5 p-1 rounded-xl border border-white/5",
-                input {
-                    class: "bg-transparent w-full px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none",
-                    placeholder: "Enter your last.fm token",
-                    value: "{input()}",
-                    oninput: move |evt| {
-                        input.set(evt.value());
-                        on_save.call(evt.value());
-                    },
-                    r#type: "text",
-                }
-            }
-        }
-    }
-}
+//     rsx! {
+//         div { class: "flex items-center gap-2 w-full max-w-xl",
+//             div { class: "flex-1 bg-white/5 p-1 rounded-xl border border-white/5",
+//                 input {
+//                     class: "bg-transparent w-full px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none",
+//                     placeholder: "Enter your last.fm token",
+//                     value: "{input()}",
+//                     oninput: move |evt| {
+//                         input.set(evt.value());
+//                         on_save.call(evt.value());
+//                     },
+//                     r#type: "text",
+//                 }
+//             }
+//         }
+//     }
+// }

@@ -204,6 +204,31 @@ impl PlayerController {
                         let threshold_secs = std::cmp::min(240, (duration_secs / 2) as u64);
 
                         spawn(async move {
+                            let token_raw = cfg_signal.read().musicbrainz_token.clone();
+                            if !token_raw.is_empty() {
+                                let auth_header_value = if token_raw.contains(' ') {
+                                    token_raw
+                                } else {
+                                    format!("Token {}", token_raw)
+                                };
+
+                                let playing_now = scrobble::musicbrainz::make_playing_now(
+                                    &scrobble_track.artist,
+                                    &scrobble_track.title,
+                                    Some(&scrobble_track.album),
+                                );
+
+                                if let Err(e) = scrobble::musicbrainz::submit_listens(
+                                    &auth_header_value,
+                                    vec![playing_now],
+                                    "playing_now",
+                                )
+                                .await
+                                {
+                                    tracing::warn!("Failed to submit playing_now: {}", e);
+                                }
+                            }
+
                             tokio::time::sleep(std::time::Duration::from_secs(threshold_secs))
                                 .await;
                             if *play_generation_signal.read() != gen_snapshot {
@@ -230,6 +255,7 @@ impl PlayerController {
                             match scrobble::musicbrainz::submit_listens(
                                 &auth_header_value,
                                 vec![listen],
+                                "single",
                             )
                             .await
                             {

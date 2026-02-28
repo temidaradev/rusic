@@ -53,6 +53,10 @@ Since Apple hates open-source software, they make it harder for users to install
 xattr -d com.apple.quarantine /Applications/Rusic.app
 ```
 
+### Scrobbling functionality
+
+Scrobbling functionality is only available through the MusicBrainz (for now). To enable it, you need to provide a valid MusicBrainz token in the configuration file. And the scrobbling is only available for your local musics. I highly recommend using "https://github.com/lyarenei/jellyfin-plugin-listenbrainz" because if you also use other music apps for your jellyfin server, you can scrobble your music from anywhere.
+
 ## Tech Stack
 
 - **Dioxus**: UI Framework

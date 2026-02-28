@@ -1,6 +1,6 @@
 use components::settings_items::{
-    DirectoryPicker, DiscordPresenceSettings, LastFmSettings, MusicBrainzSettings, ServerSettings,
-    SettingItem, ThemeSelector,
+    DirectoryPicker, DiscordPresenceSettings, MusicBrainzSettings, ServerSettings, SettingItem,
+    ThemeSelector,
 };
 use components::settings_popups::{AddServerPopup, LoginPopup};
 use config::AppConfig;
@@ -17,9 +17,6 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
 
     let mut username = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
-
-    let mut enable_musicbrainz = use_signal(|| false);
-    let mut musicbrainz_token = use_signal(|| String::new());
 
     let mut error = use_signal(|| Option::<String>::None);
     let mut login_error = use_signal(|| Option::<String>::None);
@@ -171,18 +168,18 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                                 }
                             }
                         }
-                        SettingItem {
-                            title: "Last.fm",
-                            description: "Enter you last.fm token".to_string(),
-                            control: rsx! {
-                                LastFmSettings {
-                                    current: config.read().lastfm_token.clone(),
-                                    on_save: move |token: String| {
-                                        config.write().lastfm_token = token;
-                                    },
-                                }
-                            }
-                        }
+                        // SettingItem {
+                        //     title: "Last.fm",
+                        //     description: "Enter you last.fm token".to_string(),
+                        //     control: rsx! {
+                        //         LastFmSettings {
+                        //             current: config.read().lastfm_token.clone(),
+                        //             on_save: move |token: String| {
+                        //                 config.write().lastfm_token = token;
+                        //             },
+                        //         }
+                        //     }
+                        // }
                     }
                 }
 
