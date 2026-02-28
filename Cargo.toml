@@ -6,7 +6,7 @@ members = [
    "pages",
    "player",
    "reader",
-   "server", "utils", "config", "rusic_route", "discord-presence",
+   "server", "utils", "config", "rusic_route", "discord-presence", "scrobble",
 ]
 resolver = "3"
 
@@ -39,3 +39,4 @@ rusic = { path = "./rusic" }
 server = { path = "./server" }
 rusic_route = { path = "./rusic_route" }
 discord-presence = { path = "./discord-presence" }
+scrobble = { path = "./scrobble" }

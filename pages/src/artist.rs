@@ -1,7 +1,9 @@
+use components::playlist_modal::PlaylistModal;
 use config::{AppConfig, MusicSource};
 use dioxus::prelude::*;
 use player::player;
 use reader::{Library, PlaylistStore};
+use server::jellyfin::JellyfinRemote;
 use std::collections::HashMap;
 
 #[component]
@@ -23,6 +25,10 @@ pub fn Artist(
     on_close: EventHandler<()>,
 ) -> Element {
     let is_jellyfin = config.read().active_source == MusicSource::Jellyfin;
+
+    let mut show_playlist_modal = use_signal(|| false);
+    let mut active_menu_track = use_signal(|| None::<std::path::PathBuf>);
+    let mut selected_track_for_playlist = use_signal(|| None::<std::path::PathBuf>);
 
     let artist_tracks = use_memo(move || {
         let lib = library.read();
@@ -213,6 +219,82 @@ pub fn Artist(
                 div {
                     class: "w-full max-w-[1600px] mx-auto",
 
+                    if *show_playlist_modal.read() {
+                        PlaylistModal {
+                            playlist_store: playlist_store,
+                            is_jellyfin: is_jellyfin,
+                            on_close: move |_| show_playlist_modal.set(false),
+                            on_add_to_playlist: move |playlist_id: String| {
+                                if let Some(path) = selected_track_for_playlist.read().clone() {
+                                    if !is_jellyfin {
+                                        let mut store = playlist_store.write();
+                                        if let Some(playlist) = store.playlists.iter_mut().find(|p| p.id == playlist_id) {
+                                            if !playlist.tracks.contains(&path) {
+                                                playlist.tracks.push(path);
+                                            }
+                                        }
+                                    } else {
+                                        let path_clone = path.clone();
+                                        let pid = playlist_id.clone();
+                                        spawn(async move {
+                                            let conf = config.peek();
+                                            if let Some(server) = &conf.server {
+                                                if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                                                    let remote = JellyfinRemote::new(
+                                                        &server.url,
+                                                        Some(token),
+                                                        &conf.device_id,
+                                                        Some(user_id),
+                                                    );
+                                                    let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                                    if parts.len() >= 2 {
+                                                        let item_id = parts[1];
+                                                        let _ = remote.add_to_playlist(&pid, item_id).await;
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                                show_playlist_modal.set(false);
+                            },
+                            on_create_playlist: move |name: String| {
+                                if let Some(path) = selected_track_for_playlist.read().clone() {
+                                    if !is_jellyfin {
+                                        let mut store = playlist_store.write();
+                                        store.playlists.push(reader::models::Playlist {
+                                            id: uuid::Uuid::new_v4().to_string(),
+                                            name,
+                                            tracks: vec![path],
+                                        });
+                                    } else {
+                                        let path_clone = path.clone();
+                                        let playlist_name = name.clone();
+                                        spawn(async move {
+                                            let conf = config.peek();
+                                            if let Some(server) = &conf.server {
+                                                if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                                                    let remote = JellyfinRemote::new(
+                                                        &server.url,
+                                                        Some(token),
+                                                        &conf.device_id,
+                                                        Some(user_id),
+                                                    );
+                                                    let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                                    if parts.len() >= 2 {
+                                                        let item_id = parts[1];
+                                                        let _ = remote.create_playlist(&playlist_name, &[item_id]).await;
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                                show_playlist_modal.set(false);
+                            }
+                        }
+                    }
+
                     div { class: "flex items-center justify-between mb-8",
                         button {
                             class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
@@ -228,7 +310,7 @@ pub fn Artist(
                         cover_url: artist_cover(),
                         tracks: artist_tracks(),
                         library: library,
-                        active_track: None,
+                        active_track: active_menu_track.read().clone(),
                         on_play: move |idx: usize| {
                             let tracks = artist_tracks();
                             queue.set(tracks.clone());
@@ -280,10 +362,26 @@ pub fn Artist(
                                 }
                             }
                         },
-                        on_click_menu: None,
-                        on_close_menu: None,
-                        on_add_to_playlist: None,
-                        on_delete_track: None,
+                        on_click_menu: move |idx: usize| {
+                            if let Some(track) = artist_tracks().get(idx) {
+                                if active_menu_track.read().as_ref() == Some(&track.path) {
+                                    active_menu_track.set(None);
+                                } else {
+                                    active_menu_track.set(Some(track.path.clone()));
+                                }
+                            }
+                        },
+                        on_close_menu: move |_| active_menu_track.set(None),
+                        on_add_to_playlist: move |idx: usize| {
+                            if let Some(track) = artist_tracks().get(idx) {
+                                selected_track_for_playlist.set(Some(track.path.clone()));
+                                show_playlist_modal.set(true);
+                                active_menu_track.set(None);
+                            }
+                        },
+                        on_delete_track: move |_| {
+                            active_menu_track.set(None);
+                        },
                         actions: None
                     }
                 }

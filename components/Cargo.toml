@@ -1,6 +1,6 @@
 [package]
 name = "components"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 
 [dependencies]
@@ -17,3 +17,4 @@ rand = { workspace = true }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 rfd = { workspace = true }
+server = { workspace = true }

@@ -6,5 +6,6 @@ pub enum Route {
     Album,
     Artist,
     Playlists,
+    Logs,
     Settings,
 }

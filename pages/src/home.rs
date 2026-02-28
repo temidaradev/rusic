@@ -175,12 +175,17 @@ pub fn Home(
                                     break;
                                 }
                             }
+                            if let Ok(genres) = remote.get_genres().await {
+                                let mut lib_write = library.write();
+                                lib_write.jellyfin_genres = genres.into_iter().map(|g| (g.name, g.id)).collect();
+                            }
                         }
                     }
                 }
             }
         });
     };
+
 
     use_effect(move || {
         let is_jelly = config.read().active_source == MusicSource::Jellyfin;

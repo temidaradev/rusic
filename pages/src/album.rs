@@ -500,26 +500,55 @@ fn JellyfinAlbumDetails(
             if *show_playlist_modal.read() {
                 components::playlist_modal::PlaylistModal {
                     playlist_store: playlist_store,
+                    is_jellyfin: true,
                     on_close: move |_| show_playlist_modal.set(false),
                     on_add_to_playlist: move |playlist_id: String| {
                         if let Some(path) = selected_track_for_playlist.read().clone() {
-                            let mut store = playlist_store.write();
-                            if let Some(playlist) = store.playlists.iter_mut().find(|p| p.id == playlist_id) {
-                                if !playlist.tracks.contains(&path) {
-                                    playlist.tracks.push(path);
+                            let path_clone = path.clone();
+                            let pid = playlist_id.clone();
+                            spawn(async move {
+                                let conf = config.peek();
+                                if let Some(server) = &conf.server {
+                                    if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                                        let remote = JellyfinRemote::new(
+                                            &server.url,
+                                            Some(token),
+                                            &conf.device_id,
+                                            Some(user_id),
+                                        );
+                                        let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                        if parts.len() >= 2 {
+                                            let item_id = parts[1];
+                                            let _ = remote.add_to_playlist(&pid, item_id).await;
+                                        }
+                                    }
                                 }
-                            }
+                            });
                         }
                         show_playlist_modal.set(false);
                         active_menu_track.set(None);
                     },
                     on_create_playlist: move |name: String| {
                         if let Some(path) = selected_track_for_playlist.read().clone() {
-                            let mut store = playlist_store.write();
-                            store.playlists.push(reader::models::Playlist {
-                                id: uuid::Uuid::new_v4().to_string(),
-                                name,
-                                tracks: vec![path],
+                            let path_clone = path.clone();
+                            let playlist_name = name.clone();
+                            spawn(async move {
+                                let conf = config.peek();
+                                if let Some(server) = &conf.server {
+                                    if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                                        let remote = JellyfinRemote::new(
+                                            &server.url,
+                                            Some(token),
+                                            &conf.device_id,
+                                            Some(user_id),
+                                        );
+                                        let parts: Vec<&str> = path_clone.to_str().unwrap_or_default().split(':').collect();
+                                        if parts.len() >= 2 {
+                                            let item_id = parts[1];
+                                            let _ = remote.create_playlist(&playlist_name, &[item_id]).await;
+                                        }
+                                    }
+                                }
                             });
                         }
                         show_playlist_modal.set(false);

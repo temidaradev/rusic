@@ -402,6 +402,7 @@ fn App() -> Element {
                             pages::playlists::PlaylistsPage {
                                 playlist_store: playlist_store,
                                 library: library,
+                                config: config,
                                 player: player,
                                 is_playing: is_playing,
                                 current_playing: current_playing,
@@ -413,6 +414,12 @@ fn App() -> Element {
                                 queue: queue,
                                 current_queue_index: current_queue_index,
                             }
+                        },
+                        Route::Logs => rsx! {
+                          pages::logs::Logs {
+                              library: library,
+                              config: config,
+                          }
                         },
                         Route::Settings => rsx! { pages::settings::Settings { config } },
                     }

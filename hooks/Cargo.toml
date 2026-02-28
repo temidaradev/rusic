@@ -1,6 +1,6 @@
 [package]
 name = "hooks"
-version = "0.1.0"
+version = "0.3.1"
 edition = "2024"
 
 [dependencies]
@@ -15,3 +15,4 @@ rand = { workspace = true }
 discord-presence = { workspace = true }
 reqwest = { workspace = true }
 server = { workspace = true }
+scrobble = { workspace = true }

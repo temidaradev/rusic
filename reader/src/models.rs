@@ -36,7 +36,10 @@ pub struct Library {
     pub jellyfin_tracks: Vec<Track>,
     #[serde(default)]
     pub jellyfin_albums: Vec<Album>,
+    #[serde(default)]
+    pub jellyfin_genres: Vec<(String, String)>, // (Name, ID)
 }
+
 
 impl Library {
     pub fn new(root_path: PathBuf) -> Self {
@@ -97,9 +100,18 @@ pub struct Playlist {
     pub tracks: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JellyfinPlaylist {
+    pub id: String,
+    pub name: String,
+    pub tracks: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct PlaylistStore {
     pub playlists: Vec<Playlist>,
+    #[serde(default)]
+    pub jellyfin_playlists: Vec<JellyfinPlaylist>,
 }
 
 impl PlaylistStore {

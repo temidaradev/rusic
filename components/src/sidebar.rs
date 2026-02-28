@@ -41,6 +41,11 @@ const TOP_MENU: &[SidebarItem] = &[
         route: Route::Playlists,
         icon: "fa-solid fa-list",
     },
+    SidebarItem {
+        name: "Logs",
+        route: Route::Logs,
+        icon: "fa-solid fa-clipboard-list",
+    },
 ];
 
 const BOTTOM_MENU: &[SidebarItem] = &[SidebarItem {

@@ -1,5 +1,6 @@
 use components::settings_items::{
-    DirectoryPicker, DiscordPresenceSettings, ServerSettings, SettingItem, ThemeSelector,
+    DirectoryPicker, DiscordPresenceSettings, MusicBrainzSettings, ServerSettings, SettingItem,
+    ThemeSelector,
 };
 use components::settings_popups::{AddServerPopup, LoginPopup};
 use config::AppConfig;
@@ -155,6 +156,30 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                                 }
                             }
                         }
+                        SettingItem {
+                            title: "ListenBrainz",
+                            description: "Enter your ListenBrainz token",
+                            control: rsx! {
+                                MusicBrainzSettings {
+                                    current: config.read().musicbrainz_token.clone(),
+                                    on_save: move |token: String| {
+                                        config.write().musicbrainz_token = token;
+                                    },
+                                }
+                            }
+                        }
+                        // SettingItem {
+                        //     title: "Last.fm",
+                        //     description: "Enter you last.fm token".to_string(),
+                        //     control: rsx! {
+                        //         LastFmSettings {
+                        //             current: config.read().lastfm_token.clone(),
+                        //             on_save: move |token: String| {
+                        //                 config.write().lastfm_token = token;
+                        //             },
+                        //         }
+                        //     }
+                        // }
                     }
                 }
 
