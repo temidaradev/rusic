@@ -14,9 +14,9 @@ pub fn TrackRow(
 ) -> Element {
     rsx! {
         div {
-            class: "flex items-center p-2 md:p-3 rounded-lg hover:bg-white/5 group transition-colors relative",
+            class: "flex items-center p-2 rounded-lg hover:bg-white/5 group transition-colors relative",
             onclick: move |_| on_play.call(()),
-            div { class: "w-10 h-10 bg-white/5 rounded overflow-hidden flex items-center justify-center mr-3 md:mr-4 shrink-0",
+            div { class: "w-10 h-10 bg-white/5 rounded overflow-hidden flex items-center justify-center mr-4 shrink-0",
                 if let Some(url) = cover_url {
                     img {
                         src: "{url}",
@@ -38,7 +38,7 @@ pub fn TrackRow(
             }
             div { class: "relative",
                 button {
-                    class: "w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100",
+                    class: "w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100",
                     onclick: move |evt| {
                         evt.stop_propagation();
                         on_click_menu.call(());

@@ -14,7 +14,8 @@ rusic_route = { workspace = true }
 config = { workspace = true }
 hooks = { workspace = true }
 rand = { workspace = true }
+server = { workspace = true }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 rfd = { workspace = true }
-server = { workspace = true }
+

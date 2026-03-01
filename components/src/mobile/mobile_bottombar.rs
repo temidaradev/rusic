@@ -18,10 +18,25 @@ pub fn MobileBottombar(
     mut current_song_cover_url: Signal<String>,
     mut volume: Signal<f32>,
 ) -> Element {
-    let progress_percent = if *current_song_duration.read() > 0 {
-        (*current_song_progress.read() as f64 / *current_song_duration.read() as f64) * 100.0
+    let dur = *current_song_duration.read();
+    let prog = *current_song_progress.read();
+
+    let progress_percent = if dur > 0 {
+        (prog as f64 / dur as f64) * 100.0
     } else {
         0.0
+    };
+
+    let format_time = |secs: u64| -> String {
+        let m = secs / 60;
+        let s = secs % 60;
+        format!("{m}:{s:02}")
+    };
+
+    let time_display = if dur > 0 {
+        format!("{} / {}", format_time(prog), format_time(dur))
+    } else {
+        String::new()
     };
 
     let mut ctrl = use_context::<PlayerController>();
@@ -63,7 +78,12 @@ pub fn MobileBottombar(
                         class: "flex flex-col min-w-0 flex-1 justify-center",
                         onclick: move |_| is_fullscreen.set(true),
                         span { class: "text-[15px] font-semibold text-white/95 truncate", "{current_song_title}" }
-                        span { class: "text-[13px] text-slate-400 truncate mt-0.5", "{current_song_artist}" }
+                        div { class: "flex items-center gap-2 mt-0.5",
+                            span { class: "text-[13px] text-slate-400 truncate", "{current_song_artist}" }
+                            if !time_display.is_empty() {
+                                span { class: "text-[11px] text-slate-500 whitespace-nowrap", "· {time_display}" }
+                            }
+                        }
                     }
                 }
 

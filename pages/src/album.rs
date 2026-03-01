@@ -567,7 +567,7 @@ fn JellyfinAlbumDetails(
             }
 
             div {
-                class: "flex flex-col md:flex-row items-end gap-8 mb-12",
+                class: "flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 mb-8 md:mb-12 text-center md:text-left",
                 div { class: "w-40 h-40 md:w-64 md:h-64 rounded-xl bg-stone-800 shadow-2xl overflow-hidden relative flex-shrink-0",
                     if let Some(url) = &cover_url {
                         img { src: "{url}", class: "w-full h-full object-cover" }
@@ -577,11 +577,11 @@ fn JellyfinAlbumDetails(
                         }
                     }
                 }
-                div { class: "flex-1",
+                div { class: "flex-1 flex flex-col items-center md:items-start",
                     if !artist.is_empty() {
                         h5 { class: "text-sm font-bold tracking-widest text-white/60 uppercase mb-2", "{artist}" }
                     }
-                    h1 { class: "text-5xl md:text-7xl font-bold text-white mb-6", "{album_title}" }
+                    h1 { class: "text-3xl md:text-5xl lg:text-7xl font-bold text-white mb-4 md:mb-6", "{album_title}" }
                     div { class: "flex items-center gap-6 text-slate-400",
                         p { "{album_tracks().len()} songs" }
                         span { "•" }
@@ -589,7 +589,7 @@ fn JellyfinAlbumDetails(
                     }
                 }
 
-                div { class: "flex items-center gap-4",
+                div { class: "flex items-center gap-4 self-center md:self-auto",
                     if !album_tracks().is_empty() {
                         button {
                             class: "w-14 h-14 rounded-full bg-indigo-500 hover:bg-indigo-400 text-black flex items-center justify-center transition-transform hover:scale-105 shadow-xl",
@@ -613,7 +613,7 @@ fn JellyfinAlbumDetails(
                         p { class: "text-lg", "No songs here." }
                     }
                 } else {
-                    div { class: "grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-2 border-b border-white/5 text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider",
+                    div { class: "hidden md:grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-2 border-b border-white/5 text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider",
                         div { class: "w-8 text-center", "#" }
                         div { "Title" }
                         div { "Album" }
