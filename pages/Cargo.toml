@@ -19,3 +19,4 @@ server = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
 discord-presence = { workspace = true }
+rand = { workspace = true }
