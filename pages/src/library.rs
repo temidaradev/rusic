@@ -484,7 +484,7 @@ pub fn LibraryPage(
                     if !is_jellyfin { "All Tracks" } else { "Jellyfin Tracks" }
                 }
                 div {
-                    class: "flex space-x-1 bg-[#0A0A0A] border border-white/5 p-1 rounded-lg",
+                    class: "flex space-x-1 bg-indigo-900 border border-white/5 p-1 rounded-lg",
                     button {
                         class: if *sort_order.read() == config::SortOrder::Title { "px-3 py-1 text-xs rounded-md bg-white/10 text-white font-medium transition-all" } else { "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all" },
                         onclick: move |_| sort_order.set(config::SortOrder::Title),

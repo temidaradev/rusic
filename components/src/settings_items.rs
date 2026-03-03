@@ -22,11 +22,31 @@ pub fn ThemeSelector(current_theme: String, on_change: EventHandler<String>) -> 
             class: "bg-white/5 border border-white/10 rounded px-3 py-1 text-sm text-white focus:outline-none focus:border-white/20",
             value: "{current_theme}",
             onchange: move |evt| on_change.call(evt.value()),
-            option { value: "default", "Default" }
-            option { value: "gruvbox", "Gruvbox Material" }
-            option { value: "dracula", "Dracula" }
-            option { value: "nord", "Nord" }
-            option { value: "catppuccin", "Catppuccin Mocha" }
+            optgroup { label: "── Dark ──",
+                option { value: "default", "Default" }
+                option { value: "gruvbox", "Gruvbox Material" }
+                option { value: "dracula", "Dracula" }
+                option { value: "nord", "Nord" }
+                option { value: "catppuccin", "Catppuccin Mocha" }
+                option { value: "ef-night", "Ef Night" }
+                option { value: "ayu-dark", "Ayu Dark" }
+                option { value: "ayu-mirage", "Ayu Mirage" }
+                option { value: "vague", "Vague" }
+                option { value: "onedarkpro", "One Dark Pro" }
+                option { value: "osmium", "Osmium" }
+                option { value: "kanagawa-dragon", "Kanagawa Dragon" }
+                option { value: "everforest", "Everforest" }
+                option { value: "rosepine", "Rosé Pine" }
+            }
+            optgroup { label: "── Light ──",
+                option { value: "default-light", "Default Light" }
+                option { value: "catppuccin-latte", "Catppuccin Latte" }
+                option { value: "rosepine-dawn", "Rosé Pine Dawn" }
+                option { value: "everforest-light", "Everforest Light" }
+                option { value: "ayu-light", "Ayu Light" }
+                option { value: "one-light", "One Light" }
+                option { value: "gruvbox-light", "Gruvbox Light Soft" }
+            }
         }
     }
 }

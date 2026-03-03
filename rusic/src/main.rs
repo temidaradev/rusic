@@ -230,7 +230,7 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: "https://fonts.bunny.net/css?family=jetbrains-mono:400,500,700,800&display=swap" }
         document::Link { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" }
         div {
-            class: "flex flex-col h-screen theme-{config.read().theme}",
+            class: "flex flex-col h-screen bg-black text-white theme-{config.read().theme}",
             tabindex: "0",
             autofocus: true,
             onkeydown: move |evt| {

@@ -126,7 +126,7 @@ pub fn PlaylistDetail(
                 .and_then(|a| utils::format_artwork_url(a.cover_path.as_ref()))
         })
     } else {
-        if let Some(p) = store
+        if let Some(_p) = store
             .jellyfin_playlists
             .iter()
             .find(|p| p.id == playlist_id)

@@ -5,8 +5,8 @@ body {
 }
 
 body {
-    background-color: var(--color-black, #000000);
-    color: var(--color-white, #ffffff);
+    background-color: #000000;
+    color: #ffffff;
     font-family:
         "JetBrains Mono", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
@@ -96,10 +96,8 @@ body {
     font-family: inherit;
     transition-property: border-color, background-color;
     transition-duration: var(--default-transition-duration, 150ms);
-    transition-timing-function: var(
-        --default-transition-timing-function,
-        cubic-bezier(0.4, 0, 0.2, 1)
-    );
+    transition-timing-function: var(--default-transition-timing-function,
+            cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .popup input:focus {
@@ -138,10 +136,8 @@ body {
     cursor: pointer;
     transition-property: background-color, transform, color;
     transition-duration: var(--default-transition-duration, 150ms);
-    transition-timing-function: var(
-        --default-transition-timing-function,
-        cubic-bezier(0.4, 0, 0.2, 1)
-    );
+    transition-timing-function: var(--default-transition-timing-function,
+            cubic-bezier(0.4, 0, 0.2, 1));
     border: none;
 }
 
