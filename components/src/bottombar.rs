@@ -116,7 +116,9 @@ pub fn Bottombar(
                              LoopMode::Track => rsx! {
                                 span { class: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white leading-none", "1" }
                              },
-                             _ => rsx! {}
+                             _ => rsx! {
+                                 div {}
+                             }
                         }
                     }
                 }

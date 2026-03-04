@@ -179,10 +179,22 @@ pub fn use_player_task(ctrl: PlayerController) {
                     }
 
                     let duration = *ctrl.current_song_duration.read();
-                    if (ctrl.player.read().is_empty()
-                        || (duration > 0 && pos.as_secs() >= duration))
-                        && !*ctrl.is_loading.read()
-                    {
+                    let is_jellyfin = {
+                        let q = ctrl.queue.read();
+                        let idx = *ctrl.current_queue_index.read();
+                        q.get(idx)
+                            .map(|t| t.path.to_string_lossy().starts_with("jellyfin:"))
+                            .unwrap_or(false)
+                    };
+
+                    let should_skip = if is_jellyfin {
+                        duration > 0 && pos.as_secs() >= duration
+                    } else {
+                        ctrl.player.read().is_empty() || (duration > 0 && pos.as_secs() >= duration)
+                    };
+
+                    if should_skip && !*ctrl.is_loading.read() && !*ctrl.skip_in_progress.read() {
+                        ctrl.skip_in_progress.set(true);
                         {
                             let mut config_write = config.write();
                             let q = ctrl.queue.peek();

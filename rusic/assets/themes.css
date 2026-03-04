@@ -15,6 +15,23 @@
     --color-neutral-900: #171717;
 }
 
+/* Gruvbox Classic Dark */
+.theme-gruvbox-classic {
+    --color-black: #282828;
+    --color-white: #ebdbb2;
+    --color-slate-400: #a89984;
+    --color-slate-500: #665c54;
+    --color-green-500: #b8bb26;
+    --color-indigo-400: #83a598;
+    --color-indigo-500: #458588;
+    --color-indigo-600: #fabd2f;
+    --color-indigo-900: #1d2021;
+    --color-purple-600: #d3869b;
+    --color-purple-700: #b16286;
+    --color-red-400: #fb4934;
+    --color-neutral-900: #3c3836;
+}
+
 /* Gruvbox Material Dark */
 .theme-gruvbox {
     --color-black: #1d2021;

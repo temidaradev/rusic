@@ -27,6 +27,7 @@ pub struct PlayerController {
     pub player: Signal<Player>,
     pub is_playing: Signal<bool>,
     pub is_loading: Signal<bool>,
+    pub skip_in_progress: Signal<bool>,
     pub queue: Signal<Vec<Track>>,
     pub shuffle: Signal<bool>,
     pub loop_mode: Signal<LoopMode>,
@@ -80,6 +81,7 @@ impl PlayerController {
                     let mut player = self.player;
                     let mut is_playing = self.is_playing;
                     let mut is_loading = self.is_loading;
+                    let mut skip_in_progress = self.skip_in_progress;
                     let play_generation = self.play_generation;
                     let volume = self.volume;
 
@@ -112,6 +114,7 @@ impl PlayerController {
                                 player.read().set_volume(*volume.peek());
                                 is_loading.set(false);
                                 is_playing.set(true);
+                                skip_in_progress.set(false);
 
                                 let cover_url = cover_url.clone();
                                 let track = track.clone();
@@ -148,6 +151,7 @@ impl PlayerController {
                             }
                         } else {
                             is_loading.set(false);
+                            skip_in_progress.set(false);
                         }
                     });
                 }
@@ -173,6 +177,8 @@ impl PlayerController {
 
                         self.player.write().play(source, meta);
                         self.player.read().set_volume(*self.volume.peek());
+
+                        self.skip_in_progress.set(false);
 
                         self.current_song_title.set(track.title.clone());
                         self.current_song_artist.set(track.artist.clone());
@@ -381,6 +387,7 @@ pub fn use_player_controller(
 ) -> PlayerController {
     let play_generation = use_signal(|| 0);
     let is_loading = use_signal(|| false);
+    let skip_in_progress = use_signal(|| false);
     let shuffle = use_signal(|| false);
     let loop_mode = use_signal(|| LoopMode::None);
 
@@ -388,6 +395,7 @@ pub fn use_player_controller(
         player,
         is_playing,
         is_loading,
+        skip_in_progress,
         queue,
         shuffle,
         loop_mode,
