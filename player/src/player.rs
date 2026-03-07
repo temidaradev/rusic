@@ -129,6 +129,19 @@ impl Player {
                 meta.artwork.as_deref(),
             );
         }
+
+        #[cfg(target_os = "windows")]
+        if let Some(meta) = &self.now_playing {
+            systemint::update_now_playing(
+                &meta.title,
+                &meta.artist,
+                &meta.album,
+                meta.duration.as_secs_f64(),
+                self.get_position().as_secs_f64(),
+                !self.sink.is_paused(),
+                meta.artwork.as_deref(),
+            );
+        }
     }
 
     pub fn get_position(&self) -> Duration {

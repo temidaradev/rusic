@@ -8,10 +8,10 @@ use player::player::Player;
 use rusic_route::Route;
 use std::{borrow::Cow, sync::Arc};
 
-const FAVICON: Asset = asset!("../assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("../assets/main.css");
-const THEME_CSS: Asset = asset!("../assets/themes.css");
-const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
+const FAVICON: Asset = asset!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/favicon.ico"));
+const MAIN_CSS: Asset = asset!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/main.css"));
+const THEME_CSS: Asset = asset!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/themes.css"));
+const TAILWIND_CSS: Asset = asset!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/tailwind.css"));
 
 static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
 
@@ -48,48 +48,83 @@ fn main() {
     }
 
     let config = dioxus::desktop::Config::new()
-        .with_window(window)
+        .with_window(window)        
         .with_custom_protocol("artwork", |_headers, request| {
-            let path = request.uri().path();
-            let decoded = percent_encoding::percent_decode_str(path).decode_utf8_lossy();
+            let uri = request.uri();
+        
+            // Decode the file path from the ?p= parameter
+            let file_path: String = uri
+                .query()
+                .and_then(|q| {
+                    q.split('&')
+                        .find_map(|kv| kv.strip_prefix("p="))
+                        .map(|encoded| {
+                            percent_encoding::percent_decode_str(encoded)
+                                .decode_utf8_lossy()
+                                .into_owned()
+                        })
+                })
+                .unwrap_or_default();
+            
+            if file_path.is_empty() {
+                return http::Response::builder()
+                    .status(400)
+                    .body(std::borrow::Cow::from(Vec::new()))
+                    .unwrap();
+            }
+        
+            // convert forward slashes back to backslashes for proper path handling
+            #[cfg(target_os = "windows")]
+            let file_path = file_path.replace('/', "\\");
+        
+            #[cfg(not(target_os = "windows"))]
+            let file_path = if file_path.starts_with('~') {
+                if let Ok(home) = std::env::var("HOME") {
+                    file_path.replacen('~', &home, 1)
+                } else {
+                    file_path
+                }
+            } else {
+                file_path
+            };
+        
+            let path = std::path::Path::new(&file_path);
 
-            let mime = if decoded.ends_with(".png") {
+            // Check
+            if !path.exists() {
+                eprintln!("[artwork] File not found: {}", file_path);
+                return http::Response::builder()
+                    .status(404)
+                    .body(std::borrow::Cow::from(Vec::new()))
+                    .unwrap();
+            }
+        
+            let mime = if file_path.ends_with(".png") {
                 "image/png"
             } else {
                 "image/jpeg"
             };
-
-            let mut decoded_path = decoded.to_string();
-
-            if decoded_path.starts_with("/~") {
-                if let Ok(home) = std::env::var("HOME") {
-                    decoded_path = decoded_path.replacen("/~", &home, 1);
+        
+            // Read the file with error handling
+            match std::fs::read(path) {
+                Ok(content) => {
+                    http::Response::builder()
+                        .header("Content-Type", mime)
+                        .header("Access-Control-Allow-Origin", "*")
+                        .header("Cache-Control", "public, max-age=31536000")
+                        .body(std::borrow::Cow::from(content))
+                        .unwrap()
                 }
-            } else if decoded_path.starts_with('~') {
-                if let Ok(home) = std::env::var("HOME") {
-                    decoded_path = decoded_path.replacen('~', &home, 1);
+                Err(e) => {
+                    eprintln!("[artwork] Failed to read file {}: {}", file_path, e);
+                    http::Response::builder()
+                        .status(500)
+                        .body(std::borrow::Cow::from(Vec::new()))
+                        .unwrap()
                 }
             }
-
-            let path = std::path::Path::new(&decoded_path);
-            let content = std::fs::read(path)
-                .or_else(|_| {
-                    if decoded_path.strip_prefix('/').is_some() {
-                        std::fs::read(std::path::Path::new(&decoded_path[1..]))
-                    } else {
-                        Err(std::io::Error::from(std::io::ErrorKind::NotFound))
-                    }
-                })
-                .map(Cow::from)
-                .unwrap_or_else(|_| std::borrow::Cow::from(Vec::new()));
-
-            http::Response::builder()
-                .header("Content-Type", mime)
-                .header("Access-Control-Allow-Origin", "*")
-                .body(content)
-                .unwrap()
         });
-
+        
     dioxus::LaunchBuilder::desktop()
         .with_cfg(config)
         .launch(App);
@@ -124,8 +159,6 @@ fn App() -> Element {
     let mut trigger_rescan = use_signal(|| 0);
     let current_playing = use_signal(|| 0);
     let player = use_signal(Player::new);
-    //why changed all use_signal(|| String::new()) to use_signal(String::new) it is because Needlessly creating
-    //a closure adds code for no benefit and gives the optimizer more work.
     let current_song_cover_url = use_signal(String::new);
     let current_song_title = use_signal(String::new);
     let current_song_artist = use_signal(String::new);
@@ -250,10 +283,6 @@ fn App() -> Element {
                         }
                         if route == Route::Artist {
                             selected_artist_name.set(String::new());
-                        }
-                        if route == Route::Search && !search_query.read().is_empty() {
-                            // Keep search query if already set? Or maybe clear it?
-                            // For now keep it.
                         }
                         current_route.set(route);
                     }
