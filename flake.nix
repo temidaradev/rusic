@@ -41,6 +41,16 @@
           flatpak
           flatpak-builder
         ];
+        filteredSrc = pkgs.lib.cleanSourceWith {
+          src = ./.;
+          filter = path: type:
+            let baseName = builtins.baseNameOf (toString path); in
+            baseName != "node_modules" &&
+            baseName != "target" &&
+            baseName != "cache" &&
+            baseName != ".github" &&
+            (pkgs.lib.cleanSourceFilter path type);
+        };
       in
       {
         devShells.default = pkgs.mkShell {
@@ -63,7 +73,9 @@
           '';
         };
 
-        packages.default = pkgs.callPackage ./nix/package.nix { src = ./.; };
+        packages.default = pkgs.callPackage ./nix/package.nix {
+          src = filteredSrc;
+        };
 
         apps.default = {
           type = "app";
