@@ -9,3 +9,9 @@ mod linux;
 
 #[cfg(target_os = "linux")]
 pub use linux::{SystemEvent, poll_event, update_now_playing};
+
+#[cfg(target_os = "windows")]
+mod windows;
+
+#[cfg(target_os = "windows")]
+pub use windows::{SystemEvent, init, poll_event, update_now_playing, wait_event};

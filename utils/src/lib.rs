@@ -1,30 +1,80 @@
 pub mod stream_buffer;
-
 use std::path::Path;
 
 pub fn format_artwork_url(path: Option<&impl AsRef<Path>>) -> Option<String> {
-    const FRAGMENT: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
-        .add(b' ')
-        .add(b'"')
-        .add(b'<')
-        .add(b'>')
-        .add(b'`');
-
-    path.map(|p| {
+    path.and_then(|p| {
         let p = p.as_ref();
         let p_str = p.to_string_lossy();
-        // why changed to strip_prefix -> Using str:strip_{prefix,suffix} is safer and may have better performance as there is no slicing which may panic
-        // and the compiler does not need to insert this panic code.
-        // It is also sometimes more readable as it removes the need for duplicating or storing the pattern used by str::{starts,ends}_with and in the slicing.
-        let abs_path = if let Some(path) = p_str.strip_prefix("./") {
-            std::env::current_dir().unwrap_or_default().join(path)
+
+        let abs_path = if let Some(stripped) = p_str.strip_prefix("./") {
+            std::env::current_dir()
+                .unwrap_or_default()
+                .join(stripped)
         } else {
             p.to_path_buf()
         };
 
-        format!(
-            "artwork://local{}",
-            percent_encoding::utf8_percent_encode(&abs_path.to_string_lossy(), FRAGMENT)
-        )
+        // Unix
+        let abs_str = abs_path.to_string_lossy();
+        let abs_str = if abs_str.starts_with('~') {
+            if let Ok(home) = std::env::var("HOME") {
+                std::borrow::Cow::Owned(abs_str.replacen('~', &home, 1))
+            } else {
+                abs_str
+            }
+        } else {
+            abs_str
+        };
+
+        #[cfg(target_os = "windows")]
+        {
+            // Since Windows WebView2 is such a bitch with custom protocols, I decided to instead use base64 data URLs
+            // TODO: Reduce overhead.
+            use std::fs;
+            
+            if let Ok(bytes) = fs::read(&*abs_str) {
+                // Determine MIME type, TODO: expand list
+                let mime = if abs_str.ends_with(".png") {
+                    "image/png"
+                } else if abs_str.ends_with(".gif") {
+                    "image/gif"
+                } else if abs_str.ends_with(".webp") {
+                    "image/webp"
+                } else {
+                    "image/jpeg"
+                };
+                
+                // Encode to base64
+                use base64::{Engine as _, engine::general_purpose};
+                let b64 = general_purpose::STANDARD.encode(&bytes);
+                Some(format!("data:{};base64,{}", mime, b64))
+            } else {
+                None
+            }
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // catch all
+            const QUERY_VAL: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
+                .add(b' ')
+                .add(b'"')
+                .add(b'#')
+                .add(b'%')
+                .add(b'&')
+                .add(b'+')
+                .add(b'=')
+                .add(b'?')
+                .add(b'<')
+                .add(b'>')
+                .add(b'`')
+                .add(b'\\')
+                .add(b':');
+
+            Some(format!(
+                "artwork://local?p={}",
+                percent_encoding::utf8_percent_encode(&abs_str, QUERY_VAL)
+            ))
+        }
     })
 }

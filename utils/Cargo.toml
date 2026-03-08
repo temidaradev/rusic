@@ -7,3 +7,6 @@ edition = "2024"
 percent-encoding = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+base64 = "0.22" # TODO REMOVE THIS

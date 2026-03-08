@@ -28,6 +28,9 @@ percent-encoding = { workspace = true }
 discord-presence = { workspace = true }
 discord-rich-presence = { workspace = true }
 
+[target.'cfg(target_os = "windows")'.dependencies]
+base64 = "0.22" # TODO REMOVE THIS
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.3", features = ["std"] }
 objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL", "NSProcessInfo"] }
