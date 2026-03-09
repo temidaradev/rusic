@@ -2,13 +2,14 @@ use config::{AppConfig, MusicSource};
 use dioxus::prelude::*;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use reader::{Library, PlaylistStore};
+use reader::{FavoritesStore, Library, PlaylistStore};
 use server::jellyfin::JellyfinRemote;
 
 #[component]
 pub fn Home(
     library: Signal<Library>,
     playlist_store: Signal<PlaylistStore>,
+    favorites_store: Signal<FavoritesStore>,
     on_select_album: EventHandler<String>,
     on_play_album: EventHandler<String>,
     on_select_playlist: EventHandler<String>,
@@ -431,9 +432,76 @@ pub fn Home(
                                         i { class: "fa-solid fa-play text-[10px]" }
                                         span { class: "text-sm", "Start Listening" }
                                     }
-                                    button {
-                                        class: "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all",
-                                        i { class: "fa-regular fa-heart" }
+                                    {
+                                        let album_id_hero = album_id.clone();
+                                        let jelly_hero_fav = {
+                                            let lib = library.read();
+                                            let store = favorites_store.read();
+                                            let tracks: Vec<_> = lib.jellyfin_tracks.iter()
+                                                .filter(|t| t.album_id == *album_id)
+                                                .collect();
+                                            !tracks.is_empty() && tracks.iter().all(|t| {
+                                                let path_str = t.path.to_string_lossy();
+                                                let parts: Vec<&str> = path_str.split(':').collect();
+                                                parts.len() >= 2 && store.is_jellyfin_favorite(parts[1])
+                                            })
+                                        };
+                                        let hero_heart_class = if jelly_hero_fav {
+                                            "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-red-400 hover:bg-white/20 transition-all"
+                                        } else {
+                                            "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                                        };
+                                        let hero_heart_icon = if jelly_hero_fav { "fa-solid fa-heart" } else { "fa-regular fa-heart" };
+                                        rsx! {
+                                            button {
+                                                class: "{hero_heart_class}",
+                                                onclick: move |_| {
+                                                    let lib = library.read();
+                                                    let tracks: Vec<_> = lib.jellyfin_tracks.iter()
+                                                        .filter(|t| t.album_id == album_id_hero)
+                                                        .cloned()
+                                                        .collect();
+                                                    drop(lib);
+                                                    let new_fav = !jelly_hero_fav;
+                                                    for track in &tracks {
+                                                        let path_str = track.path.to_string_lossy().to_string();
+                                                        let parts: Vec<&str> = path_str.split(':').collect();
+                                                        if parts.len() >= 2 {
+                                                            favorites_store.write().set_jellyfin(parts[1].to_string(), new_fav);
+                                                        }
+                                                    }
+                                                    let track_ids: Vec<String> = tracks.iter().filter_map(|t| {
+                                                        let path_str = t.path.to_string_lossy().to_string();
+                                                        let parts: Vec<&str> = path_str.split(':').collect();
+                                                        if parts.len() >= 2 { Some(parts[1].to_string()) } else { None }
+                                                    }).collect();
+                                                    spawn(async move {
+                                                        let (server_config, device_id) = {
+                                                            let conf = config.peek();
+                                                            if let Some(server) = &conf.server {
+                                                                if let (Some(token), Some(user_id)) = (&server.access_token, &server.user_id) {
+                                                                    (Some((server.url.clone(), token.clone(), user_id.clone())), conf.device_id.clone())
+                                                                } else { (None, conf.device_id.clone()) }
+                                                            } else { (None, conf.device_id.clone()) }
+                                                        };
+                                                        if let Some((url, token, user_id)) = server_config {
+                                                            let remote = JellyfinRemote::new(&url, Some(&token), &device_id, Some(&user_id));
+                                                            for id in &track_ids {
+                                                                let result = if new_fav {
+                                                                    remote.mark_favorite(id).await
+                                                                } else {
+                                                                    remote.unmark_favorite(id).await
+                                                                };
+                                                                if let Err(e) = result {
+                                                                    eprintln!("Failed to sync favorite: {e}");
+                                                                }
+                                                            }
+                                                        }
+                                                    });
+                                                },
+                                                i { class: "{hero_heart_icon}" }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -468,9 +536,45 @@ pub fn Home(
                                         i { class: "fa-solid fa-play text-[10px]" }
                                         span { class: "text-sm", "Start Listening" }
                                     }
-                                    button {
-                                        class: "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all",
-                                        i { class: "fa-regular fa-heart" }
+                                    {
+                                        let local_hero_album_id = album.id.clone();
+                                        let local_hero_fav = {
+                                            let lib = library.read();
+                                            let store = favorites_store.read();
+                                            let tracks: Vec<_> = lib.tracks.iter()
+                                                .filter(|t| t.album_id == album.id)
+                                                .collect();
+                                            !tracks.is_empty() && tracks.iter().all(|t| store.is_local_favorite(&t.path))
+                                        };
+                                        let local_heart_class = if local_hero_fav {
+                                            "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-red-400 hover:bg-white/20 transition-all"
+                                        } else {
+                                            "w-11 h-11 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                                        };
+                                        let local_heart_icon = if local_hero_fav { "fa-solid fa-heart" } else { "fa-regular fa-heart" };
+                                        rsx! {
+                                            button {
+                                                class: "{local_heart_class}",
+                                                onclick: move |_| {
+                                                    let lib = library.read();
+                                                    let tracks: Vec<_> = lib.tracks.iter()
+                                                        .filter(|t| t.album_id == local_hero_album_id)
+                                                        .cloned()
+                                                        .collect();
+                                                    drop(lib);
+                                                    let new_fav = !local_hero_fav;
+                                                    for track in tracks {
+                                                        let currently = favorites_store.read().is_local_favorite(&track.path);
+                                                        if new_fav && !currently {
+                                                            favorites_store.write().toggle_local(track.path);
+                                                        } else if !new_fav && currently {
+                                                            favorites_store.write().toggle_local(track.path);
+                                                        }
+                                                    }
+                                                },
+                                                i { class: "{local_heart_icon}" }
+                                            }
+                                        }
                                     }
                                 }
                             }

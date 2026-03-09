@@ -1,11 +1,13 @@
 use dioxus::prelude::*;
 use hooks::use_player_controller::{LoopMode, PlayerController};
 use player::player::Player;
-use reader::Library;
+use reader::{FavoritesStore, Library};
 
 #[component]
 pub fn Bottombar(
     library: Signal<Library>,
+    favorites_store: Signal<FavoritesStore>,
+    config: Signal<config::AppConfig>,
     player: Signal<Player>,
     mut is_playing: Signal<bool>,
     mut is_fullscreen: Signal<bool>,
@@ -34,6 +36,39 @@ pub fn Bottombar(
 
     let mut ctrl = use_context::<PlayerController>();
 
+    // Determine if the currently-playing track is a favourite
+    let is_favorite = {
+        let q = queue.read();
+        let idx = *current_queue_index.read();
+        if let Some(track) = q.get(idx) {
+            let path_str = track.path.to_string_lossy();
+            if path_str.starts_with("jellyfin:") {
+                let parts: Vec<&str> = path_str.split(':').collect();
+                if parts.len() >= 2 {
+                    favorites_store.read().is_jellyfin_favorite(parts[1])
+                } else {
+                    false
+                }
+            } else {
+                favorites_store.read().is_local_favorite(&track.path)
+            }
+        } else {
+            false
+        }
+    };
+
+    let heart_class = if is_favorite {
+        "ml-2 text-red-400 hover:text-red-300 transition-colors"
+    } else {
+        "ml-2 text-slate-400 hover:text-red-400 transition-colors"
+    };
+
+    let heart_icon = if is_favorite {
+        "fa-solid fa-heart"
+    } else {
+        "fa-regular fa-heart"
+    };
+
     rsx! {
         div {
             class: "h-24 bg-black/60 border-t border-white/5 px-4 flex items-center justify-between select-none shrink-0",
@@ -61,8 +96,77 @@ pub fn Bottombar(
                     span { class: "text-xs text-slate-400 truncate hover:text-white/70 cursor-pointer", "{current_song_artist}" }
                 }
                 button {
-                    class: "ml-2 text-slate-400 hover:text-red-400 transition-colors",
-                    i { class: "fa-regular fa-heart" }
+                    class: "{heart_class}",
+                    title: if is_favorite { "Remove from Favorites" } else { "Add to Favorites" },
+                    onclick: move |_| {
+                        let q = queue.read();
+                        let idx = *current_queue_index.read();
+                        if let Some(track) = q.get(idx).cloned() {
+                            drop(q);
+                            let path_str = track.path.to_string_lossy().to_string();
+                            let is_jellyfin = path_str.starts_with("jellyfin:");
+
+                            if is_jellyfin {
+                                let parts: Vec<String> = path_str.split(':').map(|s| s.to_string()).collect();
+                                if parts.len() >= 2 {
+                                    let item_id = parts[1].clone();
+                                    let currently_fav = favorites_store.read().is_jellyfin_favorite(&item_id);
+                                    let new_fav = !currently_fav;
+
+                                    // Optimistically update local store
+                                    favorites_store.write().set_jellyfin(item_id.clone(), new_fav);
+
+                                    // Sync to server in background
+                                    spawn(async move {
+                                        let (server_config, device_id) = {
+                                            let conf = config.peek();
+                                            if let Some(server) = &conf.server {
+                                                if let (Some(token), Some(user_id)) =
+                                                    (&server.access_token, &server.user_id)
+                                                {
+                                                    (
+                                                        Some((
+                                                            server.url.clone(),
+                                                            token.clone(),
+                                                            user_id.clone(),
+                                                        )),
+                                                        conf.device_id.clone(),
+                                                    )
+                                                } else {
+                                                    (None, conf.device_id.clone())
+                                                }
+                                            } else {
+                                                (None, conf.device_id.clone())
+                                            }
+                                        };
+
+                                        if let Some((url, token, user_id)) = server_config {
+                                            let remote = server::jellyfin::JellyfinRemote::new(
+                                                &url,
+                                                Some(&token),
+                                                &device_id,
+                                                Some(&user_id),
+                                            );
+                                            let result = if new_fav {
+                                                remote.mark_favorite(&item_id).await
+                                            } else {
+                                                remote.unmark_favorite(&item_id).await
+                                            };
+                                            if let Err(e) = result {
+                                                eprintln!("Failed to sync favorite to Jellyfin: {e}");
+                                                // Revert the optimistic update on failure
+                                                favorites_store.write().set_jellyfin(item_id, !new_fav);
+                                            }
+                                        }
+                                    });
+                                }
+                            } else {
+                                // Local track — just toggle in store
+                                favorites_store.write().toggle_local(track.path.clone());
+                            }
+                        }
+                    },
+                    i { class: "{heart_icon}" }
                 }
             }
 

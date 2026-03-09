@@ -42,6 +42,11 @@ const TOP_MENU: &[SidebarItem] = &[
         icon: "fa-solid fa-list",
     },
     SidebarItem {
+        name: "Favorites",
+        route: Route::Favorites,
+        icon: "fa-solid fa-heart",
+    },
+    SidebarItem {
         name: "Logs",
         route: Route::Logs,
         icon: "fa-solid fa-clipboard-list",

@@ -708,4 +708,106 @@ impl JellyfinRemote {
 
         Ok(())
     }
+
+    pub async fn mark_favorite(&self, item_id: &str) -> Result<(), String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!(
+            "{}/Users/{}/FavoriteItems/{}",
+            self.base_url, user_id, item_id
+        );
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.1\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let resp = self
+            .http_client
+            .post(&url)
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to mark favorite: {}", resp.status()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn unmark_favorite(&self, item_id: &str) -> Result<(), String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!(
+            "{}/Users/{}/FavoriteItems/{}",
+            self.base_url, user_id, item_id
+        );
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.1\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let resp = self
+            .http_client
+            .delete(&url)
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to unmark favorite: {}", resp.status()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_favorite_items(&self) -> Result<Vec<Item>, String> {
+        let user_id = self.user_id.as_ref().ok_or("No user ID available")?;
+        let token = self
+            .access_token
+            .as_ref()
+            .ok_or("No access token available")?;
+
+        let url = format!("{}/Users/{}/Items", self.base_url, user_id);
+
+        let auth_header = format!(
+            "MediaBrowser Client=\"Rusic\", Device=\"Rusic\", DeviceId=\"{}\", Version=\"0.3.1\", Token=\"{}\"",
+            self.device_id, token
+        );
+
+        let fields = "DateCreated,MediaSources,ImageTags,Genres,ParentIndexNumber,IndexNumber,AlbumId,AlbumArtist,ProductionYear,Container".to_string();
+
+        let resp = self
+            .http_client
+            .get(&url)
+            .query(&[
+                ("Filters", "IsFavorite"),
+                ("IncludeItemTypes", "Audio"),
+                ("Recursive", "true"),
+                ("Fields", &fields),
+            ])
+            .header("X-Emby-Authorization", auth_header)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Failed to get favorite items: {}", resp.status()));
+        }
+
+        let items_resp: ItemsResponse = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(items_resp.items)
+    }
 }
