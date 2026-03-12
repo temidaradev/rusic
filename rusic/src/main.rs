@@ -116,13 +116,12 @@ fn App() -> Element {
     });
     let lib_path = use_memo(move || cache_dir().join("library.json"));
     let config_path = use_memo(move || config_dir().join("config.json"));
-    let config = use_signal(|| config::AppConfig::load(&config_path()));
+    let mut config = use_signal(|| config::AppConfig::default());
     let playlist_path = use_memo(move || cache_dir().join("playlists.json"));
-    let playlist_store =
-        use_signal(|| reader::PlaylistStore::load(&playlist_path()).unwrap_or_default());
+    let mut playlist_store = use_signal(|| reader::PlaylistStore::default());
     let favorites_path = use_memo(move || cache_dir().join("favorites.json"));
-    let favorites_store =
-        use_signal(|| FavoritesStore::load(&favorites_path()).unwrap_or_default());
+    let mut favorites_store = use_signal(|| FavoritesStore::default());
+    let mut initial_load_done = use_signal(|| false);
     let cover_cache = use_memo(move || cache_dir().join("covers"));
     let _ = std::fs::create_dir_all(cover_cache());
     let mut trigger_rescan = use_signal(|| 0);
@@ -153,6 +152,9 @@ fn App() -> Element {
     let search_query = use_signal(String::new);
 
     use_effect(move || {
+        if !*initial_load_done.read() {
+            return;
+        }
         let config_snapshot = config.read().clone();
         let path = config_path();
         spawn(async move {
@@ -164,6 +166,9 @@ fn App() -> Element {
     });
 
     use_effect(move || {
+        if !*initial_load_done.read() {
+            return;
+        }
         let store_snapshot = playlist_store.read().clone();
         let path = playlist_path();
         spawn(async move {
@@ -175,6 +180,9 @@ fn App() -> Element {
     });
 
     use_effect(move || {
+        if !*initial_load_done.read() {
+            return;
+        }
         let lib_snapshot = library.read().clone();
         let path = lib_path();
         spawn(async move {
@@ -186,14 +194,45 @@ fn App() -> Element {
     });
 
     use_hook(move || {
+        let lib_path = lib_path();
+        let config_path = config_path();
+        let playlist_path = playlist_path();
+        let favorites_path = favorites_path();
+
         spawn(async move {
-            if let Ok(loaded) = reader::Library::load(&lib_path()) {
+            let lib_path_c = lib_path.clone();
+            let config_path_c = config_path.clone();
+            let playlist_path_c = playlist_path.clone();
+            let favorites_path_c = favorites_path.clone();
+
+            let (lib_res, cfg_res, pl_res, fav_res) = tokio::join!(
+                tokio::task::spawn_blocking(move || reader::Library::load(&lib_path_c)),
+                tokio::task::spawn_blocking(move || config::AppConfig::load(&config_path_c)),
+                tokio::task::spawn_blocking(move || reader::PlaylistStore::load(&playlist_path_c)),
+                tokio::task::spawn_blocking(move || FavoritesStore::load(&favorites_path_c)),
+            );
+
+            if let Ok(Ok(loaded)) = lib_res {
                 library.set(loaded);
             }
+            if let Ok(loaded) = cfg_res {
+                config.set(loaded);
+            }
+            if let Ok(Ok(loaded)) = pl_res {
+                playlist_store.set(loaded);
+            }
+            if let Ok(Ok(loaded)) = fav_res {
+                favorites_store.set(loaded);
+            }
+
+            initial_load_done.set(true);
         });
     });
 
     use_effect(move || {
+        if !*initial_load_done.read() {
+            return;
+        }
         let music_dir = config.read().music_directory.clone();
         let _ = trigger_rescan.read();
 
@@ -209,11 +248,28 @@ fn App() -> Element {
                 if (reader::scan_directory(music_dir, cover_cache(), &mut current_lib).await)
                     .is_ok()
                 {
+                    current_lib.tracks.retain(|t| t.path.exists());
+                    let valid_album_ids: std::collections::HashSet<_> = current_lib
+                        .tracks
+                        .iter()
+                        .map(|t| t.album_id.clone())
+                        .collect();
+                    current_lib
+                        .albums
+                        .retain(|a| valid_album_ids.contains(&a.id));
+
                     library.set(current_lib.clone());
                     let _ = current_lib.save(&lib_path());
                 }
             }
         });
+    });
+
+    use_effect(move || {
+        let _ = current_route.read();
+        let _ = dioxus::document::eval(
+            "let el = document.getElementById('main-scroll-area'); if (el) el.scrollTop = 0;",
+        );
     });
 
     let mut queue = use_signal(Vec::<reader::Track>::new);
@@ -278,6 +334,7 @@ fn App() -> Element {
                     }
                 }
                 div {
+                    id: "main-scroll-area",
                     class: "flex-1 overflow-y-auto",
                     match *current_route.read() {
                         Route::Home => rsx! {

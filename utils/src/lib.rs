@@ -1,3 +1,4 @@
+pub mod lyrics;
 pub mod stream_buffer;
 
 use std::path::Path;

@@ -17,6 +17,10 @@ Rusic allows you to scan your local directories for audio files, or you jellyfin
 - **Native Integration**: Integrates with system media controls (MPRIS) and "Now Playing" displays.
 - **Discord RPC**: Embedded RPC included!!!
 - **Double Option**: Yes, you can also use your jellyfin server to listen to your music coming from your server!
+- **Lyrics Support**: Enjoy real-time synced and plain lyrics, complete with auto-scrolling to follow along with your music.
+- **High Performance**: Heavy background processing and an optimized library scanner ensure the app opens instantly, runs smoothly, and skips previously indexed files quickly.
+- **Auto-Cleanup**: Automatically removes missing or deleted tracks from your library when rescanning.
+- **Smooth Navigation**: Enjoy a polished interface where scroll positions reset properly as you browse different views and pages.
 
 ## Installation
 

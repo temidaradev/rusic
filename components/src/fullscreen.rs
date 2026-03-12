@@ -1,4 +1,5 @@
 use config::AppConfig;
+use dioxus::document::eval;
 use dioxus::prelude::*;
 use hooks::use_player_controller::{LoopMode, PlayerController};
 use player::player::Player;
@@ -48,6 +49,56 @@ pub fn Fullscreen(
     };
 
     let config = use_context::<Signal<AppConfig>>();
+
+    let lyrics = use_resource(move || {
+        let title = current_song_title.read().clone();
+        let artist = current_song_artist.read().clone();
+        let album = current_song_album.read().clone();
+        let duration = *current_song_duration.read();
+
+        async move {
+            if !title.is_empty() {
+                if let Some(l) =
+                    utils::lyrics::fetch_lyrics(&artist, &title, &album, duration).await
+                {
+                    Some(l)
+                } else {
+                    Some(utils::lyrics::Lyrics::Plain("Lyrics not found".to_string()))
+                }
+            } else {
+                None
+            }
+        }
+    });
+
+    let active_lyric_index = use_memo(move || {
+        if *active_tab.read() == 2 {
+            if let Some(Some(utils::lyrics::Lyrics::Synced(lines))) = &*lyrics.read() {
+                let current_time = *current_song_progress.read() as f64;
+                return lines
+                    .iter()
+                    .rposition(|l| l.start_time <= current_time)
+                    .unwrap_or(0);
+            }
+        }
+        0
+    });
+
+    use_effect(move || {
+        let _idx = active_lyric_index();
+        if *active_tab.read() == 2 {
+            let _ = eval(
+                r#"
+                setTimeout(() => {
+                    let el = document.getElementById('active-lyric');
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 50);
+                "#,
+            );
+        }
+    });
 
     let get_track_cover = |track: &reader::Track| -> Option<String> {
         let lib = library.read();
@@ -286,12 +337,52 @@ pub fn Fullscreen(
                         onclick: move |_| active_tab.set(1),
                         "UP NEXT"
                     }
+                    button {
+                        class: if *active_tab.read() == 2 {
+                            "px-4 py-2 text-xs font-medium tracking-wider text-white border-b-2 border-white"
+                        } else {
+                            "px-4 py-2 text-xs font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
+                        },
+                        onclick: move |_| active_tab.set(2),
+                        "LYRICS"
+                    }
                 }
 
                 div {
                     class: "flex-1 overflow-y-auto px-4 py-2 space-y-1",
 
-                    if *active_tab.read() == 0 {
+                    if *active_tab.read() == 2 {
+                        div {
+                            class: "text-white/70 text-center py-4 px-8 leading-relaxed font-medium text-lg w-full max-w-2xl mx-auto flex flex-col gap-4",
+                            match &*lyrics.read() {
+                                Some(Some(utils::lyrics::Lyrics::Synced(lines))) => {
+                                    let active_idx = active_lyric_index();
+
+                                    rsx! {
+                                        for (i, line) in lines.iter().enumerate() {
+                                            div {
+                                                key: "{i}",
+                                                id: if i == active_idx { "active-lyric" } else { "" },
+                                                class: if i == active_idx {
+                                                    "text-white text-2xl font-bold transition-all duration-300"
+                                                } else {
+                                                    "text-white/40 transition-all duration-300 hover:text-white/60"
+                                                },
+                                                "{line.text}"
+                                            }
+                                        }
+                                    }
+                                }
+                                Some(Some(utils::lyrics::Lyrics::Plain(text))) => {
+                                    rsx! {
+                                        div { class: "whitespace-pre-wrap", "{text}" }
+                                    }
+                                }
+                                Some(None) => rsx! { "" },
+                                None => rsx! { "Loading lyrics..." },
+                            }
+                        }
+                    } else if *active_tab.read() == 0 {
                         if *current_queue_index.read() == 0 {
                             div { class: "text-white/30 text-center py-10 text-sm", "No previous songs" }
                         }
