@@ -4,19 +4,24 @@ version = "0.3.3"
 edition = "2024"
 
 [dependencies]
-dioxus = { workspace = true, features = ["desktop"] }
 uuid = { workspace = true }
 player = { workspace = true }
 reader = { workspace = true }
 components = { workspace = true }
 hooks = { workspace = true }
 config = { workspace = true }
-rfd = { workspace = true }
 utils = { workspace = true }
 rusic_route = { workspace = true }
 rodio = { workspace = true }
 server = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
-discord-presence = { workspace = true }
 rand = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+dioxus = { workspace = true, features = ["desktop"] }
+rfd = { workspace = true }
+discord-presence = { workspace = true }
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+dioxus = { workspace = true, features = ["mobile"] }

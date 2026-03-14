@@ -326,7 +326,7 @@ pub fn JellyfinLibrary(
 
     rsx! {
         div {
-            class: "p-8 relative min-h-full",
+            class: "p-4 md:p-8 relative min-h-full pb-24",
 
             if *show_playlist_modal.read() {
                 PlaylistModal {

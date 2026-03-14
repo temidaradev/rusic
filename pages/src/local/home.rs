@@ -180,12 +180,12 @@ pub fn LocalHome(
                             div { class: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
                                 for album in local_list.iter().skip(1).take(8) {
                                     div {
-                                        class: "flex items-center bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl cursor-pointer transition-all duration-300 group overflow-hidden pr-4",
+                                        class: "flex items-center bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl cursor-pointer transition-all duration-300 group overflow-hidden pr-2 md:pr-4",
                                         onclick: {
                                             let id = album.id.clone();
                                             move |_| on_select_album.call(id.clone())
                                         },
-                                        div { class: "w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-stone-800/50 relative overflow-hidden",
+                                        div { class: "w-14 h-14 md:w-20 md:h-20 flex-shrink-0 bg-stone-800/50 relative overflow-hidden",
                                             if let Some(url) = utils::format_artwork_url(album.cover_path.as_ref()) {
                                                 img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }
                                             } else {
@@ -195,9 +195,9 @@ pub fn LocalHome(
                                             }
                                             div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" }
                                         }
-                                        div { class: "p-4 flex-1 min-w-0 flex flex-col justify-center",
-                                            h3 { class: "text-white font-bold truncate text-sm md:text-base", "{album.title}" }
-                                            p { class: "text-xs text-white/50 truncate font-semibold mt-1", "{album.artist}" }
+                                        div { class: "p-2 md:p-4 flex-1 min-w-0 flex flex-col justify-center",
+                                            h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base", "{album.title}" }
+                                            p { class: "text-[10px] sm:text-xs text-white/50 truncate font-semibold mt-0.5 md:mt-1", "{album.artist}" }
                                         }
                                         div { class: "opacity-0 group-hover:opacity-100 transition-all duration-300",
                                             div {
@@ -244,7 +244,7 @@ pub fn LocalHome(
                         class: "flex overflow-x-auto gap-6 pb-6 pt-2 overflow-y-visible scrollbar-hide scroll-smooth -mx-2 px-2",
                         for (artist, cover_path) in artists() {
                             div {
-                                class: "flex-none w-32 md:w-36 group cursor-pointer",
+                                class: "flex-none w-28 md:w-36 group cursor-pointer",
                                 onclick: {
                                     let artist = artist.clone();
                                     move |_| on_search_artist.call(artist.clone())
@@ -261,7 +261,7 @@ pub fn LocalHome(
                                     }
                                     div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 rounded-full" }
                                 }
-                                h3 { class: "text-white font-bold truncate text-center px-1 text-sm md:text-base", "{artist}" }
+                                h3 { class: "text-white font-bold truncate text-center px-1 text-xs sm:text-sm md:text-base", "{artist}" }
                             }
                         }
                     }
@@ -290,7 +290,7 @@ pub fn LocalHome(
                         class: "flex overflow-x-auto gap-5 pb-6 pt-2 scrollbar-hide scroll-smooth -mx-2 px-2",
                         for album in recent_albums() {
                             div {
-                                class: "flex-none w-36 md:w-44 group cursor-pointer",
+                                class: "flex-none w-32 md:w-44 group cursor-pointer",
                                 onclick: {
                                     let id = album.id.clone();
                                     move |_| on_select_album.call(id.clone())
@@ -316,8 +316,8 @@ pub fn LocalHome(
                                         i { class: "fa-solid fa-play text-xs ml-0.5" }
                                     }
                                 }
-                                h3 { class: "text-white font-bold truncate text-sm md:text-base px-1", "{album.title}" }
-                                p { class: "text-xs md:text-sm text-white/50 truncate px-1 font-semibold mt-1", "{album.artist}" }
+                                h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base px-1", "{album.title}" }
+                                p { class: "text-xs md:text-sm text-white/50 truncate px-1 font-semibold mt-0.5 md:mt-1", "{album.artist}" }
                             }
                         }
                     }
@@ -381,7 +381,7 @@ pub fn LocalHome(
                                             div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" }
                                         }
                                         div {
-                                            h3 { class: "text-white font-bold truncate text-sm md:text-base px-1 group-hover:text-indigo-400 transition-colors", "{name}" }
+                                            h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base px-1 group-hover:text-indigo-400 transition-colors", "{name}" }
                                             p { class: "text-xs md:text-sm text-white/40 truncate px-1 font-semibold mt-1", "{track_count} tracks" }
                                         }
                                     }

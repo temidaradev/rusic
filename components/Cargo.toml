@@ -4,7 +4,6 @@ version = "0.3.3"
 edition = "2024"
 
 [dependencies]
-dioxus = { workspace = true, features = ["desktop"] }
 uuid = { workspace = true }
 player = { workspace = true }
 reader = { workspace = true }
@@ -12,8 +11,14 @@ rodio = { workspace = true }
 utils = { workspace = true }
 rusic_route = { workspace = true }
 config = { workspace = true }
-rfd = { workspace = true }
 hooks = { workspace = true }
 rand = { workspace = true }
 server = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+dioxus = { workspace = true, features = ["desktop"] }
+rfd = { workspace = true }
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+dioxus = { workspace = true, features = ["mobile"] }

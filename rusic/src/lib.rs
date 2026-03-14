@@ -1,104 +1,25 @@
-use components::{bottombar::Bottombar, fullscreen::Fullscreen, sidebar::Sidebar};
-use dioxus::desktop::tao::dpi::LogicalSize;
-#[cfg(target_os = "macos")]
-use dioxus::desktop::tao::platform::macos::WindowBuilderExtMacOS;
+use components::{bottombar::Bottombar, mobile_bottombar::MobileBottombar, fullscreen::Fullscreen, sidebar::Sidebar};
 use dioxus::prelude::*;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use discord_presence::Presence;
 use player::player::Player;
 use reader::FavoritesStore;
 use rusic_route::Route;
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
-const FAVICON: Asset = asset!("../assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("../assets/main.css");
-const THEME_CSS: Asset = asset!("../assets/themes.css");
-const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
-const REDUCED_ANIMATIONS_CSS: Asset = asset!("../assets/reduced-animations.css");
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub static PRESENCE: std::sync::OnceLock<Option<Arc<()>>> = std::sync::OnceLock::new();
 
-static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
-
-fn main() {
-    let presence: Option<Arc<Presence>> = match Presence::new("1470087339639443658") {
-        Ok(p) => {
-            println!("Discord presence connected!");
-            Some(Arc::new(p))
-        }
-        Err(e) => {
-            eprintln!("Failed to connect to Discord: {e}");
-            None
-        }
-    };
-
-    PRESENCE.set(presence).ok();
-
-    #[cfg(target_os = "macos")]
-    {
-        player::systemint::init();
-    }
-
-    let mut window = dioxus::desktop::WindowBuilder::new()
-        .with_title("Rusic")
-        .with_resizable(true)
-        .with_inner_size(LogicalSize::new(1350.0, 800.0));
-
-    #[cfg(target_os = "macos")]
-    {
-        window = window
-            .with_title_hidden(true)
-            .with_titlebar_transparent(true)
-            .with_fullsize_content_view(true);
-    }
-
-    let config = dioxus::desktop::Config::new()
-        .with_window(window)
-        .with_custom_protocol("artwork", |_headers, request| {
-            let path = request.uri().path();
-            let decoded = percent_encoding::percent_decode_str(path).decode_utf8_lossy();
-
-            let mime = if decoded.ends_with(".png") {
-                "image/png"
-            } else {
-                "image/jpeg"
-            };
-
-            let mut decoded_path = decoded.to_string();
-
-            if decoded_path.starts_with("/~") {
-                if let Ok(home) = std::env::var("HOME") {
-                    decoded_path = decoded_path.replacen("/~", &home, 1);
-                }
-            } else if decoded_path.starts_with('~') {
-                if let Ok(home) = std::env::var("HOME") {
-                    decoded_path = decoded_path.replacen('~', &home, 1);
-                }
-            }
-
-            let path = std::path::Path::new(&decoded_path);
-            let content = std::fs::read(path)
-                .or_else(|_| {
-                    if decoded_path.strip_prefix('/').is_some() {
-                        std::fs::read(std::path::Path::new(&decoded_path[1..]))
-                    } else {
-                        Err(std::io::Error::from(std::io::ErrorKind::NotFound))
-                    }
-                })
-                .map(Cow::from)
-                .unwrap_or_else(|_| std::borrow::Cow::from(Vec::new()));
-
-            http::Response::builder()
-                .header("Content-Type", mime)
-                .header("Access-Control-Allow-Origin", "*")
-                .body(content)
-                .unwrap()
-        });
-
-    dioxus::LaunchBuilder::desktop()
-        .with_cfg(config)
-        .launch(App);
-}
+pub const FAVICON: Asset = asset!("../assets/favicon.ico");
+pub const MAIN_CSS: Asset = asset!("../assets/main.css");
+pub const THEME_CSS: Asset = asset!("../assets/themes.css");
+pub const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
+pub const REDUCED_ANIMATIONS_CSS: Asset = asset!("../assets/reduced-animations.css");
 
 #[component]
-fn App() -> Element {
+pub fn App() -> Element {
     let mut library = use_signal(reader::Library::default);
     let mut current_route = use_signal(|| Route::Home);
     let cache_dir = use_memo(move || {
@@ -128,8 +49,6 @@ fn App() -> Element {
     let mut trigger_rescan = use_signal(|| 0);
     let current_playing = use_signal(|| 0);
     let player = use_signal(Player::new);
-    //why changed all use_signal(|| String::new()) to use_signal(String::new) it is because Needlessly creating
-    //a closure adds code for no benefit and gives the optimizer more work.
     let current_song_cover_url = use_signal(String::new);
     let current_song_title = use_signal(String::new);
     let current_song_artist = use_signal(String::new);
@@ -142,7 +61,7 @@ fn App() -> Element {
 
     let is_playing = use_signal(|| false);
     let is_fullscreen = use_signal(|| false);
-    let is_sidebar_collapsed = use_signal(|| cfg!(any(target_os = "android", target_os = "ios")));
+    let mut is_sidebar_collapsed = use_signal(|| cfg!(any(target_os = "android", target_os = "ios")));
     let mut palette = use_signal(|| Option::<Vec<utils::color::Color>>::None);
 
     use_effect(move || {
@@ -325,7 +244,10 @@ fn App() -> Element {
     } else {
         "background-color: var(--color-black); background-image: none;".to_string()
     };
+    let main_scroll_class = if cfg!(any(target_os = "android", target_os = "ios")) { "flex-1 overflow-y-auto pb-24 pt-[env(safe-area-inset-top,4rem)]" } else { "flex-1 overflow-y-auto" };
+
     rsx! {
+        document::Meta { name: "viewport", content: "width=device-width, initial-scale=1.0, viewport-fit=cover" }
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: THEME_CSS }
@@ -358,15 +280,21 @@ fn App() -> Element {
                             selected_artist_name.set(String::new());
                         }
                         if route == Route::Search && !search_query.read().is_empty() {
-                            // Keep search query if already set? Or maybe clear it?
-                            // For now keep it.
                         }
                         current_route.set(route);
                     }
                 }
                 div {
                     id: "main-scroll-area",
-                    class: "flex-1 overflow-y-auto",
+                    class: "{main_scroll_class}",
+
+                    if cfg!(any(target_os = "android", target_os = "ios")) {
+                        button {
+                            class: "fixed top-4 left-4 z-[60] p-3 rounded-xl bg-black/20 backdrop-blur-md border border-white/10 text-white/70 active:scale-95 transition-all",
+                            onclick: move |_| is_sidebar_collapsed.toggle(),
+                            i { class: "fa-solid fa-bars text-xl" }
+                        }
+                    }
                     match *current_route.read() {
                         Route::Home => rsx! {
                             pages::home::Home {
@@ -551,21 +479,33 @@ fn App() -> Element {
                 volume: volume,
                 palette: palette,
             }
-            Bottombar {
-                library: library,
-                favorites_store,
-                config,
-                current_song_cover_url: current_song_cover_url,
-                current_song_title: current_song_title,
-                current_song_artist: current_song_artist,
-                player: player,
-                is_playing: is_playing,
-                is_fullscreen: is_fullscreen,
-                current_song_duration: current_song_duration,
-                current_song_progress: current_song_progress,
-                queue: queue,
-                current_queue_index: current_queue_index,
-                volume: volume,
+            if !cfg!(any(target_os = "android", target_os = "ios")) {
+                Bottombar {
+                    library: library,
+                    favorites_store,
+                    config,
+                    current_song_cover_url: current_song_cover_url,
+                    current_song_title: current_song_title,
+                    current_song_artist: current_song_artist,
+                    player: player,
+                    is_playing: is_playing,
+                    is_fullscreen: is_fullscreen,
+                    current_song_duration: current_song_duration,
+                    current_song_progress: current_song_progress,
+                    queue: queue,
+                    current_queue_index: current_queue_index,
+                    volume: volume,
+                }
+            } else {
+                MobileBottombar {
+                    current_song_title: current_song_title,
+                    current_song_artist: current_song_artist,
+                    current_song_cover_url: current_song_cover_url,
+                    is_playing: is_playing,
+                    is_fullscreen: is_fullscreen,
+                    current_song_progress: current_song_progress,
+                    current_song_duration: current_song_duration,
+                }
             }
         }
     }

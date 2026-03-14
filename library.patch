@@ -1,0 +1,11 @@
+--- pages/src/local/library.rs
++++ pages/src/local/library.rs
+@@ -88,7 +88,7 @@
+ 
+     rsx! {
+         div {
+-            class: "p-8 relative min-h-full",
++            class: "p-4 md:p-8 relative min-h-full pb-24",
+ 
+             if *show_playlist_modal.read() {
+                 PlaylistModal {
