@@ -66,7 +66,7 @@ pub fn LocalLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Element
                     div { class: "w-24 shrink-0 text-right", "Plays" }
                 }
 
-                div { class: "flex flex-col pb-32 space-y-1",
+                div { class: "flex flex-col pb-8 space-y-1",
                     for (idx, track) in sorted_tracks.read().iter().enumerate() {
                         {
                             let track_id = track.path.to_string_lossy().to_string();

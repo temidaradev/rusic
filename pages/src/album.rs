@@ -205,7 +205,7 @@ pub fn Album(
 
     rsx! {
         div {
-            class: "p-8 pb-24",
+            class: "p-4 md:p-8 pb-24",
 
             if album_id.read().is_empty() {
                 div {

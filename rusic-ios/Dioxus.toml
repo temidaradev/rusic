@@ -1,0 +1,12 @@
+[application]
+name = "rusic"
+default_platform = "mobile"
+
+[application.assets]
+base_path = "../rusic/assets"
+
+[bundle]
+identifier = "com.temidaradev.rusic"
+publisher = "temidaradev"
+icon = ["../rusic/assets/logo.png"]
+category = "public.app-category.music"

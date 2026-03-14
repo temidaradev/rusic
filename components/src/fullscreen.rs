@@ -154,15 +154,15 @@ pub fn Fullscreen(
 
     rsx! {
         div {
-            class: "fixed inset-0 z-50 flex text-white select-none",
+            class: "fixed inset-0 z-[100] flex flex-col lg:flex-row text-white select-none overflow-y-auto lg:overflow-hidden",
             style: "{background_style}",
 
             div {
-                class: "flex flex-col items-center justify-center p-8 lg:p-12 relative flex-shrink-0",
-                style: "width: 50%; max-width: 600px;",
+                class: "flex flex-col items-center justify-center p-6 lg:p-12 relative flex-shrink-0 w-full lg:w-1/2 min-h-screen lg:min-h-0",
+                style: "max-width: 600px; margin: 0 auto; padding-top: 4rem;",
 
                 div {
-                    class: "rounded-2xl overflow-hidden mb-8 shadow-2xl",
+                    class: "rounded-2xl overflow-hidden mb-6 lg:mb-8 shadow-2xl",
                     style: "width: 100%; max-width: 420px; aspect-ratio: 1/1;",
                     if current_song_cover_url.read().is_empty() {
                         div {
@@ -330,14 +330,14 @@ pub fn Fullscreen(
                 }
 
                 button {
-                    class: "absolute top-8 left-8 text-white/30 hover:text-white transition-colors",
+                    class: "absolute top-6 left-6 text-white/30 hover:text-white transition-colors z-10",
                     onclick: move |_| is_fullscreen.set(false),
                     i { class: "fa-solid fa-chevron-down text-2xl" }
                 }
             }
 
             div {
-                class: "flex-1 flex flex-col h-full min-w-0",
+                class: "flex-1 flex flex-col min-h-[50vh] lg:h-full min-w-0",
 
                 div {
                     class: "flex items-center gap-1 px-6 pt-4 pb-2 border-b border-white/10",

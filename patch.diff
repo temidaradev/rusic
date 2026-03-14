@@ -1,0 +1,19 @@
+--- rusic/src/lib.rs
++++ rusic/src/lib.rs
+@@ -496,6 +496,16 @@
+                     current_queue_index: current_queue_index,
+                     volume: volume,
+                 }
++            } else {
++                MobileBottombar {
++                    current_song_title: current_song_title,
++                    current_song_artist: current_song_artist,
++                    current_song_cover_url: current_song_cover_url,
++                    is_playing: is_playing,
++                    is_fullscreen: is_fullscreen,
++                    current_song_progress: current_song_progress,
++                    current_song_duration: current_song_duration,
++                }
+             }
+         }
+     }

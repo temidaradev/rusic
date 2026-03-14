@@ -1,5 +1,6 @@
 use config::JellyfinServer;
 use dioxus::prelude::*;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use rfd::AsyncFileDialog;
 
 #[component]
@@ -58,7 +59,8 @@ pub fn ThemeSelector(current_theme: String, on_change: EventHandler<String>) -> 
 
 #[component]
 pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
-    rsx! {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    return rsx! {
         button {
             onclick: move |_| {
                 spawn(async move {
@@ -71,7 +73,9 @@ pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
             class: "bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm text-white transition-colors",
             "Change"
         }
-    }
+    };
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    rsx! { div {} }
 }
 
 #[component]

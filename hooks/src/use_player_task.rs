@@ -1,8 +1,8 @@
 use crate::use_player_controller::PlayerController;
 use config::AppConfig;
 use dioxus::prelude::*;
-use discord_presence::Presence;
-use discord_presence::cover_art;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+use discord_presence::{Presence, cover_art};
 use server::jellyfin::JellyfinRemote;
 use std::sync::Arc;
 
@@ -58,7 +58,10 @@ fn nudge_event_loop() {
 }
 
 pub fn use_player_task(ctrl: PlayerController) {
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     let presence: Option<Arc<Presence>> = use_context();
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    let presence: Option<Arc<()>> = use_context();
     let mut config: Signal<AppConfig> = use_context();
     let mut last_title = use_signal(String::new);
     let mut was_playing = use_signal(|| false);
@@ -249,28 +252,32 @@ pub fn use_player_task(ctrl: PlayerController) {
                             discord_cover_url.set(None);
                             discord_cover_sent.set(false);
 
-                            if cover.starts_with("http") {
-                                discord_cover_url.set(Some(cover.clone()));
-                            } else {
-                                let mbid = {
-                                    let q = ctrl.queue.read();
-                                    let idx = *ctrl.current_queue_index.read();
-                                    q.get(idx).and_then(|t| t.musicbrainz_release_id.clone())
-                                };
-                                let artist_c = artist.clone();
-                                let album_c = album.clone();
-                                spawn(async move {
-                                    let resolved = cover_art::resolve_cover_art_url(
-                                        mbid.as_deref(),
-                                        &artist_c,
-                                        &album_c,
-                                    )
-                                    .await;
-                                    discord_cover_url.set(resolved);
-                                });
+                            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                            {
+                                if cover.starts_with("http") {
+                                    discord_cover_url.set(Some(cover.clone()));
+                                } else {
+                                    let mbid = {
+                                        let q = ctrl.queue.read();
+                                        let idx = *ctrl.current_queue_index.read();
+                                        q.get(idx).and_then(|t| t.musicbrainz_release_id.clone())
+                                    };
+                                    let artist_c = artist.clone();
+                                    let album_c = album.clone();
+                                    spawn(async move {
+                                        let resolved = cover_art::resolve_cover_art_url(
+                                            mbid.as_deref(),
+                                            &artist_c,
+                                            &album_c,
+                                        )
+                                        .await;
+                                        discord_cover_url.set(resolved);
+                                    });
+                                }
                             }
                         }
 
+                        #[cfg(not(any(target_os = "android", target_os = "ios")))]
                         if discord_enabled {
                             let song_changed = title != *last_title.peek();
                             let resumed = !*was_playing.peek();
@@ -333,6 +340,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                         nudge_event_loop();
                     }
                 } else if *was_playing.peek() {
+                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
                     if let Some(ref p) = presence {
                         let title = ctrl.current_song_title.read().clone();
                         let artist = ctrl.current_song_artist.read().clone();
@@ -344,16 +352,19 @@ pub fn use_player_task(ctrl: PlayerController) {
                             let _ = p.clear_activity();
                         }
                     }
-                } else if let Some(ref p) = presence {
-                    if !discord_enabled && last_discord_enabled {
-                        let _ = p.clear_activity();
-                    } else if discord_enabled && !last_discord_enabled {
-                        let title = ctrl.current_song_title.read().clone();
-                        if !title.is_empty() {
-                            let artist = ctrl.current_song_artist.read().clone();
-                            let album = ctrl.current_song_album.read().clone();
-                            let resolved = discord_cover_url.read().clone();
-                            let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
+                } else {
+                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                    if let Some(ref p) = presence {
+                        if !discord_enabled && last_discord_enabled {
+                            let _ = p.clear_activity();
+                        } else if discord_enabled && !last_discord_enabled {
+                            let title = ctrl.current_song_title.read().clone();
+                            if !title.is_empty() {
+                                let artist = ctrl.current_song_artist.read().clone();
+                                let album = ctrl.current_song_album.read().clone();
+                                let resolved = discord_cover_url.read().clone();
+                                let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
+                            }
                         }
                     }
                 }

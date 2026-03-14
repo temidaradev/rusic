@@ -20,7 +20,7 @@ pub fn Home(
 
     rsx! {
         div {
-            class: "p-8 space-y-12 pb-32 animate-fade-in w-full max-w-[1600px] mx-auto",
+            class: "p-4 md:p-8 space-y-12 pb-8 animate-fade-in w-full max-w-[1600px] mx-auto",
 
             div { class: "flex items-center justify-between mb-2",
                 h1 { class: "text-4xl font-black text-white tracking-tight", "Home" }
