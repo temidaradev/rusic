@@ -435,12 +435,12 @@ pub fn JellyfinHome(
                             div { class: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4",
                                 for (album_id, title, artist, cover_url) in jelly_list.iter().skip(1).take(8) {
                                     div {
-                                        class: "flex items-center bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl cursor-pointer transition-all duration-300 group overflow-hidden pr-4",
+                                        class: "flex items-center bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl cursor-pointer transition-all duration-300 group overflow-hidden pr-2 md:pr-4",
                                         onclick: {
                                             let id = album_id.clone();
                                             move |_| on_select_album.call(id.clone())
                                         },
-                                        div { class: "w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-stone-800/50 relative overflow-hidden",
+                                        div { class: "w-14 h-14 md:w-20 md:h-20 flex-shrink-0 bg-stone-800/50 relative overflow-hidden",
                                             if let Some(url) = cover_url {
                                                 img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }
                                             } else {
@@ -450,9 +450,9 @@ pub fn JellyfinHome(
                                             }
                                             div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" }
                                         }
-                                        div { class: "p-4 flex-1 min-w-0 flex flex-col justify-center",
-                                            h3 { class: "text-white font-bold truncate text-sm md:text-base", "{title}" }
-                                            p { class: "text-xs text-white/50 truncate font-semibold mt-1", "{artist}" }
+                                        div { class: "p-2 md:p-4 flex-1 min-w-0 flex flex-col justify-center",
+                                            h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base", "{title}" }
+                                            p { class: "text-[10px] sm:text-xs text-white/50 truncate font-semibold mt-1", "{artist}" }
                                         }
                                         div { class: "opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0",
                                             div {
@@ -514,7 +514,7 @@ pub fn JellyfinHome(
                                     }
                                     div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-full" }
                                 }
-                                h3 { class: "text-white font-bold truncate text-center px-2 text-sm md:text-base group-hover:text-indigo-400 transition-colors", "{artist}" }
+                                h3 { class: "text-white font-bold truncate text-center px-2 text-xs sm:text-sm md:text-base group-hover:text-indigo-400 transition-colors", "{artist}" }
                             }
                         }
                     }
@@ -569,7 +569,7 @@ pub fn JellyfinHome(
                                         i { class: "fa-solid fa-play ml-0.5 text-sm" }
                                     }
                                 }
-                                h3 { class: "text-white font-bold truncate text-sm md:text-base px-1", "{title}" }
+                                h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base px-1", "{title}" }
                                 p { class: "text-xs md:text-sm text-white/50 truncate px-1 font-semibold mt-1", "{artist}" }
                             }
                         }
@@ -649,7 +649,7 @@ pub fn JellyfinHome(
                                             div { class: "absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" }
                                         }
                                         div {
-                                            h3 { class: "text-white font-bold truncate text-sm md:text-base px-1 group-hover:text-indigo-400 transition-colors", "{name}" }
+                                            h3 { class: "text-white font-bold truncate text-xs sm:text-sm md:text-base px-1 group-hover:text-indigo-400 transition-colors", "{name}" }
                                             p { class: "text-xs md:text-sm text-white/40 truncate px-1 font-semibold mt-1",
                                                 "Jellyfin • {track_count} tracks"
                                             }

@@ -1,4 +1,5 @@
 use config::MusicSource;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use dioxus::desktop::use_window;
 use dioxus::prelude::*;
 use rusic_route::Route;
@@ -68,12 +69,15 @@ pub struct SidebarProps {
 #[component]
 pub fn Sidebar(props: SidebarProps) -> Element {
     let mut config = use_context::<Signal<config::AppConfig>>();
+    let default_collapsed = use_signal(|| cfg!(any(target_os = "android", target_os = "ios")));
+    let mut is_collapsed = try_consume_context::<Signal<bool>>().unwrap_or(default_collapsed);
     let mut width = use_signal(|| 240);
-    let mut is_collapsed = use_signal(|| false);
     let mut is_resizing = use_signal(|| false);
 
+    let is_mobile = cfg!(any(target_os = "android", target_os = "ios"));
+
     let current_width = if *is_collapsed.read() {
-        72
+        if is_mobile { 0 } else { 72 }
     } else {
         *width.read()
     };
@@ -120,8 +124,22 @@ pub fn Sidebar(props: SidebarProps) -> Element {
         "left: 4px; width: calc(50% - 4px);"
     };
 
+    let mobile_sidebar_style = if is_mobile {
+        "position: fixed; left: 0; top: 0; z-index: 100; height: 100%;"
+    } else {
+        ""
+    };
+
+    let collapse_icon = if *is_collapsed.read() {
+        "fa-angles-right"
+    } else if is_mobile {
+        "fa-xmark"
+    } else {
+        "fa-angles-left"
+    };
+
     rsx! {
-        if *is_resizing.read() {
+        if !is_mobile && *is_resizing.read() {
              div {
                  class: "fixed inset-0 z-[100] cursor-col-resize",
                  onmousemove: onmousemove,
@@ -129,13 +147,21 @@ pub fn Sidebar(props: SidebarProps) -> Element {
              }
         }
 
+        if is_mobile && !*is_collapsed.read() {
+            div {
+                class: "fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] animate-fade-in",
+                onclick: move |_| is_collapsed.set(true)
+            }
+        }
+
         div {
-            class: "h-full bg-black/40 text-slate-400 flex flex-col flex-shrink-0 select-none relative transition-all duration-300 ease-out border-r border-white/5 {extra_padding}",
-            style: "width: {current_width}px",
+            class: "h-full bg-black/40 text-slate-400 flex flex-col flex-shrink-0 select-none relative transition-all duration-300 ease-out border-r border-white/5 overflow-hidden {extra_padding}",
+            style: "width: {current_width}px; {mobile_sidebar_style}",
 
             div {
                 class: "absolute top-0 left-0 w-full h-10 z-50",
                 onmousedown: move |_| {
+                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
                     if cfg!(target_os = "macos") {
                         use_window().drag();
                     }
@@ -145,6 +171,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
             div {
                 class: "h-20 flex items-center mb-4 transition-all {header_class}",
                 onmousedown: move |_| {
+                    #[cfg(not(any(target_os = "android", target_os = "ios")))]
                     if cfg!(target_os = "macos") {
                         use_window().drag();
                     }
@@ -160,11 +187,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                 button {
                     class: "p-2 rounded-lg hover:bg-white/5 text-slate-500 hover:text-white transition-all active:scale-95 flex items-center justify-center shrink-0",
                     onclick: move |_| is_collapsed.toggle(),
-                    if *is_collapsed.read() {
-                        i { class: "fa-solid fa-angles-right w-6 h-6 flex items-center justify-center text-xl" }
-                    } else {
-                        i { class: "fa-solid fa-angles-left w-5 h-5 flex items-center justify-center text-lg" }
-                    }
+                    i { class: "fa-solid {collapse_icon} w-6 h-6 flex items-center justify-center text-xl" }
                 }
             }
 

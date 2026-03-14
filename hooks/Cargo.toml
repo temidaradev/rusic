@@ -12,7 +12,9 @@ tokio = { workspace = true }
 rodio = { workspace = true }
 config = { workspace = true }
 rand = { workspace = true }
-discord-presence = { workspace = true }
 reqwest = { workspace = true }
 server = { workspace = true }
 scrobble = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+discord-presence = { workspace = true }

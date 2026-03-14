@@ -12,7 +12,6 @@ category = "public.app-category.music"
 info_plist_path = "Info.plist"
 
 [dependencies]
-dioxus = { workspace = true, features = ["desktop"] }
 uuid = { workspace = true }
 player = { workspace = true }
 components = { workspace = true }
@@ -25,10 +24,16 @@ tokio = { workspace = true }
 http = { workspace = true }
 hooks = { workspace = true }
 percent-encoding = { workspace = true }
-discord-presence = { workspace = true }
-discord-rich-presence = { workspace = true }
 utils = { workspace = true }
 rand = { workspace = true }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+dioxus = { workspace = true, features = ["desktop"] }
+discord-presence = { workspace = true }
+discord-rich-presence = { workspace = true }
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+dioxus = { workspace = true, features = ["mobile"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.3", features = ["std"] }

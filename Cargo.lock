@@ -4670,6 +4670,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusic-android"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "rusic",
+]
+
+[[package]]
+name = "rusic-ios"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "rusic",
+]
+
+[[package]]
 name = "rusic_route"
 version = "0.3.3"
 
