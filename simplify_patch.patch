@@ -1,0 +1,62 @@
+--- player/src/systemint/macos.rs
++++ player/src/systemint/macos.rs
+@@ -27,9 +27,6 @@
+     unsafe { CFRunLoopWakeUp(CFRunLoopGetMain()) }
+ }
+ 
+-const NS_ACTIVITY_PREVENT_SUSPENSION: u64 =
+-    0x00FFFFFF | (1 << 20) | (1 << 14) | (1 << 15) | 0xFF00000000;
+-
+ #[derive(Debug)]
+ pub enum SystemEvent {
+     Play,
+@@ -43,10 +40,6 @@
+ unsafe impl Send for ThreadSafeArtwork {}
+ unsafe impl Sync for ThreadSafeArtwork {}
+ 
+-struct ThreadSafeActivity(objc2::rc::Retained<AnyObject>);
+-unsafe impl Send for ThreadSafeActivity {}
+-unsafe impl Sync for ThreadSafeActivity {}
+-
+ static BACKGROUND_HANDLER: OnceLock<Arc<StdMutex<Option<Box<dyn Fn(SystemEvent) + Send + Sync>>>>> =
+     OnceLock::new();
+ 
+@@ -71,14 +64,6 @@
+ pub fn init() {
+     static ONCE: OnceLock<()> = OnceLock::new();
+     ONCE.get_or_init(|| unsafe {
+-        let process_info = objc2_foundation::NSProcessInfo::processInfo();
+-        let reason = NSString::from_str("Music Playback Quality of Service");
+-        let activity: *mut AnyObject = objc2::msg_send![
+-            &process_info,
+-            beginActivityWithOptions: NS_ACTIVITY_PREVENT_SUSPENSION,
+-            reason: &*reason
+-        ];
+-
+         let session = AVAudioSession::sharedInstance();
+         if let Err(e) = session.setCategory_error(AVAudioSessionCategoryPlayback.unwrap()) {
+             eprintln!("[macos] Failed to set AVAudioSession category: {:?}", e);
+@@ -89,22 +74,6 @@
+             println!("[macos] AVAudioSession configured for background playback");
+         }
+ 
+-        static ACTIVITY_TOKEN: OnceLock<ThreadSafeActivity> = OnceLock::new();
+-        if !activity.is_null() {
+-            let retained =
+-                objc2::rc::Retained::from_raw(activity).expect("retained activity token");
+-            let _ = ACTIVITY_TOKEN.set(ThreadSafeActivity(retained));
+-            println!("[macos] Acquired background activity token");
+-        } else {
+-            eprintln!("[macos] Failed to acquire background activity token");
+-        }
+-
+-        std::thread::spawn(|| {
+-            loop {
+-                std::thread::sleep(std::time::Duration::from_secs(1));
+-                wake_run_loop();
+-            }
+-        });
+-
+         let center = MPRemoteCommandCenter::sharedCommandCenter();
+ 
+         center.playCommand().addTargetWithHandler(&RcBlock::new(

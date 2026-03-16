@@ -1,15 +1,14 @@
+#!/bin/bash
+cat << 'INNER_EOF' > player/src/systemint/macos.rs
 use std::ptr::NonNull;
 use std::sync::Mutex as StdMutex;
 use std::sync::{Arc, OnceLock};
 
 use block2::RcBlock;
-use objc2::AllocAnyThread;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2_app_kit::NSImage;
 use objc2_avf_audio::{AVAudioSession, AVAudioSessionCategoryPlayback};
-use objc2_foundation::{
-    NSCopying, NSDictionary, NSMutableDictionary, NSNumber, NSProcessInfo, NSString,
-};
+use objc2_foundation::{NSCopying, NSDictionary, NSMutableDictionary, NSNumber, NSString};
 use objc2_media_player::{
     MPMediaItemArtwork, MPMediaItemPropertyAlbumTitle, MPMediaItemPropertyArtist,
     MPMediaItemPropertyArtwork, MPMediaItemPropertyPlaybackDuration, MPMediaItemPropertyTitle,
@@ -67,17 +66,6 @@ fn dispatch_event(event: SystemEvent) {
 pub fn init() {
     static ONCE: OnceLock<()> = OnceLock::new();
     ONCE.get_or_init(|| unsafe {
-        use objc2::ClassType;
-        let process_info: *mut AnyObject = objc2::msg_send![NSProcessInfo::class(), processInfo];
-        let reason = NSString::from_str("Rusic Background Audio Playback");
-        let options: u64 = 0x00FFFFFF;
-        let activity: *mut AnyObject =
-            objc2::msg_send![process_info, beginActivityWithOptions: options, reason: &*reason];
-        if !activity.is_null() {
-            let _: *mut AnyObject = objc2::msg_send![activity, retain];
-            println!("[macos] App Nap bypassed with NSProcessInfo activity");
-        }
-
         let session = AVAudioSession::sharedInstance();
         if let Err(e) = session.setCategory_error(AVAudioSessionCategoryPlayback.unwrap()) {
             eprintln!("[macos] Failed to set AVAudioSession category: {:?}", e);
@@ -124,13 +112,6 @@ pub fn init() {
                 dispatch_event(SystemEvent::Prev);
                 MPRemoteCommandHandlerStatus::Success
             }));
-
-        std::thread::spawn(|| {
-            loop {
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                wake_run_loop();
-            }
-        });
     });
 }
 
@@ -238,3 +219,4 @@ pub fn update_now_playing(
         >(&*info)));
     }
 }
+INNER_EOF
