@@ -19,8 +19,20 @@ pub fn JellyfinAlbum(
         let lib = library.read();
         let conf = config.read();
 
-        lib.jellyfin_albums
-            .iter()
+        let mut albums = lib.jellyfin_albums.clone();
+        albums.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+
+        let mut unique_albums = Vec::new();
+        let mut seen_titles = std::collections::HashSet::new();
+
+        for album in albums {
+            if seen_titles.insert(album.title.to_lowercase()) {
+                unique_albums.push(album);
+            }
+        }
+
+        unique_albums
+            .into_iter()
             .map(|album| {
                 let cover_url = if let Some(server) = &conf.server {
                     if let Some(cover_path) = &album.cover_path {
@@ -123,8 +135,14 @@ pub fn JellyfinAlbum(
                                                             show_album_playlist_modal.set(true);
                                                         }
                                                         1 => {
-                                                            library.write().jellyfin_albums.retain(|a| a.id != id);
-                                                            library.write().jellyfin_tracks.retain(|t| t.album_id != id);
+                                                            let mut lib = library.write();
+                                                            let title = lib.jellyfin_albums.iter()
+                                                                .find(|a| a.id == id)
+                                                                .map(|a| a.title.clone());
+                                                            if let Some(t) = title {
+                                                                lib.jellyfin_albums.retain(|a| a.title != t);
+                                                                lib.jellyfin_tracks.retain(|tr| tr.album != t);
+                                                            }
                                                         }
                                                         _ => {}
                                                     }
@@ -156,24 +174,27 @@ pub fn JellyfinAlbumDetails(
     let mut show_playlist_modal = use_signal(|| false);
     let mut selected_track_for_playlist = use_signal(|| None::<std::path::PathBuf>);
 
-    let album_id_for_info = album_jellyfin_id.clone();
-    let album_info = use_memo(move || {
-        let lib = library.read();
-        lib.jellyfin_albums
-            .iter()
-            .find(|a| a.id == album_id_for_info)
-            .cloned()
+    let mut album_id_sig = use_signal(|| album_jellyfin_id.clone());
+    use_effect(move || {
+        album_id_sig.set(album_jellyfin_id.clone());
     });
 
-    let album_id_for_tracks = album_jellyfin_id.clone();
+    let album_info = use_memo(move || {
+        let lib = library.read();
+        let id = album_id_sig.read();
+        lib.jellyfin_albums.iter().find(|a| a.id == *id).cloned()
+    });
+
     let album_tracks = use_memo(move || {
         let lib = library.read();
         let conf = config.read();
+        let info = album_info();
+        let album_name = info.as_ref().map(|a| a.title.clone()).unwrap_or_default();
 
         let mut tracks: Vec<_> = lib
             .jellyfin_tracks
             .iter()
-            .filter(|t| t.album_id == album_id_for_tracks)
+            .filter(|t| !album_name.is_empty() && t.album == album_name)
             .map(|t| {
                 let cover_url = if let Some(server) = &conf.server {
                     let path_str = t.path.to_string_lossy();
@@ -411,11 +432,11 @@ pub fn JellyfinAlbumDetails(
                                         active_menu_track.set(None);
                                     },
                                     on_close_menu: move |_| active_menu_track.set(None),
-                                    on_delete: move |_| active_menu_track.set(None),
                                     on_play: move |_| {
                                         queue.set(album_queue.clone());
                                         ctrl.play_track(idx);
-                                    }
+                                    },
+                                    on_delete: move |_| active_menu_track.set(None),
                                 }
                             }
                         }

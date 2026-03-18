@@ -5,10 +5,10 @@ use lofty::tag::ItemKey;
 use lofty::{probe::Probe, properties::FileProperties, tag::Tag};
 use std::path::Path;
 
-pub fn make_album_id(grouping_key: &str, album: &str) -> String {
+pub fn make_album_id(album: &str) -> String {
     format!(
         "alb_{}",
-        format!("{grouping_key}_{album}")
+        album
             .to_lowercase()
             .replace(' ', "_")
             .replace(|c: char| !c.is_alphanumeric() && c != '_', "")
@@ -57,7 +57,7 @@ pub fn extract_metadata(
 
     Track {
         path: track_path.to_path_buf(),
-        album_id: make_album_id(grouping_key, &album_title),
+        album_id: make_album_id(&album_title),
         title,
         artist,
         album: album_title,
@@ -79,6 +79,11 @@ pub fn read(track_path: &Path, cover_cache: &Path, library: &mut Library) -> Opt
 
     let track = extract_metadata(tag, properties, track_path);
     let album_id = track.album_id.clone();
+
+    let album_artist = tag
+        .and_then(|t| t.get_string(&ItemKey::AlbumArtist))
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| track.artist.clone());
 
     let album_exists = library.albums.iter().any(|a| a.id == album_id);
 

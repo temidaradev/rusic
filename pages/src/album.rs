@@ -241,10 +241,25 @@ pub fn Album(
                             on_close: move |_| show_album_playlist_modal.set(false),
                             on_add_to_playlist: move |playlist_id: String| {
                                 if let Some(aid) = pending_album_id_for_playlist.read().clone() {
-                                    let tracks: Vec<_> = library.read().tracks.iter()
-                                        .filter(|t| t.album_id == aid)
-                                        .map(|t| t.path.clone())
-                                        .collect();
+                                    let lib = library.read();
+                                    let tracks: Vec<_> = if is_jellyfin {
+                                        lib.jellyfin_tracks.iter()
+                                            .filter(|t| t.album_id == aid)
+                                            .map(|t| t.path.clone())
+                                            .collect()
+                                    } else {
+                                        let album_title = lib.albums.iter()
+                                            .find(|a| a.id == aid)
+                                            .map(|a| a.title.clone());
+                                        if let Some(title) = album_title {
+                                            lib.tracks.iter()
+                                                .filter(|t| t.album == title)
+                                                .map(|t| t.path.clone())
+                                                .collect()
+                                        } else {
+                                            Vec::new()
+                                        }
+                                    };
                                     let mut store = playlist_store.write();
                                     if let Some(playlist) = store.playlists.iter_mut().find(|p| p.id == playlist_id) {
                                         for path in tracks {
@@ -258,10 +273,25 @@ pub fn Album(
                             },
                             on_create_playlist: move |name: String| {
                                 if let Some(aid) = pending_album_id_for_playlist.read().clone() {
-                                    let tracks: Vec<_> = library.read().tracks.iter()
-                                        .filter(|t| t.album_id == aid)
-                                        .map(|t| t.path.clone())
-                                        .collect();
+                                    let lib = library.read();
+                                    let tracks: Vec<_> = if is_jellyfin {
+                                        lib.jellyfin_tracks.iter()
+                                            .filter(|t| t.album_id == aid)
+                                            .map(|t| t.path.clone())
+                                            .collect()
+                                    } else {
+                                        let album_title = lib.albums.iter()
+                                            .find(|a| a.id == aid)
+                                            .map(|a| a.title.clone());
+                                        if let Some(title) = album_title {
+                                            lib.tracks.iter()
+                                                .filter(|t| t.album == title)
+                                                .map(|t| t.path.clone())
+                                                .collect()
+                                        } else {
+                                            Vec::new()
+                                        }
+                                    };
                                     let mut store = playlist_store.write();
                                     store.playlists.push(reader::models::Playlist {
                                         id: uuid::Uuid::new_v4().to_string(),

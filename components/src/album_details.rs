@@ -31,7 +31,7 @@ pub fn AlbumDetails(
     let tracks: Vec<_> = lib
         .tracks
         .iter()
-        .filter(|t| t.album_id == album_id)
+        .filter(|t| t.album == album.title)
         .cloned()
         .collect();
 

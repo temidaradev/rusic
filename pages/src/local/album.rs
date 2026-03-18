@@ -12,7 +12,20 @@ pub fn LocalAlbum(
     mut show_album_playlist_modal: Signal<bool>,
     mut pending_album_id_for_playlist: Signal<Option<String>>,
 ) -> Element {
-    let local_albums = library.read().albums.clone();
+    let local_albums = use_memo(move || {
+        let mut albums = library.read().albums.clone();
+        albums.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+
+        let mut unique_albums = Vec::new();
+        let mut seen_titles = std::collections::HashSet::new();
+        for album in albums {
+            let title_key = album.title.to_lowercase();
+            if seen_titles.insert(title_key) {
+                unique_albums.push(album);
+            }
+        }
+        unique_albums
+    });
 
     let album_menu_actions = vec![
         MenuAction::new("Add All to Playlist", "fa-solid fa-list-music"),
@@ -21,15 +34,16 @@ pub fn LocalAlbum(
 
     rsx! {
         div {
-            if local_albums.is_empty() {
+            if local_albums().is_empty() {
                 p { class: "text-slate-500", "No albums found in library." }
             } else {
                 div { class: "grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6",
-                    for album in local_albums {
+                    for album in local_albums() {
                         {
                             let id_for_nav    = album.id.clone();
                             let id_for_menu   = album.id.clone();
                             let id_for_action = album.id.clone();
+                            let title_for_action = album.title.clone();
                             let is_open = open_album_menu.read().as_deref() == Some(&album.id);
                             let cover_url = utils::format_artwork_url(album.cover_path.as_ref());
                             rsx! {
@@ -70,6 +84,7 @@ pub fn LocalAlbum(
                                             anchor: "right".to_string(),
                                             on_action: {
                                                 let id = id_for_action.clone();
+                                                let title = title_for_action.clone();
                                                 move |idx: usize| {
                                                     open_album_menu.set(None);
                                                     match idx {
@@ -82,13 +97,15 @@ pub fn LocalAlbum(
                                                                 .read()
                                                                 .tracks
                                                                 .iter()
-                                                                .filter(|t| t.album_id == id)
+                                                                .filter(|t| t.album == title)
                                                                 .map(|t| t.path.clone())
                                                                 .collect();
                                                             for path in &tracks_to_delete {
                                                                 let _ = std::fs::remove_file(path);
                                                             }
-                                                            library.write().remove_album(&id);
+                                                            let mut lib = library.write();
+                                                            lib.albums.retain(|a| a.title != title);
+                                                            lib.tracks.retain(|t| t.album != title);
                                                         }
                                                         _ => {}
                                                     }

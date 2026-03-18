@@ -143,13 +143,15 @@ pub fn use_search_data(
                     })
                     .collect();
 
+                let mut seen_titles = std::collections::HashSet::new();
                 albums = lib
                     .albums
                     .iter()
                     .filter(|a| {
-                        a.title.to_lowercase().contains(&query)
+                        (a.title.to_lowercase().contains(&query)
                             || a.artist.to_lowercase().contains(&query)
-                            || a.genre.to_lowercase().contains(&query)
+                            || a.genre.to_lowercase().contains(&query))
+                            && seen_titles.insert(a.title.to_lowercase())
                     })
                     .map(|a| {
                         let cover_url = a
@@ -196,6 +198,51 @@ pub fn use_search_data(
                             None
                         };
                         (t.clone(), cover_url)
+                    })
+                    .collect();
+
+                let mut seen_titles = std::collections::HashSet::new();
+                albums = lib
+                    .jellyfin_albums
+                    .iter()
+                    .filter(|a| {
+                        (a.title.to_lowercase().contains(&query)
+                            || a.artist.to_lowercase().contains(&query)
+                            || a.genre.to_lowercase().contains(&query))
+                            && seen_titles.insert(a.title.to_lowercase())
+                    })
+                    .take(50)
+                    .map(|a| {
+                        let cover_url = if let Some(server) = &config.read().server {
+                            if let Some(cover_path) = &a.cover_path {
+                                let path_str = cover_path.to_string_lossy();
+                                let parts: Vec<&str> = path_str.split(':').collect();
+                                if parts.len() >= 2 {
+                                    let id = parts[1];
+                                    let mut url =
+                                        format!("{}/Items/{}/Images/Primary", server.url, id);
+                                    let mut params = Vec::new();
+                                    if parts.len() >= 3 {
+                                        params.push(format!("tag={}", parts[2]));
+                                    }
+                                    if let Some(token) = &server.access_token {
+                                        params.push(format!("api_key={}", token));
+                                    }
+                                    if !params.is_empty() {
+                                        url.push('?');
+                                        url.push_str(&params.join("&"));
+                                    }
+                                    Some(url)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+                        (a.clone(), cover_url)
                     })
                     .collect();
             }

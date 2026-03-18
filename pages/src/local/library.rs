@@ -138,9 +138,13 @@ pub fn LocalLibrary(
                 class: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12",
                 {
                     let lib = library.read();
+                    let album_count = lib.albums.iter()
+                        .map(|a| a.title.to_lowercase())
+                        .collect::<std::collections::HashSet<_>>()
+                        .len();
                     rsx! {
                         StatCard { label: "Tracks",    value: "{lib.tracks.len()}",  icon: "fa-music" }
-                        StatCard { label: "Albums",    value: "{lib.albums.len()}",  icon: "fa-compact-disc" }
+                        StatCard { label: "Albums",    value: "{album_count}",  icon: "fa-compact-disc" }
                         StatCard { label: "Artists",   value: "{(items.artist_count)()}", icon: "fa-user" }
                         StatCard { label: "Playlists", value: "{playlist_store.read().playlists.len()}", icon: "fa-list" }
                     }

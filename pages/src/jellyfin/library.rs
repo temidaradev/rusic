@@ -417,15 +417,19 @@ pub fn JellyfinLibrary(
                 class: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12",
                 {
                     let lib = library.read();
-                    let artist_count = {
+                    let (artist_count, album_count) = {
                         let mut artists = HashSet::new();
-                        for album in &lib.jellyfin_albums { artists.insert(&album.artist); }
+                        let mut album_titles = HashSet::new();
+                        for album in &lib.jellyfin_albums {
+                            artists.insert(&album.artist);
+                            album_titles.insert(album.title.to_lowercase());
+                        }
                         for track in &lib.jellyfin_tracks { artists.insert(&track.artist); }
-                        artists.len()
+                        (artists.len(), album_titles.len())
                     };
                     rsx! {
                         StatCard { label: "Tracks",    value: "{lib.jellyfin_tracks.len()}",  icon: "fa-music" }
-                        StatCard { label: "Albums",    value: "{lib.jellyfin_albums.len()}",  icon: "fa-compact-disc" }
+                        StatCard { label: "Albums",    value: "{album_count}",                icon: "fa-compact-disc" }
                         StatCard { label: "Artists",   value: "{artist_count}",               icon: "fa-user" }
                         StatCard { label: "Playlists", value: "{playlist_store.read().jellyfin_playlists.len()}", icon: "fa-list" }
                     }
