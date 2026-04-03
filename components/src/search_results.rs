@@ -97,8 +97,7 @@ pub fn SearchResults(
                                         img {
                                             src: "{url}",
                                             class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300",
-                                            loading: "lazy",
-                                            decoding: "async",
+                                            decoding: "async", loading: "lazy",
                                         }
                                     } else {
                                         div { class: "w-full h-full flex items-center justify-center",

@@ -63,28 +63,19 @@ pub fn JellyfinArtist(
             .find(|a| a.artist.to_lowercase() == artist.to_lowercase())
             .and_then(|album| {
                 if let Some(server) = &conf.server {
-                    if let Some(cover_path) = &album.cover_path {
+                    album.cover_path.as_ref().and_then(|cover_path| {
                         let path_str = cover_path.to_string_lossy();
-                        let parts: Vec<&str> = path_str.split(':').collect();
-                        if parts.len() >= 2 {
-                            let id = parts[1];
-                            let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                            let mut params = Vec::new();
-                            if parts.len() >= 3 {
-                                params.push(format!("tag={}", parts[2]));
-                            }
-                            if let Some(token) = &server.access_token {
-                                params.push(format!("api_key={}", token));
-                            }
-                            if !params.is_empty() {
-                                url.push('?');
-                                url.push_str(&params.join("&"));
-                            }
-                            return Some(url);
-                        }
-                    }
+                        utils::jellyfin_image::jellyfin_image_url_from_path(
+                            &path_str,
+                            &server.url,
+                            server.access_token.as_deref(),
+                            512,
+                            90,
+                        )
+                    })
+                } else {
+                    None
                 }
-                None
             })
     });
 
@@ -99,28 +90,13 @@ pub fn JellyfinArtist(
                             let cover_url = if let Some(server) = &config.read().server {
                                 if let Some(path) = cover_path {
                                     let path_str = path.to_string_lossy();
-                                    let parts: Vec<&str> = path_str.split(':').collect();
-                                    if parts.len() >= 2 {
-                                        let id = parts[1];
-                                        let mut url = format!(
-                                            "{}/Items/{}/Images/Primary",
-                                            server.url, id
-                                        );
-                                        let mut params = Vec::new();
-                                        if parts.len() >= 3 {
-                                            params.push(format!("tag={}", parts[2]));
-                                        }
-                                        if let Some(token) = &server.access_token {
-                                            params.push(format!("api_key={}", token));
-                                        }
-                                        if !params.is_empty() {
-                                            url.push('?');
-                                            url.push_str(&params.join("&"));
-                                        }
-                                        Some(url)
-                                    } else {
-                                        None
-                                    }
+                                    utils::jellyfin_image::jellyfin_image_url_from_path(
+                                        &path_str,
+                                        &server.url,
+                                        server.access_token.as_deref(),
+                                        320,
+                                        80,
+                                    )
                                 } else {
                                     None
                                 }
@@ -138,7 +114,8 @@ pub fn JellyfinArtist(
                                         if let Some(url) = cover_url {
                                             img {
                                                 src: "{url}",
-                                                class: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                class: "w-full h-full object-cover",
+                                                decoding: "async", loading: "lazy"
                                             }
                                         } else {
                                             div { class: "w-full h-full flex items-center justify-center text-white/20",

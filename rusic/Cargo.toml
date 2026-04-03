@@ -29,14 +29,27 @@ discord-presence = { workspace = true }
 discord-rich-presence = { workspace = true }
 utils = { workspace = true }
 rand = { workspace = true }
+urlencoding = "2.1.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 base64 = "0.22" # TODO REMOVE THIS
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.3", features = ["std"] }
-objc2-foundation = { version = "0.3.2", features = ["NSString", "NSDictionary", "NSValue", "NSObject", "NSURL", "NSProcessInfo"] }
-objc2-media-player = { version = "0.3.2", features = ["MPNowPlayingInfoCenter", "MPMediaItem", "MPRemoteCommandCenter", "MPRemoteCommand"] }
+objc2-foundation = { version = "0.3.2", features = [
+    "NSString",
+    "NSDictionary",
+    "NSValue",
+    "NSObject",
+    "NSURL",
+    "NSProcessInfo",
+] }
+objc2-media-player = { version = "0.3.2", features = [
+    "MPNowPlayingInfoCenter",
+    "MPMediaItem",
+    "MPRemoteCommandCenter",
+    "MPRemoteCommand",
+] }
 objc2-app-kit = { version = "0.3.2", features = ["NSImage"] }
 block2 = "0.6"
 
@@ -63,3 +76,4 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
+reqwest = { workspace = true, features = ["blocking"] }

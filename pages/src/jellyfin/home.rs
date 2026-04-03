@@ -224,30 +224,16 @@ pub fn JellyfinHome(
             .into_iter()
             .map(|album| {
                 let cover_url = if let Some(server) = &conf.server {
-                    if let Some(cover_path) = &album.cover_path {
+                    album.cover_path.as_ref().and_then(|cover_path| {
                         let path_str = cover_path.to_string_lossy();
-                        let parts: Vec<&str> = path_str.split(':').collect();
-                        if parts.len() >= 2 {
-                            let id = parts[1];
-                            let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                            let mut params = Vec::new();
-                            if parts.len() >= 3 {
-                                params.push(format!("tag={}", parts[2]));
-                            }
-                            if let Some(token) = &server.access_token {
-                                params.push(format!("api_key={}", token));
-                            }
-                            if !params.is_empty() {
-                                url.push('?');
-                                url.push_str(&params.join("&"));
-                            }
-                            Some(url)
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
+                        utils::jellyfin_image::jellyfin_image_url_from_path(
+                            &path_str,
+                            &server.url,
+                            server.access_token.as_deref(),
+                            384,
+                            80,
+                        )
+                    })
                 } else {
                     None
                 };
@@ -281,23 +267,21 @@ pub fn JellyfinHome(
 
     let jellyfin_artists = use_memo(move || {
         let lib = library.read();
+        let conf = config.read();
         let mut unique_artists = std::collections::HashSet::new();
         let mut artist_list = Vec::new();
         for track in &lib.jellyfin_tracks {
             if unique_artists.insert(track.artist.clone()) {
-                let cover_url = if let Some(server) = &config.read().server {
+                let cover_url = if let Some(server) = &conf.server {
                     let path_str = track.path.to_string_lossy();
-                    let parts: Vec<&str> = path_str.split(':').collect();
-                    if parts.len() >= 2 {
-                        let id = parts[1];
-                        let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                        if let Some(token) = &server.access_token {
-                            url.push_str(&format!("?api_key={}", token));
-                        }
-                        Some(url)
-                    } else {
-                        None
-                    }
+                    utils::jellyfin_image::track_cover_url_with_album_fallback(
+                        &path_str,
+                        &track.album_id,
+                        &server.url,
+                        server.access_token.as_deref(),
+                        320,
+                        80,
+                    )
                 } else {
                     None
                 };
@@ -340,7 +324,7 @@ pub fn JellyfinHome(
                         rsx! {
                             div { class: "absolute inset-0",
                                 if let Some(url) = cover_url {
-                                    img { src: "{url}", class: "w-full h-full object-cover" }
+                                    img { src: "{url}", class: "w-full h-full object-cover", decoding: "async", loading: "lazy" }
                                 }
                                 div { class: "absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" }
                             }
@@ -461,7 +445,7 @@ pub fn JellyfinHome(
                                         },
                                         div { class: "w-16 h-16 md:w-20 md:h-20 flex-shrink-0 bg-stone-800/50 relative overflow-hidden",
                                             if let Some(url) = cover_url {
-                                                img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }
+                                                img { src: "{url}", class: "w-full h-full object-cover", decoding: "async", loading: "lazy" }
                                             } else {
                                                 div { class: "w-full h-full flex items-center justify-center",
                                                     i { class: "fa-solid fa-compact-disc text-xl text-white/20" }
@@ -525,7 +509,7 @@ pub fn JellyfinHome(
                                 },
                                 div { class: "w-32 h-32 md:w-40 md:h-40 rounded-full bg-stone-800/80 mb-4 overflow-hidden transition-all duration-500 relative mx-auto",
                                     if let Some(url) = cover_url {
-                                        img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" }
+                                        img { src: "{url}", class: "w-full h-full object-cover", decoding: "async", loading: "lazy" }
                                     } else {
                                         div { class: "w-full h-full flex items-center justify-center",
                                             i { class: "fa-solid fa-microphone text-4xl text-white/20" }
@@ -569,7 +553,7 @@ pub fn JellyfinHome(
                                 },
                                 div { class: "aspect-square rounded-2xl bg-stone-800/80 mb-4 overflow-hidden transition-all duration-300 relative",
                                     if let Some(url) = cover_url {
-                                        img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }
+                                        img { src: "{url}", class: "w-full h-full object-cover", decoding: "async", loading: "lazy" }
                                     } else {
                                         div { class: "w-full h-full flex items-center justify-center border border-white/5 rounded-2xl",
                                             i { class: "fa-solid fa-compact-disc text-4xl text-white/20" }
@@ -629,20 +613,14 @@ pub fn JellyfinHome(
                                             let conf = config.peek();
                                             if let Some(server) = &conf.server {
                                                 let path_str = t.path.to_string_lossy();
-                                                let parts: Vec<&str> = path_str.split(':').collect();
-                                                if parts.len() >= 2 {
-                                                    let id = parts[1];
-                                                    let mut url = format!(
-                                                        "{}/Items/{}/Images/Primary",
-                                                        server.url, id
-                                                    );
-                                                    if let Some(token) = &server.access_token {
-                                                        url.push_str(&format!("?api_key={}", token));
-                                                    }
-                                                    Some(url)
-                                                } else {
-                                                    None
-                                                }
+                                                utils::jellyfin_image::track_cover_url_with_album_fallback(
+                                                    &path_str,
+                                                    &t.album_id,
+                                                    &server.url,
+                                                    server.access_token.as_deref(),
+                                                    384,
+                                                    80,
+                                                )
                                             } else {
                                                 None
                                             }
@@ -659,7 +637,7 @@ pub fn JellyfinHome(
                                         },
                                         div { class: "aspect-square rounded-2xl bg-white/5 mb-4 overflow-hidden transition-all duration-500 relative",
                                             if let Some(url) = cover_url {
-                                                img { src: "{url}", class: "w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" }
+                                                img { src: "{url}", class: "w-full h-full object-cover", decoding: "async", loading: "lazy" }
                                             } else {
                                                 div { class: "w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600/20 to-purple-600/20 group-hover:scale-110 transition-transform duration-700",
                                                     i { class: "fa-solid fa-music text-5xl opacity-40 text-white" }

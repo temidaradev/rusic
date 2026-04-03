@@ -1,4 +1,5 @@
 pub mod color;
+pub mod jellyfin_image;
 pub mod lyrics;
 pub mod stream_buffer;
 use std::path::Path;

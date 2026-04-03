@@ -62,7 +62,7 @@ pub fn JellyfinLibrary(
                     if let Ok(libs) = remote.get_music_libraries().await {
                         for lib in libs {
                             let mut album_start_index = 0;
-                            let album_limit = 100;
+                            let album_limit = 500; // increased to fetch more albums
                             loop {
                                 if *fetch_generation.read() != current_gen {
                                     return;
@@ -139,7 +139,7 @@ pub fn JellyfinLibrary(
                             }
 
                             let mut start_index = 0;
-                            let limit = 200;
+                            let limit = 500; // increased to fetch more tracks
                             loop {
                                 if *fetch_generation.read() != current_gen {
                                     return;
@@ -255,25 +255,14 @@ pub fn JellyfinLibrary(
             .map(|t| {
                 let cover_url = if let Some(server) = &conf.server {
                     let path_str = t.path.to_string_lossy();
-                    let parts: Vec<&str> = path_str.split(':').collect();
-                    if parts.len() >= 2 {
-                        let id = parts[1];
-                        let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                        let mut params = Vec::new();
-                        if parts.len() >= 3 {
-                            params.push(format!("tag={}", parts[2]));
-                        }
-                        if let Some(token) = &server.access_token {
-                            params.push(format!("api_key={}", token));
-                        }
-                        if !params.is_empty() {
-                            url.push('?');
-                            url.push_str(&params.join("&"));
-                        }
-                        Some(url)
-                    } else {
-                        None
-                    }
+                    utils::jellyfin_image::track_cover_url_with_album_fallback(
+                        &path_str,
+                        &t.album_id,
+                        &server.url,
+                        server.access_token.as_deref(),
+                        80,
+                        80,
+                    )
                 } else {
                     None
                 };

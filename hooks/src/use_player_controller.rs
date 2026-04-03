@@ -79,12 +79,17 @@ impl PlayerController {
                         stream_url.push_str(&format!("&api_key={}", token));
                     }
 
-                    let mut cover_url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                    if let (Some(tag), Some(token)) = (parts.get(2), &server.access_token) {
-                        cover_url.push_str(&format!("?tag={}&api_key={}", tag, token));
-                    } else if let Some(token) = &server.access_token {
-                        cover_url.push_str(&format!("?api_key={}", token));
-                    }
+                    let cover_url = {
+                        let path_str = track.path.to_string_lossy();
+                        utils::jellyfin_image::jellyfin_image_url_from_path(
+                            &path_str,
+                            &server.url,
+                            server.access_token.as_deref(),
+                            800,
+                            90,
+                        )
+                        .unwrap_or_default()
+                    };
 
                     self.player.write().stop();
                     self.is_playing.set(false);

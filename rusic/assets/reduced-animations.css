@@ -14,7 +14,6 @@
     transition-duration: 0.001ms !important;
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
-    transform: none !important;
 }
 
 /* Ensure progress bars and seek sliders still work without animation delays */

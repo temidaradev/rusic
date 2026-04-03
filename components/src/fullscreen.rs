@@ -126,24 +126,13 @@ pub fn Fullscreen(
         if is_jellyfin_track {
             if let Some(server) = &conf.server {
                 let path_str = track.path.to_string_lossy();
-                let parts: Vec<&str> = path_str.split(':').collect();
-                if parts.len() >= 2 {
-                    let id = parts[1];
-                    let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                    let mut params = Vec::new();
-
-                    if parts.len() >= 3 {
-                        params.push(format!("tag={}", parts[2]));
-                    }
-                    if let Some(token) = &server.access_token {
-                        params.push(format!("api_key={}", token));
-                    }
-                    if !params.is_empty() {
-                        url.push('?');
-                        url.push_str(&params.join("&"));
-                    }
-                    return Some(url);
-                }
+                return utils::jellyfin_image::jellyfin_image_url_from_path(
+                    &path_str,
+                    &server.url,
+                    server.access_token.as_deref(),
+                    96,
+                    80,
+                );
             }
             None
         } else {

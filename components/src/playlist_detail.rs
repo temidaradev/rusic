@@ -142,22 +142,13 @@ pub fn PlaylistDetail(
             tracks_val.first().and_then(|t| {
                 if let Some(server) = &config.read().server {
                     let path_str = t.path.to_string_lossy();
-                    let parts: Vec<&str> = path_str.split(':').collect();
-                    if parts.len() >= 2 {
-                        let id = parts[1];
-                        let mut url = format!("{}/Items/{}/Images/Primary", server.url, id);
-                        if parts.len() >= 3 {
-                            url.push_str(&format!("?tag={}", parts[2]));
-                            if let Some(token) = &server.access_token {
-                                url.push_str(&format!("&api_key={}", token));
-                            }
-                        } else if let Some(token) = &server.access_token {
-                            url.push_str(&format!("?api_key={}", token));
-                        }
-                        Some(url)
-                    } else {
-                        None
-                    }
+                    utils::jellyfin_image::jellyfin_image_url_from_path(
+                        &path_str,
+                        &server.url,
+                        server.access_token.as_deref(),
+                        512,
+                        90,
+                    )
                 } else {
                     None
                 }
