@@ -118,13 +118,15 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                             }
                         }
 
-                        SettingItem {
-                            title: "Music Directory",
-                            description: format!("Current path: {}", config.read().music_directory.display()),
-                            control: rsx! {
-                                DirectoryPicker {
-                                    on_change: move |path| {
-                                        config.write().music_directory = path;
+                        if !cfg!(target_arch = "wasm32") {
+                            SettingItem {
+                                title: "Music Directory",
+                                description: format!("Current path: {}", config.read().music_directory.display()),
+                                control: rsx! {
+                                    DirectoryPicker {
+                                        on_change: move |path| {
+                                            config.write().music_directory = path;
+                                        }
                                     }
                                 }
                             }
@@ -150,17 +152,19 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                                 }
                             }
                         }
-                        SettingItem {
-                            title: "Discord Presence",
-                            description: if config.read().discord_presence.unwrap_or(true) {
-                                "Discord presence enabled".to_string()
-                            } else {
-                                "Discord presence disabled".to_string()
-                            },
-                            control: rsx! {
-                                DiscordPresenceSettings {
-                                    enabled: config.read().discord_presence.unwrap_or(true),
-                                    on_change: move |val| config.write().discord_presence = Some(val),
+                        if !cfg!(target_arch = "wasm32") {
+                            SettingItem {
+                                title: "Discord Presence",
+                                description: if config.read().discord_presence.unwrap_or(true) {
+                                    "Discord presence enabled".to_string()
+                                } else {
+                                    "Discord presence disabled".to_string()
+                                },
+                                control: rsx! {
+                                    DiscordPresenceSettings {
+                                        enabled: config.read().discord_presence.unwrap_or(true),
+                                        on_change: move |val| config.write().discord_presence = Some(val),
+                                    }
                                 }
                             }
                         }

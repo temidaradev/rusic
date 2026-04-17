@@ -354,7 +354,10 @@ fn App() -> Element {
             });
         }
         #[cfg(target_arch = "wasm32")]
-        initial_load_done.set(true);
+        {
+            config.write().active_source = config::MusicSource::Server;
+            initial_load_done.set(true);
+        }
     });
 
     use_effect(move || {

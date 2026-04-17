@@ -178,7 +178,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
             div {
                 class: "flex-1 flex flex-col overflow-y-auto overflow-x-hidden",
 
-                if !*is_collapsed.read() {
+                if !*is_collapsed.read() && !cfg!(target_arch = "wasm32") {
                     div {
                         class: "px-4 mb-6",
                         div {
