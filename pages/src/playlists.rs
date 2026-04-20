@@ -1,9 +1,11 @@
 use components::playlist_detail::PlaylistDetail;
 use components::playlist_popups::AddPlaylistPopup;
-use config::{AppConfig, MusicSource};
+use config::{AppConfig, MusicService, MusicSource};
 use dioxus::prelude::*;
 use player::player;
 use reader::{Library, PlaylistStore};
+use ::server::jellyfin::JellyfinClient;
+use ::server::subsonic::SubsonicClient;
 
 use crate::local::playlists::LocalPlaylists;
 use crate::server::playlists::ServerPlaylists;
@@ -29,18 +31,61 @@ pub fn PlaylistsPage(
 
     let mut show_add_playlist = use_signal(|| false);
     let mut playlist_name = use_signal(|| String::new());
-    let error = use_signal(|| Option::<String>::None);
+    let mut error = use_signal(|| Option::<String>::None);
+    let mut saving = use_signal(|| false);
+    let mut playlist_refresh_trigger = use_signal(|| 0u64);
 
     let handle_add_playlist = move |_| {
-        let mut store = playlist_store.write();
-        store.playlists.push(reader::models::Playlist {
-            id: uuid::Uuid::new_v4().to_string(),
-            name: playlist_name(),
-            tracks: Vec::new(),
-        });
-
-        show_add_playlist.set(false);
-        playlist_name.set(String::new());
+        if saving() { return; }
+        let name = playlist_name();
+        if is_server {
+            let server_vals = {
+                let conf = config.peek();
+                conf.server.as_ref().and_then(|s| {
+                    if let (Some(tok), Some(uid)) = (&s.access_token, &s.user_id) {
+                        Some((s.service, s.url.clone(), tok.clone(), uid.clone(), conf.device_id.clone()))
+                    } else { None }
+                })
+            };
+            if let Some((service, url, token, user_id, device_id)) = server_vals {
+                error.set(None);
+                saving.set(true);
+                spawn(async move {
+                    let result = match service {
+                        MusicService::Jellyfin => {
+                            let remote = JellyfinClient::new(&url, Some(&token), &device_id, Some(&user_id));
+                            remote.create_playlist(&name, &[]).await
+                        }
+                        MusicService::Subsonic | MusicService::Custom => {
+                            let remote = SubsonicClient::new(&url, &user_id, &token);
+                            remote.create_playlist(&name, &[]).await
+                        }
+                    };
+                    saving.set(false);
+                    match result {
+                        Ok(_) => {
+                            playlist_refresh_trigger.with_mut(|v| *v += 1);
+                            show_add_playlist.set(false);
+                            playlist_name.set(String::new());
+                        }
+                        Err(e) => {
+                            error.set(Some(e));
+                        }
+                    }
+                });
+            } else {
+                error.set(Some("Server not configured or credentials missing".to_string()));
+            }
+        } else {
+            let mut store = playlist_store.write();
+            store.playlists.push(reader::models::Playlist {
+                id: uuid::Uuid::new_v4().to_string(),
+                name,
+                tracks: Vec::new(),
+            });
+            show_add_playlist.set(false);
+            playlist_name.set(String::new());
+        }
     };
 
     let mut last_source = use_signal(|| config.read().active_source.clone());
@@ -76,8 +121,8 @@ pub fn PlaylistsPage(
                     h1 { class: "text-3xl font-bold text-white", "{rust_i18n::t!(\"playlists\")}" }
                     button {
                         class: "text-white/60 flex items-center hover:text-white transition-colors p-3 rounded-full hover:bg-white/10",
-                        title: rust_i18n::t!("add_playlist").to_string(),
-                        onclick: move |_| show_add_playlist.set(true),
+                        title: "Add playlist",
+                        onclick: move |_| { error.set(None); show_add_playlist.set(true); },
                         i { class: "fa-solid fa-add" }
                     }
                 }
@@ -85,7 +130,7 @@ pub fn PlaylistsPage(
                     AddPlaylistPopup {
                         playlist_name: playlist_name,
                         error: error,
-                        on_close: move |_| show_add_playlist.set(false),
+                        on_close: move |_| { error.set(None); show_add_playlist.set(false); },
                         on_save: handle_add_playlist
                     }
                 }
@@ -96,6 +141,7 @@ pub fn PlaylistsPage(
                         library,
                         config,
                         selected_playlist_id,
+                        refresh_trigger: playlist_refresh_trigger,
                     }
                 } else {
                     LocalPlaylists {

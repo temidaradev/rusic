@@ -42,7 +42,7 @@ pub fn Fullscreen(
 
     use_future(move || async move {
         loop {
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            utils::sleep(std::time::Duration::from_millis(50)).await;
             exact_progress.set(player.peek().get_position().as_secs_f64());
         }
     });

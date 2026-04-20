@@ -1,0 +1,5 @@
+[build]
+rustc-wrapper = ""
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "debuginfo=0"]

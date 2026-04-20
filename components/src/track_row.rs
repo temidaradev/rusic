@@ -15,6 +15,7 @@ pub fn TrackRow(
     on_remove_from_playlist: Option<EventHandler<()>>,
     #[props(default = false)] is_selection_mode: bool,
     #[props(default = false)] is_selected: bool,
+    #[props(default = false)] hide_delete: bool,
     on_select: Option<EventHandler<bool>>,
     on_long_press: Option<EventHandler<()>>,
 ) -> Element {
@@ -29,7 +30,9 @@ pub fn TrackRow(
         actions.push(MenuAction::new(remove_from_playlist_text.as_str(), "fa-solid fa-minus"));
     }
 
-    actions.push(MenuAction::new(delete_song_text.as_str(), "fa-solid fa-trash").destructive());
+    if !hide_delete {
+        actions.push(MenuAction::new("Delete Song", "fa-solid fa-trash").destructive());
+    }
 
     let mut long_press_task = use_signal(|| None);
     let mut long_press_occurred = use_signal(|| false);
@@ -42,7 +45,7 @@ pub fn TrackRow(
         if let Some(handler) = on_long_press {
             let mut occurred = long_press_occurred;
             let task = spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(600)).await;
+                utils::sleep(std::time::Duration::from_millis(600)).await;
                 occurred.set(true);
                 handler.call(());
             });

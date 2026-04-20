@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
-use player::{
-    decoder,
-    player::{NowPlayingMeta, Player},
-};
+#[cfg(not(target_arch = "wasm32"))]
+use player::decoder;
+use player::player::{NowPlayingMeta, Player};
 use reader::Library;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -111,44 +110,50 @@ pub fn AlbumDetails(
                         current_queue_index.set(idx);
 
                         if let Some(t) = q.get(idx) {
-                            let (source, hint) = match decoder::open_file(&t.path) {
-                                Ok(s) => s,
-                                Err(_) => return,
-                            };
+                            #[cfg(not(target_arch = "wasm32"))]
+                            {
+                                let (source, hint) = match decoder::open_file(&t.path) {
+                                    Ok(s) => s,
+                                    Err(_) => return,
+                                };
 
-                            let lib = library.peek();
-                            let album_info = lib.albums.iter().find(|a| a.id == t.album_id);
-                            let artwork = album_info.and_then(|a| {
-                                a.cover_path
-                                    .as_ref()
-                                    .map(|p| p.to_string_lossy().into_owned())
-                            });
+                                let lib = library.peek();
+                                let album_info = lib.albums.iter().find(|a| a.id == t.album_id);
+                                let artwork = album_info.and_then(|a| {
+                                    a.cover_path
+                                        .as_ref()
+                                        .map(|p| p.to_string_lossy().into_owned())
+                                });
 
-                            let meta = NowPlayingMeta {
-                                title: t.title.clone(),
-                                artist: t.artist.clone(),
-                                album: t.album.clone(),
-                                duration: std::time::Duration::from_secs(t.duration),
-                                artwork,
-                            };
-                            player.write().play(source, meta, hint);
-                            current_song_title.set(t.title.clone());
-                            current_song_artist.set(t.artist.clone());
-                            current_song_duration.set(t.duration);
-                            current_song_progress.set(0);
-                            is_playing.set(true);
+                                let meta = NowPlayingMeta {
+                                    title: t.title.clone(),
+                                    artist: t.artist.clone(),
+                                    album: t.album.clone(),
+                                    duration: std::time::Duration::from_secs(t.duration),
+                                    artwork,
+                                };
+                                player.write().play(source, meta, hint);
+                                current_song_title.set(t.title.clone());
+                                current_song_artist.set(t.artist.clone());
+                                current_song_duration.set(t.duration);
+                                current_song_progress.set(0);
+                                is_playing.set(true);
 
-                            if let Some(album) = album_info {
-                                if let Some(url) =
-                                    utils::format_artwork_url(album.cover_path.as_ref())
-                                {
-                                    current_song_cover_url.set(url);
+                                if let Some(album) = album_info {
+                                    if let Some(url) =
+                                        utils::format_artwork_url(album.cover_path.as_ref())
+                                    {
+                                        current_song_cover_url.set(url);
+                                    } else {
+                                        current_song_cover_url.set(String::new());
+                                    }
                                 } else {
                                     current_song_cover_url.set(String::new());
                                 }
-                            } else {
-                                current_song_cover_url.set(String::new());
                             }
+                            // Local file playback not supported on web
+                            #[cfg(target_arch = "wasm32")]
+                            let _ = t;
                         }
                     }
                 },

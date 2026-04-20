@@ -4,8 +4,10 @@ version = "0.3.6"
 edition = "2024"
 
 [dependencies]
-lofty = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+lofty = { workspace = true }
 async-recursion = { workspace = true }
 tokio = { workspace = true }
-serde_json = { workspace = true }

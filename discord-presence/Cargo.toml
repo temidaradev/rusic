@@ -4,9 +4,11 @@ version = "0.3.6"
 edition = "2024"
 
 [dependencies]
-discord-rich-presence.workspace = true
 tokio.workspace = true
-reader.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+discord-rich-presence.workspace = true
+reader.workspace = true

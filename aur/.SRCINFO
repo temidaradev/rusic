@@ -1,0 +1,22 @@
+pkgbase = rusic
+	pkgdesc = A modern music player
+	pkgver = 0.4.0
+	pkgrel = 1
+	url = https://github.com/temidaradev/rusic
+	arch = x86_64
+	license = MIT
+	makedepends = rust
+	makedepends = cargo
+	makedepends = git
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libsoup3
+	depends = glib-networking
+	depends = alsa-lib
+	depends = openssl
+	depends = xdotool
+	depends = dbus
+	source = rusic-0.4.0.tar.gz::https://github.com/temidaradev/rusic/archive/refs/tags/v0.4.0.tar.gz
+	sha256sums = 5f71a49f5e43a499af7d09c44653e687eef5bc41879b91e83d8fa4b2760cc87e
+
+pkgname = rusic

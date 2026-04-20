@@ -1,7 +1,8 @@
 use config::MusicService;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use crate::jellyfin::JellyfinClient;
 use crate::subsonic::SubsonicClient;

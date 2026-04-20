@@ -3,8 +3,13 @@ name = "components"
 version = "0.3.6"
 edition = "2024"
 
-[dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dioxus = { workspace = true, features = ["desktop"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+dioxus = { workspace = true, features = ["web"] }
+
+[dependencies]
 uuid = { workspace = true }
 player = { workspace = true }
 reader = { workspace = true }

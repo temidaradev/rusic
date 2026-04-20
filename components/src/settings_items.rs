@@ -91,6 +91,7 @@ pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
     rsx! {
         button {
             onclick: move |_| {
+                #[cfg(not(target_arch = "wasm32"))]
                 spawn(async move {
                     if let Some(handle) = AsyncFileDialog::new().pick_folder().await {
                         let path = handle.path().to_path_buf();

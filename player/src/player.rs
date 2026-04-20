@@ -1,17 +1,4 @@
-use crate::systemint;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use rb::{RB, RbConsumer, RbProducer, SpscRb};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-use symphonia::core::audio::{AudioBufferRef, Signal};
-use symphonia::core::codecs::{CODEC_TYPE_NULL, DecoderOptions};
-use symphonia::core::formats::{FormatOptions, SeekMode, SeekTo};
-use symphonia::core::io::MediaSourceStream;
-use symphonia::core::meta::MetadataOptions;
-use symphonia::core::probe::Hint;
-use symphonia::core::units::Time;
 
 pub struct NowPlayingMeta {
     pub title: String,
@@ -21,6 +8,33 @@ pub struct NowPlayingMeta {
     pub artwork: Option<String>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+use crate::systemint;
+#[cfg(not(target_arch = "wasm32"))]
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+#[cfg(not(target_arch = "wasm32"))]
+use rb::{RB, RbConsumer, RbProducer, SpscRb};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::{Arc, Mutex};
+
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::audio::{AudioBufferRef, Signal};
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::codecs::{CODEC_TYPE_NULL, DecoderOptions};
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::formats::{FormatOptions, SeekMode, SeekTo};
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::io::MediaSourceStream;
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::meta::MetadataOptions;
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::probe::Hint;
+#[cfg(not(target_arch = "wasm32"))]
+use symphonia::core::units::Time;
+
+#[cfg(not(target_arch = "wasm32"))]
 struct PlaybackState {
     paused: bool,
     stopped: bool,
@@ -29,6 +43,7 @@ struct PlaybackState {
     finished: bool,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Player {
     state: Arc<Mutex<PlaybackState>>,
     _device: cpal::Device,
@@ -39,8 +54,10 @@ pub struct Player {
 
     now_playing: Option<NowPlayingMeta>,
     position_micros: Arc<AtomicU64>,
+    finish_callback: Option<Arc<dyn Fn() + Send + Sync + 'static>>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Player {
     pub fn new() -> Self {
         let host = cpal::default_host();
@@ -69,7 +86,16 @@ impl Player {
             decoder_handle: None,
             now_playing: None,
             position_micros: Arc::new(AtomicU64::new(0)),
+            finish_callback: None,
         }
+    }
+
+    /// Register a callback that fires whenever a track finishes playing naturally
+    /// (e.g. EOF or decode error) but NOT when playback is explicitly stopped.
+    /// Use this to trigger auto-skip from a background thread without depending
+    /// on the Dioxus event loop being active.
+    pub fn set_finish_callback(&mut self, f: impl Fn() + Send + Sync + 'static) {
+        self.finish_callback = Some(Arc::new(f));
     }
 
     pub fn play(
@@ -158,6 +184,7 @@ impl Player {
         let decoder_state = state.clone();
         let decoder_channels = channels;
         let decoder_sample_rate = device_sample_rate;
+        let finish_cb = self.finish_callback.clone();
 
         let handle = std::thread::spawn(move || {
             Self::decoder_thread(
@@ -167,6 +194,7 @@ impl Player {
                 decoder_state,
                 decoder_channels,
                 decoder_sample_rate,
+                finish_cb,
             );
         });
         self.decoder_handle = Some(handle);
@@ -183,8 +211,16 @@ impl Player {
         state: Arc<Mutex<PlaybackState>>,
         target_channels: usize,
         target_sample_rate: u32,
+        finish_cb: Option<Arc<dyn Fn() + Send + Sync + 'static>>,
     ) {
         let mss = MediaSourceStream::new(source, Default::default());
+
+        let finish_natural = |state: &Arc<Mutex<PlaybackState>>| {
+            state.lock().unwrap().finished = true;
+            if let Some(cb) = &finish_cb {
+                cb();
+            }
+        };
 
         let probed = match symphonia::default::get_probe().format(
             &hint,
@@ -195,8 +231,7 @@ impl Player {
             Ok(p) => p,
             Err(e) => {
                 eprintln!("symphonia probe error: {}", e);
-                let mut st = state.lock().unwrap();
-                st.finished = true;
+                finish_natural(&state);
                 return;
             }
         };
@@ -211,8 +246,7 @@ impl Player {
             Some(t) => t,
             None => {
                 eprintln!("no supported audio tracks found");
-                let mut st = state.lock().unwrap();
-                st.finished = true;
+                finish_natural(&state);
                 return;
             }
         };
@@ -231,8 +265,7 @@ impl Player {
             Ok(d) => d,
             Err(e) => {
                 eprintln!("symphonia codec error: {}", e);
-                let mut st = state.lock().unwrap();
-                st.finished = true;
+                finish_natural(&state);
                 return;
             }
         };
@@ -274,8 +307,8 @@ impl Player {
                 Err(symphonia::core::errors::Error::IoError(ref e))
                     if e.kind() == std::io::ErrorKind::UnexpectedEof =>
                 {
-                    let mut st = state.lock().unwrap();
-                    st.finished = true;
+                    // Natural end of track — fire the finish callback.
+                    finish_natural(&state);
                     return;
                 }
                 Err(symphonia::core::errors::Error::ResetRequired) => {
@@ -284,8 +317,7 @@ impl Player {
                 }
                 Err(e) => {
                     eprintln!("format error: {}", e);
-                    let mut st = state.lock().unwrap();
-                    st.finished = true;
+                    finish_natural(&state);
                     return;
                 }
             };
@@ -302,8 +334,7 @@ impl Player {
                 }
                 Err(e) => {
                     eprintln!("fatal decode error: {}", e);
-                    let mut st = state.lock().unwrap();
-                    st.finished = true;
+                    finish_natural(&state);
                     return;
                 }
             };
@@ -660,6 +691,92 @@ impl Player {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ─────────────────────────────────────────────
+// Web (WASM) implementation — uses HtmlAudioElement
+// ─────────────────────────────────────────────
+
+#[cfg(target_arch = "wasm32")]
+pub struct Player {
+    audio: web_sys::HtmlAudioElement,
+    volume: f32,
+    /// True once play_url has been called and not yet stopped
+    has_source: bool,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Player {
+    pub fn new() -> Self {
+        let audio = web_sys::HtmlAudioElement::new().expect("HtmlAudioElement creation failed");
+        audio.set_preload("auto");
+        Self {
+            audio,
+            volume: 1.0,
+            has_source: false,
+        }
+    }
+
+    /// No-op on web; auto-advance is handled by the 250ms polling loop
+    /// (which calls `is_empty()` → `audio.ended()`).
+    pub fn set_finish_callback(&mut self, _f: impl Fn() + Send + Sync + 'static) {}
+
+    /// Primary play method for web — sets the `<audio>` src and starts playback.
+    pub fn play_url(&mut self, url: String, _meta: NowPlayingMeta) {
+        self.audio.set_src(&url);
+        self.audio.set_volume(self.volume as f64);
+        match self.audio.play() {
+            Ok(_) => self.has_source = true,
+            Err(_) => self.has_source = false,
+        }
+    }
+
+    pub fn pause(&mut self) {
+        let _ = self.audio.pause();
+    }
+
+    pub fn play_resume(&mut self) {
+        let _ = self.audio.play();
+    }
+
+    pub fn seek(&mut self, time: Duration) {
+        self.audio.set_current_time(time.as_secs_f64());
+    }
+
+    pub fn stop(&mut self) {
+        let _ = self.audio.pause();
+        self.audio.set_src("");
+        self.has_source = false;
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume;
+        self.audio.set_volume(volume as f64);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        !self.has_source || self.audio.ended() || self.audio.error().is_some()
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.audio.paused()
+    }
+
+    pub fn get_position(&self) -> Duration {
+        Duration::from_secs_f64(self.audio.current_time())
+    }
+
+    pub fn update_metadata(&mut self, _meta: NowPlayingMeta) {
+        // No system media integration on web
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
 impl Default for Player {
     fn default() -> Self {
         Self::new()

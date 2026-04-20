@@ -1,6 +1,6 @@
 [package]
 name = "rusic"
-version = "0.3.6"
+version = "0.4.0"
 edition = "2024"
 
 [package.metadata.bundle]
@@ -11,14 +11,23 @@ category = "public.app-category.music"
 [package.metadata.bundle.macos]
 info_plist_path = "Info.plist"
 
-[dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dioxus = { workspace = true, features = ["desktop"] }
+directories = { workspace = true }
+discord-presence = { workspace = true }
+discord-rich-presence = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+dioxus = { workspace = true, features = ["web"] }
+getrandom = { workspace = true }
+web-sys = { workspace = true }
+
+[dependencies]
 uuid = { workspace = true }
 player = { workspace = true }
 components = { workspace = true }
 reader = { workspace = true }
 config = { workspace = true }
-directories = { workspace = true }
 pages = { workspace = true }
 rusic_route = { workspace = true }
 rust-i18n = { workspace = true }
@@ -26,8 +35,6 @@ tokio = { workspace = true }
 http = { workspace = true }
 hooks = { workspace = true }
 percent-encoding = { workspace = true }
-discord-presence = { workspace = true }
-discord-rich-presence = { workspace = true }
 utils = { workspace = true }
 rand = { workspace = true }
 serde_json = { workspace = true }

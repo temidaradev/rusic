@@ -1,8 +1,15 @@
+#[cfg(not(target_arch = "wasm32"))]
 use dioxus::desktop::use_window;
 use dioxus::prelude::*;
 
 #[component]
 pub fn Titlebar() -> Element {
+    #[cfg(target_arch = "wasm32")]
+    {
+        return rsx! {};
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     rsx! {
         div {
             class: "flex items-center h-9 bg-black/50 border-b border-white/5 flex-shrink-0 select-none relative",
@@ -10,10 +17,8 @@ pub fn Titlebar() -> Element {
                 use_window().drag();
             },
 
-            // left spacer
             div { class: "flex-1" }
 
-            // center: title
             div {
                 class: "absolute inset-0 flex items-center justify-center pointer-events-none",
                 span {
@@ -22,7 +27,6 @@ pub fn Titlebar() -> Element {
                 }
             }
 
-            // right: window controls — full height, no gap, like Ghostty
             div {
                 class: "flex items-center h-full",
                 onmousedown: move |evt| evt.stop_propagation(),

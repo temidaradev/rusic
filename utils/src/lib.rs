@@ -1,10 +1,23 @@
 pub mod color;
 pub mod jellyfin_image;
 pub mod lyrics;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod stream_buffer;
 pub mod subsonic_image;
 pub mod themes;
 use std::path::Path;
+
+/// Cross-platform async sleep that works on both native (tokio) and WASM (gloo-timers).
+pub async fn sleep(duration: std::time::Duration) {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        tokio::time::sleep(duration).await;
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        gloo_timers::future::sleep(duration).await;
+    }
+}
 
 pub fn format_artwork_url(path: Option<&impl AsRef<Path>>) -> Option<String> {
     path.and_then(|p| {

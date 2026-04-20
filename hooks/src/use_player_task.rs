@@ -2,10 +2,13 @@ use crate::use_player_controller::PlayerController;
 use config::AppConfig;
 use config::MusicService;
 use dioxus::prelude::*;
-use discord_presence::cover_art;
-use discord_presence::Presence;
 use server::jellyfin::JellyfinClient;
 use std::sync::Arc;
+
+#[cfg(not(target_arch = "wasm32"))]
+use discord_presence::Presence;
+#[cfg(not(target_arch = "wasm32"))]
+use discord_presence::cover_art;
 
 #[cfg(target_os = "macos")]
 use player::systemint::set_background_handler;
@@ -68,13 +71,20 @@ fn nudge_event_loop() {
     player::systemint::wake_run_loop();
 }
 
-pub fn use_player_task(ctrl: PlayerController) {
+pub fn use_player_task(mut ctrl: PlayerController) {
+    #[cfg(not(target_arch = "wasm32"))]
     let presence: Option<Arc<Presence>> = use_context();
     let mut config: Signal<AppConfig> = use_context();
+
+    #[cfg(not(target_arch = "wasm32"))]
     let mut last_title = use_signal(String::new);
+    #[cfg(not(target_arch = "wasm32"))]
     let mut was_playing = use_signal(|| false);
+    #[cfg(not(target_arch = "wasm32"))]
     let mut discord_cover_url: Signal<Option<String>> = use_signal(|| None);
+    #[cfg(not(target_arch = "wasm32"))]
     let mut discord_cover_resolving_for = use_signal(String::new);
+    #[cfg(not(target_arch = "wasm32"))]
     let mut discord_cover_sent = use_signal(|| false);
 
     #[cfg(target_os = "macos")]
@@ -101,13 +111,25 @@ pub fn use_player_task(ctrl: PlayerController) {
             send_bg_cmd(cmd);
             nudge_event_loop();
         });
+
+        // When a track ends naturally in the background, the Dioxus event loop
+        // may be idle and won't poll the use_future auto-skip check. Mirror the
+        // exact wakeup path used by media-key commands so the next track starts
+        // immediately, even with the window hidden.
+        ctrl.player.write().set_finish_callback(|| {
+            send_bg_cmd(BgCmd::Next);
+            if let Some(notify) = BG_NOTIFY.get() {
+                notify.notify_one();
+            }
+            player::systemint::wake_run_loop();
+        });
     });
 
     #[cfg(target_os = "linux")]
     use_future(move || {
         let mut ctrl = ctrl;
         async move {
-            use player::systemint::{poll_event, SystemEvent};
+            use player::systemint::{SystemEvent, poll_event};
             loop {
                 let mut processed = false;
                 while let Some(event) = poll_event() {
@@ -131,7 +153,7 @@ pub fn use_player_task(ctrl: PlayerController) {
     use_future(move || {
         let mut ctrl = ctrl;
         async move {
-            use player::systemint::{wait_event, SystemEvent};
+            use player::systemint::{SystemEvent, wait_event};
             player::systemint::init();
             println!("[player_task] Starting Windows SMTC event loop");
             loop {
@@ -156,25 +178,32 @@ pub fn use_player_task(ctrl: PlayerController) {
 
     use_future(move || {
         let mut ctrl = ctrl;
+        #[cfg(not(target_arch = "wasm32"))]
         let presence = presence.clone();
+        let mut last_ping = web_time::Instant::now();
+        let mut last_progress_report = web_time::Instant::now();
+        #[cfg(not(target_arch = "wasm32"))]
         let mut last_discord_enabled = false;
+        #[cfg(not(target_arch = "wasm32"))]
         let mut last_jellyfin_id: Option<String> = None;
-        let mut last_ping = std::time::Instant::now();
-        let mut last_progress_report = std::time::Instant::now();
+        #[cfg(target_arch = "wasm32")]
+        let mut last_jellyfin_id: Option<String> = None;
         #[cfg(target_os = "macos")]
-        let mut last_now_playing_refresh = std::time::Instant::now();
+        let mut last_now_playing_refresh = web_time::Instant::now();
 
         async move {
             let mut last_progress_secs: u64 = u64::MAX;
+            let mut prev_playing = false;
+            #[cfg(not(target_arch = "wasm32"))]
             let bg_notify = BG_NOTIFY.get_or_init(tokio::sync::Notify::new);
             loop {
-                // Wait for EITHER a media command notification OR 250ms,
-                // whichever comes first. This ensures instant response to
-                // media keys even when macOS is coalescing tokio timers.
+                #[cfg(not(target_arch = "wasm32"))]
                 tokio::select! {
                     _ = bg_notify.notified() => {},
                     _ = tokio::time::sleep(std::time::Duration::from_millis(250)) => {},
                 }
+                #[cfg(target_arch = "wasm32")]
+                utils::sleep(std::time::Duration::from_millis(250)).await;
 
                 nudge_event_loop();
 
@@ -189,6 +218,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                 }
 
                 let is_playing = *ctrl.is_playing.read();
+                #[cfg(not(target_arch = "wasm32"))]
                 let discord_enabled = config.read().discord_presence.unwrap_or(true);
                 let pos = ctrl.player.read().get_position();
 
@@ -211,7 +241,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                             spawn(async move {
                                 let _ = remote.ping().await;
                             });
-                            last_ping = std::time::Instant::now();
+                            last_ping = web_time::Instant::now();
                         }
 
                         let track = {
@@ -242,14 +272,15 @@ pub fn use_player_task(ctrl: PlayerController) {
                                         let remote = remote.clone();
                                         let current_id_clone = current_id.clone();
                                         spawn(async move {
-                                            let _ =
-                                                remote.report_playback_start(&current_id_clone).await;
+                                            let _ = remote
+                                                .report_playback_start(&current_id_clone)
+                                                .await;
                                         });
                                         last_jellyfin_id = Some(current_id.clone());
                                     }
 
                                     if last_progress_report.elapsed().as_secs() >= 5
-                                        || is_playing != *was_playing.peek()
+                                        || is_playing != prev_playing
                                     {
                                         let ticks = pos.as_micros() as u64 * 10;
                                         let remote = remote.clone();
@@ -263,14 +294,17 @@ pub fn use_player_task(ctrl: PlayerController) {
                                                 )
                                                 .await;
                                         });
-                                        last_progress_report = std::time::Instant::now();
+                                        last_progress_report = web_time::Instant::now();
                                     }
                                 }
                             } else if let Some(old_id) = last_jellyfin_id.take() {
                                 let remote = remote.clone();
                                 spawn(async move {
                                     let _ = remote
-                                        .report_playback_stopped(&old_id, pos.as_micros() as u64 * 10)
+                                        .report_playback_stopped(
+                                            &old_id,
+                                            pos.as_micros() as u64 * 10,
+                                        )
                                         .await;
                                 });
                             }
@@ -288,7 +322,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                 #[cfg(target_os = "macos")]
                 if last_now_playing_refresh.elapsed().as_secs() >= 10 {
                     player::systemint::refresh_now_playing();
-                    last_now_playing_refresh = std::time::Instant::now();
+                    last_now_playing_refresh = web_time::Instant::now();
                 }
 
                 if is_playing {
@@ -299,6 +333,7 @@ pub fn use_player_task(ctrl: PlayerController) {
                         ctrl.current_song_progress.set(pos_secs);
                     }
 
+                    #[cfg(not(target_arch = "wasm32"))]
                     if let Some(ref p) = presence {
                         let title = ctrl.current_song_title.read().clone();
                         let artist = ctrl.current_song_artist.read().clone();
@@ -396,34 +431,41 @@ pub fn use_player_task(ctrl: PlayerController) {
                         ctrl.play_next();
                         nudge_event_loop();
                     }
-                } else if *was_playing.peek() {
-                    if let Some(ref p) = presence {
-                        let title = ctrl.current_song_title.read().clone();
-                        let artist = ctrl.current_song_artist.read().clone();
-                        let album = ctrl.current_song_album.read().clone();
-                        if discord_enabled {
-                            let resolved = discord_cover_url.read().clone();
-                            let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
-                        } else if last_discord_enabled {
-                            let _ = p.clear_activity();
-                        }
-                    }
-                } else if let Some(ref p) = presence {
-                    if !discord_enabled && last_discord_enabled {
-                        let _ = p.clear_activity();
-                    } else if discord_enabled && !last_discord_enabled {
-                        let title = ctrl.current_song_title.read().clone();
-                        if !title.is_empty() {
+                } else {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if *was_playing.peek() {
+                        if let Some(ref p) = presence {
+                            let title = ctrl.current_song_title.read().clone();
                             let artist = ctrl.current_song_artist.read().clone();
                             let album = ctrl.current_song_album.read().clone();
-                            let resolved = discord_cover_url.read().clone();
-                            let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
+                            if discord_enabled {
+                                let resolved = discord_cover_url.read().clone();
+                                let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
+                            } else if last_discord_enabled {
+                                let _ = p.clear_activity();
+                            }
+                        }
+                    } else if let Some(ref p) = presence {
+                        if !discord_enabled && last_discord_enabled {
+                            let _ = p.clear_activity();
+                        } else if discord_enabled && !last_discord_enabled {
+                            let title = ctrl.current_song_title.read().clone();
+                            if !title.is_empty() {
+                                let artist = ctrl.current_song_artist.read().clone();
+                                let album = ctrl.current_song_album.read().clone();
+                                let resolved = discord_cover_url.read().clone();
+                                let _ = p.set_paused(&title, &artist, &album, resolved.as_deref());
+                            }
                         }
                     }
                 }
 
-                was_playing.set(is_playing);
-                last_discord_enabled = discord_enabled;
+                prev_playing = is_playing;
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    was_playing.set(is_playing);
+                    last_discord_enabled = discord_enabled;
+                }
             }
         }
     });

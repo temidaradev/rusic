@@ -1,17 +1,22 @@
 pub mod cover_art;
 
+#[cfg(not(target_arch = "wasm32"))]
 use discord_rich_presence::{
     DiscordIpc, DiscordIpcClient,
     activity::{self, Assets, Timestamps},
 };
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug)]
 pub struct Presence {
     client: Mutex<DiscordIpcClient>,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Presence {
     pub fn new(client_id: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let mut client = DiscordIpcClient::new(client_id);
@@ -87,6 +92,7 @@ impl Presence {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl Drop for Presence {
     fn drop(&mut self) {
         let _ = self.disconnect();

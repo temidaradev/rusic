@@ -38,7 +38,7 @@
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="0.3.6" date="2026-03-21">
+    <release version="0.4.0" date="2026-03-21">
         <description>
             <p>Technical improvements and better linux performance</p>
         </description>

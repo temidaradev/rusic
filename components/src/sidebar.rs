@@ -1,4 +1,5 @@
 use config::MusicSource;
+#[cfg(not(target_arch = "wasm32"))]
 use dioxus::desktop::use_window;
 use dioxus::prelude::*;
 use rusic_route::Route;
@@ -104,7 +105,11 @@ pub fn Sidebar(props: SidebarProps) -> Element {
         "justify-between px-6"
     };
 
-    let extra_padding = if cfg!(target_os = "macos") { "pt-10" } else { "" };
+    let extra_padding = if cfg!(target_os = "macos") {
+        "pt-10"
+    } else {
+        ""
+    };
 
     let is_server = config.read().active_source == MusicSource::Server;
     let local_class = if !is_server {
@@ -139,18 +144,16 @@ pub fn Sidebar(props: SidebarProps) -> Element {
             div {
                 class: "absolute top-0 left-0 w-full h-10 z-50",
                 onmousedown: move |_| {
-                    if cfg!(target_os = "macos") {
-                        use_window().drag();
-                    }
+                    #[cfg(all(not(target_arch = "wasm32"), target_os = "macos"))]
+                    use_window().drag();
                 }
             }
 
             div {
                 class: "h-20 flex items-center mb-4 transition-all {header_class}",
                 onmousedown: move |_| {
-                    if cfg!(target_os = "macos") {
-                        use_window().drag();
-                    }
+                    #[cfg(all(not(target_arch = "wasm32"), target_os = "macos"))]
+                    use_window().drag();
                 },
                 if !*is_collapsed.read() {
                     h2 {
@@ -175,7 +178,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
             div {
                 class: "flex-1 flex flex-col overflow-y-auto overflow-x-hidden",
 
-                if !*is_collapsed.read() {
+                if !*is_collapsed.read() && !cfg!(target_arch = "wasm32") {
                     div {
                         class: "px-4 mb-6",
                         div {

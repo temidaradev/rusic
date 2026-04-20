@@ -10,9 +10,10 @@ identifier = "com.temidaradev.rusic"
 publisher = "temidaradev"
 icon = ["assets/logo.png"]
 category = "public.app-category.music"
+targets = ["macos", "dmg"]
 
 [bundle.macos]
-info_plist_path = "rusic/Info.plist"
+info_plist_path = "Info.plist"
 
 [web.app]
 title = "rusic"

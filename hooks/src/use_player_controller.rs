@@ -6,6 +6,9 @@ use reader::{Library, Track};
 use scrobble;
 use utils;
 
+#[cfg(not(target_arch = "wasm32"))]
+use player::decoder;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum LoopMode {
     None,
@@ -158,10 +161,11 @@ impl PlayerController {
 
                     self.is_loading.set(true);
 
+                    #[cfg(not(target_arch = "wasm32"))]
                     spawn(async move {
                         let stream = utils::stream_buffer::StreamBuffer::new(stream_url);
                         let source_res = tokio::task::spawn_blocking(move || {
-                            let (source, hint) = player::decoder::from_stream(stream);
+                            let (source, hint) = decoder::from_stream(stream);
                             Ok::<_, std::io::Error>((source, hint))
                         })
                         .await;
@@ -298,10 +302,114 @@ impl PlayerController {
                             skip_in_progress.set(false);
                         }
                     });
+
+                    #[cfg(target_arch = "wasm32")]
+                    spawn(async move {
+                        if *play_generation.read() == current_gen {
+                            let meta = NowPlayingMeta {
+                                title: track.title.clone(),
+                                artist: track.artist.clone(),
+                                album: track.album.clone(),
+                                duration: std::time::Duration::from_secs(track.duration),
+                                artwork: Some(cover_url.clone()),
+                            };
+
+                            player.write().play_url(stream_url, meta);
+                            player.write().set_volume(*volume.peek());
+                            is_loading.set(false);
+                            is_playing.set(true);
+                            skip_in_progress.set(false);
+
+                            let scrobble_track = track.clone();
+                            let scrobble_gen = current_gen;
+                            let scrobble_play_gen = play_generation;
+                            let scrobble_cfg = cfg_signal;
+                            let duration_secs = scrobble_track.duration;
+                            let threshold_secs = std::cmp::min(240, (duration_secs / 2) as u64);
+
+                            spawn(async move {
+                                let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
+                                if !token_raw.is_empty() {
+                                    let auth = if token_raw.contains(' ') {
+                                        token_raw.clone()
+                                    } else {
+                                        format!("Token {}", token_raw)
+                                    };
+
+                                    let playing_now = scrobble::musicbrainz::make_playing_now(
+                                        &scrobble_track.artist,
+                                        &scrobble_track.title,
+                                        Some(&scrobble_track.album),
+                                    );
+
+                                    if let Err(e) = scrobble::musicbrainz::submit_listens(
+                                        &auth,
+                                        vec![playing_now],
+                                        "playing_now",
+                                    )
+                                    .await
+                                    {
+                                        tracing::warn!(
+                                            "Jellyfin: failed to submit playing_now: {}",
+                                            e
+                                        );
+                                    }
+                                }
+
+                                utils::sleep(std::time::Duration::from_secs(threshold_secs)).await;
+
+                                if *scrobble_play_gen.read() != scrobble_gen {
+                                    return;
+                                }
+
+                                let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
+                                if token_raw.is_empty() {
+                                    return;
+                                }
+
+                                let auth = if token_raw.contains(' ') {
+                                    token_raw
+                                } else {
+                                    format!("Token {}", token_raw)
+                                };
+
+                                let listen = scrobble::musicbrainz::make_listen(
+                                    &scrobble_track.artist,
+                                    &scrobble_track.title,
+                                    Some(&scrobble_track.album),
+                                );
+
+                                match scrobble::musicbrainz::submit_listens(
+                                    &auth,
+                                    vec![listen],
+                                    "single",
+                                )
+                                .await
+                                {
+                                    Ok(_) => tracing::info!(
+                                        "Jellyfin scrobbled: {} - {}",
+                                        scrobble_track.artist,
+                                        scrobble_track.title
+                                    ),
+                                    Err(e) => tracing::warn!("Jellyfin scrobble failed: {}", e),
+                                }
+                            });
+                        } else {
+                            is_loading.set(false);
+                            skip_in_progress.set(false);
+                        }
+                    });
                 }
             } else {
+                #[cfg(not(target_arch = "wasm32"))]
                 self.current_queue_index.set(idx);
-                if let Ok((source, hint)) = player::decoder::open_file(&track.path) {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let _ = idx;
+                    return;
+                } // local files not supported on web
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Ok((source, hint)) = decoder::open_file(&track.path) {
                     {
                         let lib = self.library.peek();
                         let album = lib.albums.iter().find(|a| a.id == track.album_id);

@@ -3,10 +3,15 @@ name = "player"
 version = "0.3.6"
 edition = "2024"
 
-[dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal = { workspace = true }
 symphonia = { workspace = true }
 rb = { workspace = true }
+tokio = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6.3", features = ["std"] }

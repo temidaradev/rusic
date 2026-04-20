@@ -48,6 +48,7 @@ pub fn LocalLibrary(
 
     let is_empty = displayed_tracks().is_empty();
 
+    let queue_source = std::sync::Arc::new(queue_tracks());
     let tracks_nodes =
         displayed_tracks()
             .into_iter()
@@ -58,7 +59,7 @@ pub fn LocalLibrary(
                 let track_delete = track.clone();
                 let track_path = track.path.clone();
                 let track_select = track.path.clone();
-                let queue_source = queue_tracks();
+                let queue_arc = std::sync::Arc::clone(&queue_source);
                 let track_key = format!("{}-{}", track.path.display(), idx);
                 let is_menu_open = active_menu_track.read().as_ref() == Some(&track.path);
                 let is_selected = selected_tracks.read().contains(&track_path);
@@ -105,7 +106,7 @@ pub fn LocalLibrary(
                             }
                         },
                         on_play: move |_| {
-                            queue.set(queue_source.clone());
+                            queue.set((*queue_arc).clone());
                             ctrl.play_track(idx);
                         },
                     }

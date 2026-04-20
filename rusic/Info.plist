@@ -12,10 +12,12 @@
     <string>6.0</string>
     <key>CFBundleName</key>
     <string>rusic</string>
+    <key>CFBundleIconFile</key>
+    <string>Rusic</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.3.6</string>
+    <string>0.4.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>

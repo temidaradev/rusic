@@ -171,10 +171,10 @@ impl JellyfinClient {
         let clean_base_url = base_url.trim_end_matches('/');
         client.create_api(clean_base_url, api_key);
 
-        let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new());
+        let builder = reqwest::Client::builder();
+        #[cfg(not(target_arch = "wasm32"))]
+        let builder = builder.timeout(std::time::Duration::from_secs(10));
+        let http_client = builder.build().unwrap_or_else(|_| reqwest::Client::new());
 
         Self {
             client,
