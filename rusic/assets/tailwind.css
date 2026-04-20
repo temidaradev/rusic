@@ -487,6 +487,9 @@
   .h-\[350px\] {
     height: 350px;
   }
+  .h-\[calc\(100vh-300px\)\] {
+    height: calc(100vh - 300px);
+  }
   .h-full {
     height: 100%;
   }
@@ -615,6 +618,9 @@
   }
   .flex-none {
     flex: none;
+  }
+  .flex-shrink {
+    flex-shrink: 1;
   }
   .flex-shrink-0 {
     flex-shrink: 0;

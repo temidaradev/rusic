@@ -35,7 +35,7 @@ pub fn SearchGenreDetail(
                 class: "mb-4 flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
                  onclick: move |_| on_back.call(()),
                  i { class: "fa-solid fa-arrow-left" }
-                 "Back to Browse"
+                 "{rust_i18n::t!(\"back_to_browse\")}"
             }
 
             div { class: "flex items-end gap-6 mb-8",
@@ -48,9 +48,17 @@ pub fn SearchGenreDetail(
                  }
 
                  div {
-                     h2 { class: "text-sm font-bold text-white/60 uppercase tracking-widest mb-2", "Genre" }
+                     h2 { class: "text-sm font-bold text-white/60 uppercase tracking-widest mb-2", "{rust_i18n::t!(\"genre\")}" }
                      h1 { class: "text-5xl font-bold text-white mb-4", "{genre}" }
-                     p { class: "text-slate-400", "{genre_tracks.len()} tracks" }
+                     p { class: "text-slate-400", 
+                         {
+                             if genre_tracks.len() == 1 {
+                                 rust_i18n::t!("track_count_singular").to_string()
+                             } else {
+                                 rust_i18n::t!("track_count", count = genre_tracks.len()).to_string()
+                             }
+                         }
+                     }
                  }
             }
 

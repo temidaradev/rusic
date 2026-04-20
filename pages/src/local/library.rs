@@ -195,10 +195,10 @@ pub fn LocalLibrary(
 
             div {
                 class: "flex items-center justify-between mb-6",
-                h1 { class: "text-3xl font-bold text-white", "Your Library" }
+                h1 { class: "text-3xl font-bold text-white", "{rust_i18n::t!(\"your_library\")}" }
                 button {
                     class: "text-white/60 hover:text-white transition-colors p-2 rounded-full hover:bg-white/10",
-                    title: "Rescan Library",
+                    title: rust_i18n::t!("rescan_library").to_string(),
                     onclick: move |_| on_rescan.call(()),
                     i { class: "fa-solid fa-rotate" }
                 }
@@ -213,17 +213,17 @@ pub fn LocalLibrary(
                         .collect::<std::collections::HashSet<_>>()
                         .len();
                     rsx! {
-                        StatCard { label: "Tracks",    value: "{lib.tracks.len()}",  icon: "fa-music" }
-                        StatCard { label: "Albums",    value: "{album_count}",  icon: "fa-compact-disc" }
-                        StatCard { label: "Artists",   value: "{(items.artist_count)()}", icon: "fa-user" }
-                        StatCard { label: "Playlists", value: "{playlist_store.read().playlists.len()}", icon: "fa-list" }
+                        StatCard { label: rust_i18n::t!("tracks").to_string(),    value: "{lib.tracks.len()}",  icon: "fa-music" }
+                        StatCard { label: rust_i18n::t!("albums").to_string(),    value: "{album_count}",  icon: "fa-compact-disc" }
+                        StatCard { label: rust_i18n::t!("artists").to_string(),   value: "{(items.artist_count)()}", icon: "fa-user" }
+                        StatCard { label: rust_i18n::t!("playlists").to_string(), value: "{playlist_store.read().playlists.len()}", icon: "fa-list" }
                     }
                 }
             }
 
             div {
                 class: "flex items-center justify-between mb-4",
-                h2 { class: "text-xl font-semibold text-white/80", "All Tracks" }
+                h2 { class: "text-xl font-semibold text-white/80", "{rust_i18n::t!(\"tracks\")}" }
                 div {
                     class: "flex space-x-1 bg-white/5 border border-white/5 p-1 rounded-lg",
                     button {
@@ -233,7 +233,7 @@ pub fn LocalLibrary(
                             "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all"
                         },
                         onclick: move |_| sort_order.set(config::SortOrder::Title),
-                        "Title"
+                        "{rust_i18n::t!(\"title\")}"
                     }
                     button {
                         class: if *sort_order.read() == config::SortOrder::Artist {
@@ -242,7 +242,7 @@ pub fn LocalLibrary(
                             "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all"
                         },
                         onclick: move |_| sort_order.set(config::SortOrder::Artist),
-                        "Artist"
+                        "{rust_i18n::t!(\"artist\")}"
                     }
                     button {
                         class: if *sort_order.read() == config::SortOrder::Album {
@@ -251,7 +251,7 @@ pub fn LocalLibrary(
                             "px-3 py-1 text-xs rounded-md text-white/40 hover:text-white/80 transition-all"
                         },
                         onclick: move |_| sort_order.set(config::SortOrder::Album),
-                        "Album"
+                        "{rust_i18n::t!(\"album\")}"
                     }
                 }
             }
@@ -259,7 +259,7 @@ pub fn LocalLibrary(
             div {
                 class: "space-y-1 pb-20",
                 if is_empty {
-                    p { class: "text-slate-500 italic", "No tracks found." }
+                    p { class: "text-slate-500 italic", "{rust_i18n::t!(\"no_tracks_found\")}" }
                 } else {
                     {tracks_nodes}
                 }

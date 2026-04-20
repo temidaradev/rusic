@@ -22,7 +22,6 @@ pub fn Artist(
     mut current_song_progress: Signal<u64>,
     mut queue: Signal<Vec<reader::models::Track>>,
     mut current_queue_index: Signal<usize>,
-    on_close: EventHandler<()>,
 ) -> Element {
     let is_server = config.read().active_source == MusicSource::Server;
 
@@ -30,33 +29,50 @@ pub fn Artist(
         div {
             class: "p-8 pb-24",
 
-            div { class: "w-full max-w-[1600px] mx-auto",
-                div { class: "flex items-center justify-between mb-8",
-                    button {
-                        class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
-                        onclick: move |_| on_close.call(()),
-                        i { class: "fa-solid fa-arrow-left" }
-                        "Back"
+            if artist_name.read().is_empty() {
+                div {
+                    h1 { class: "text-3xl font-bold text-white mb-6", "{rust_i18n::t!(\"artists\")}" }
+
+                    if is_server {
+                        ServerArtist {
+                            library,
+                            config,
+                            artist_name,
+                            playlist_store,
+                            queue,
+                            current_queue_index,
+                        }
+                    } else {
+                        LocalArtist {
+                            library,
+                            config,
+                            artist_name,
+                            playlist_store,
+                            queue,
+                            current_queue_index,
+                        }
                     }
                 }
-
-                if is_server {
-                    ServerArtist {
-                        library,
-                        config,
-                        artist_name,
-                        playlist_store,
-                        queue,
-                        current_queue_index,
-                    }
-                } else {
-                    LocalArtist {
-                        library,
-                        config,
-                        artist_name,
-                        playlist_store,
-                        queue,
-                        current_queue_index,
+            } else {
+                div { class: "w-full max-w-[1600px] mx-auto",
+                    if is_server {
+                        ServerArtist {
+                            library,
+                            config,
+                            artist_name,
+                            playlist_store,
+                            queue,
+                            current_queue_index,
+                        }
+                    } else {
+                        LocalArtist {
+                            library,
+                            config,
+                            artist_name,
+                            playlist_store,
+                            queue,
+                            current_queue_index,
+                        }
                     }
                 }
             }

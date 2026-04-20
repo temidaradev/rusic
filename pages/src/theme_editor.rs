@@ -2,20 +2,20 @@ use config::{AppConfig, CustomTheme};
 use dioxus::prelude::*;
 use std::collections::HashMap;
 
-const VAR_LABELS: &[(&str, &str)] = &[
-    ("bg", "Background"),
-    ("raised", "Raised Surface"),
-    ("surface", "Surface"),
-    ("text", "Text"),
-    ("text-muted", "Text Muted"),
-    ("accent", "Accent"),
-    ("accent-soft", "Accent Soft"),
-    ("accent-alt", "Accent Alt"),
-    ("accent-deep", "Accent Deep"),
-    ("highlight", "Highlight"),
-    ("highlight-dark", "Highlight Dark"),
-    ("progress", "Progress"),
-    ("danger", "Danger"),
+const VAR_LABELS: &[&str] = &[
+    "bg",
+    "raised",
+    "surface",
+    "text",
+    "text-muted",
+    "accent",
+    "accent-soft",
+    "accent-alt",
+    "accent-deep",
+    "highlight",
+    "highlight-dark",
+    "progress",
+    "danger",
 ];
 
 const DEFAULT_VARS: &[(&str, &str)] = &[
@@ -39,6 +39,25 @@ fn default_vars_map() -> HashMap<String, String> {
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect()
+}
+
+fn get_color_label(key: &str) -> String {
+    match key {
+        "bg" => rust_i18n::t!("bg").to_string(),
+        "raised" => rust_i18n::t!("raised").to_string(),
+        "surface" => rust_i18n::t!("surface").to_string(),
+        "text" => rust_i18n::t!("text").to_string(),
+        "text-muted" => rust_i18n::t!("text-muted").to_string(),
+        "accent" => rust_i18n::t!("accent").to_string(),
+        "accent-soft" => rust_i18n::t!("accent-soft").to_string(),
+        "accent-alt" => rust_i18n::t!("accent-alt").to_string(),
+        "accent-deep" => rust_i18n::t!("accent-deep").to_string(),
+        "highlight" => rust_i18n::t!("highlight").to_string(),
+        "highlight-dark" => rust_i18n::t!("highlight-dark").to_string(),
+        "progress" => rust_i18n::t!("progress").to_string(),
+        "danger" => rust_i18n::t!("danger").to_string(),
+        _ => String::new(),
+    }
 }
 
 #[component]
@@ -97,7 +116,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
 
     rsx! {
         div { class: "p-8 max-w-5xl pb-32",
-            h1 { class: "text-3xl font-bold text-white mb-6", "Theme Editor" }
+            h1 { class: "text-3xl font-bold text-white mb-6", "{rust_i18n::t!(\"theme_editor\")}" }
 
             div { class: "flex gap-6",
 
@@ -106,7 +125,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
                     button {
                         class: "w-full px-3 py-2 bg-white/10 hover:bg-white/15 rounded text-sm text-white transition-colors text-left",
                         onclick: move |_| selected_id.set(None),
-                        "+ New Theme"
+                        "+ {rust_i18n::t!(\"new_theme\")}"
                     }
                     div { class: "space-y-1",
                         for (id, name) in &themes_list {
@@ -136,10 +155,10 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
 
                     // Name input
                     div { class: "bg-white/5 rounded-xl p-5",
-                        label { class: "block text-xs text-slate-400 mb-1 uppercase tracking-wider", "Theme Name" }
+                        label { class: "block text-xs text-slate-400 mb-1 uppercase tracking-wider", "{rust_i18n::t!(\"theme_name\")}" }
                         input {
                             class: "bg-white/5 border border-white/10 rounded px-3 py-1.5 text-sm text-white w-full focus:outline-none focus:border-white/30",
-                            placeholder: "My Custom Theme",
+                            placeholder: "{rust_i18n::t!(\"my_custom_theme\")}",
                             value: "{editing_name}",
                             oninput: move |e| editing_name.set(e.value()),
                         }
@@ -147,16 +166,17 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
 
                     // Color pickers grid
                     div { class: "bg-white/5 rounded-xl p-5",
-                        p { class: "text-xs text-slate-400 uppercase tracking-wider mb-4", "Colors" }
+                        p { class: "text-xs text-slate-400 uppercase tracking-wider mb-4", "{rust_i18n::t!(\"colors\")}" }
                         div { class: "grid grid-cols-2 gap-x-10 gap-y-3",
-                            for (key, label) in VAR_LABELS {
+                            for key in VAR_LABELS {
                                 {
                                     let key_str = key.to_string();
                                     let current = editing_vars
                                         .read()
-                                        .get(*key)
+                                        .get(&key_str)
                                         .cloned()
                                         .unwrap_or_else(|| "#000000".to_string());
+                                    let label = get_color_label(key);
                                     rsx! {
                                         div { class: "flex items-center justify-between",
                                             span { class: "text-sm text-slate-300", "{label}" }
@@ -182,7 +202,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
 
                     // Live preview
                     div { class: "bg-white/5 rounded-xl p-5",
-                        p { class: "text-xs text-slate-400 uppercase tracking-wider mb-3", "Preview" }
+                        p { class: "text-xs text-slate-400 uppercase tracking-wider mb-3", "{rust_i18n::t!(\"preview\")}" }
                         div {
                             class: "rounded-lg p-4 flex flex-col gap-2",
                             style: "background: var(--preview-bg); {preview_style}",
@@ -190,7 +210,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
                                 span {
                                     class: "text-sm font-semibold",
                                     style: "color: var(--preview-text)",
-                                    "Track Title"
+                                    "{rust_i18n::t!(\"track_title\")}"
                                 }
                                 span {
                                     class: "text-xs",
@@ -210,17 +230,17 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
                                 span {
                                     class: "text-xs px-2 py-0.5 rounded-full",
                                     style: "background: var(--preview-raised); color: var(--preview-accent)",
-                                    "Accent"
+                                    "{rust_i18n::t!(\"accent\")}"
                                 }
                                 span {
                                     class: "text-xs px-2 py-0.5 rounded-full",
                                     style: "background: var(--preview-raised); color: var(--preview-highlight)",
-                                    "Highlight"
+                                    "{rust_i18n::t!(\"highlight\")}"
                                 }
                                 span {
                                     class: "text-xs px-2 py-0.5 rounded-full",
                                     style: "background: var(--preview-raised); color: var(--preview-danger)",
-                                    "Danger"
+                                    "{rust_i18n::t!(\"danger\")}"
                                 }
                             }
                         }
@@ -254,7 +274,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
                                 config.write().custom_themes.insert(id.clone(), CustomTheme { name, vars });
                                 selected_id.set(Some(id));
                             },
-                            "Save Theme"
+                            "{rust_i18n::t!(\"save_theme\")}"
                         }
                         if selected_id.peek().is_some() {
                             button {
@@ -269,7 +289,7 @@ pub fn ThemeEditorPage(config: Signal<AppConfig>) -> Element {
                                         }
                                     }
                                 },
-                                "Delete"
+                                "{rust_i18n::t!(\"delete\")}"
                             }
                         }
                     }

@@ -41,7 +41,7 @@ pub fn PlaylistDetail(
         {
             (p.name.clone(), vec![], true)
         } else {
-            return rsx! { div { "Playlist not found" } };
+            return rsx! { div { "{rust_i18n::t!(\"playlist_not_found\")}" } };
         };
 
     let lib = library.read();
@@ -246,13 +246,13 @@ pub fn PlaylistDetail(
                     class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
                     onclick: move |_| on_close.call(()),
                     i { class: "fa-solid fa-arrow-left" }
-                    "Back to Playlists"
+                    "{rust_i18n::t!(\"back_to_playlists\")}"
                 }
             }
 
             crate::showcase::Showcase {
                 name: playlist_name.clone(),
-                description: if is_jellyfin { "Server Playlist".to_string() } else { String::new() },
+                description: if is_jellyfin { rust_i18n::t!("server_playlist").to_string() } else { String::new() },
                 cover_url: playlist_cover,
                 tracks: tracks_val.clone(),
                 library: library,
@@ -285,7 +285,7 @@ pub fn PlaylistDetail(
                                  playlist_store.write().playlists.retain(|p| p.id != pid_for_delete);
                              },
                              i { class: "fa-solid fa-trash" }
-                             "Delete Playlist"
+                             "{rust_i18n::t!(\"delete_playlist\")}"
                         }
                     }
                 },

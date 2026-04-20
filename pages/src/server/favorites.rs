@@ -320,7 +320,7 @@ pub fn JellyfinFavorites(
                 div {
                     class: "flex items-center gap-2 text-slate-400 text-sm mb-4",
                     i { class: "fa-solid fa-circle-notch fa-spin" }
-                    span { "Syncing with server..." }
+                    span { "{rust_i18n::t!(\"syncing_with_server\")}" }
                 }
             }
 
@@ -328,9 +328,9 @@ pub fn JellyfinFavorites(
                 div {
                     class: "flex flex-col items-center justify-center h-64 text-slate-500",
                     i { class: "fa-regular fa-heart text-4xl mb-4 opacity-30" }
-                    p { class: "text-base", "No favorites yet." }
+                    p { class: "text-base", "{rust_i18n::t!(\"no_favorites\")}" }
                     p { class: "text-sm mt-1 opacity-70",
-                        "Heart a track while it's playing to add it here and sync it to your server."
+                        "{rust_i18n::t!(\"heart_track_to_add_server\")}"
                     }
                 }
             } else if !is_empty {

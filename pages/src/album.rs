@@ -58,7 +58,7 @@ pub fn Album(
 
             if album_id.read().is_empty() {
                 div {
-                    h1 { class: "text-3xl font-bold text-white mb-6", "All Albums" }
+                    h1 { class: "text-3xl font-bold text-white mb-6", "{rust_i18n::t!(\"all_albums\")}" }
 
                     if is_server {
                         ServerAlbum {

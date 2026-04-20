@@ -10,7 +10,12 @@ pub fn Titlebar() -> Element {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    rsx! {
+    {
+        let minimize_text = rust_i18n::t!("minimize").to_string();
+        let maximize_text = rust_i18n::t!("maximize").to_string();
+        let close_text = rust_i18n::t!("close").to_string();
+
+        rsx! {
         div {
             class: "flex items-center h-9 bg-black/50 border-b border-white/5 flex-shrink-0 select-none relative",
             onmousedown: move |_| {
@@ -33,23 +38,24 @@ pub fn Titlebar() -> Element {
 
                 button {
                     class: "w-11 h-full flex items-center justify-center text-white/25 hover:text-white/70 hover:bg-white/6 transition-all duration-150",
-                    title: "Minimize",
+                    title: "{minimize_text}",
                     onclick: move |_| use_window().window.set_minimized(true),
                     i { class: "fa-solid fa-minus text-[10px] leading-none" }
                 }
                 button {
                     class: "w-11 h-full flex items-center justify-center text-white/25 hover:text-white/70 hover:bg-white/6 transition-all duration-150",
-                    title: "Maximize",
+                    title: "{maximize_text}",
                     onclick: move |_| use_window().toggle_maximized(),
                     i { class: "fa-regular fa-square text-[10px] leading-none" }
                 }
                 button {
                     class: "w-11 h-full flex items-center justify-center text-white/25 hover:text-white hover:bg-red-500/70 transition-all duration-150",
-                    title: "Close",
+                    title: "{close_text}",
                     onclick: move |_| use_window().close(),
                     i { class: "fa-solid fa-xmark text-[10px] leading-none" }
                 }
             }
         }
+    }
     }
 }

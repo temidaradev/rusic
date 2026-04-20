@@ -7,9 +7,9 @@ pub fn SearchGenres(
 ) -> Element {
     rsx! {
         div { class: "mt-12",
-            h2 { class: "text-xl font-semibold text-white/80 mb-4", "Browse Genres" }
+            h2 { class: "text-xl font-semibold text-white/80 mb-4", "{rust_i18n::t!(\"browse_genres\")}" }
             if genres.is_empty() {
-                p { class: "text-slate-500 italic", "No genres found in your library." }
+                p { class: "text-slate-500 italic", "{rust_i18n::t!(\"no_genres_found\")}" }
             } else {
                 div { class: "grid grid-cols-2 md:grid-cols-4 gap-4",
                     for (genre, cover_url) in genres {

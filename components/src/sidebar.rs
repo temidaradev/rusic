@@ -1,54 +1,52 @@
 use config::MusicSource;
-#[cfg(not(target_arch = "wasm32"))]
-use dioxus::desktop::use_window;
 use dioxus::prelude::*;
 use rusic_route::Route;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone)]
 struct SidebarItem {
-    name: &'static str,
+    key: &'static str,
     route: Route,
     icon: &'static str,
 }
 
 const TOP_MENU: &[SidebarItem] = &[
     SidebarItem {
-        name: "Home",
+        key: "home",
         route: Route::Home,
         icon: "fa-solid fa-house",
     },
     SidebarItem {
-        name: "Search",
+        key: "search",
         route: Route::Search,
         icon: "fa-solid fa-magnifying-glass",
     },
     SidebarItem {
-        name: "Library",
+        key: "library",
         route: Route::Library,
         icon: "fa-solid fa-book",
     },
     SidebarItem {
-        name: "Album",
+        key: "album",
         route: Route::Album,
         icon: "fa-solid fa-music",
     },
     SidebarItem {
-        name: "Artist",
+        key: "artist",
         route: Route::Artist,
         icon: "fa-solid fa-user",
     },
     SidebarItem {
-        name: "Playlists",
+        key: "playlists",
         route: Route::Playlists,
         icon: "fa-solid fa-list",
     },
     SidebarItem {
-        name: "Favorites",
+        key: "favorites",
         route: Route::Favorites,
         icon: "fa-solid fa-heart",
     },
     SidebarItem {
-        name: "Logs",
+        key: "logs",
         route: Route::Logs,
         icon: "fa-solid fa-clipboard-list",
     },
@@ -56,15 +54,15 @@ const TOP_MENU: &[SidebarItem] = &[
 
 const BOTTOM_MENU: &[SidebarItem] = &[
     SidebarItem {
-        name: "Theme Editor",
+        key: "theme_editor",
         route: Route::ThemeEditor,
         icon: "fa-solid fa-palette",
     },
-    SidebarItem {
-        name: "Settings",
-        route: Route::Settings,
-        icon: "fa-solid fa-gear",
-    },
+        SidebarItem {
+    key: "settings",
+    route: Route::Settings,
+    icon: "fa-solid fa-gear",
+        },
 ];
 
 #[derive(Props, Clone, PartialEq)]
@@ -190,12 +188,12 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             button {
                                 class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {local_class}",
                                 onclick: move |_| config.write().active_source = MusicSource::Local,
-                                "LOCAL"
+                                "{rust_i18n::t!(\"local\").to_uppercase()}"
                             }
                             button {
                                 class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {server_class}",
                                 onclick: move |_| config.write().active_source = MusicSource::Server,
-                                "SERVER"
+                                "{rust_i18n::t!(\"server\").to_uppercase()}"
                             }
                         }
                     }
@@ -205,7 +203,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                     class: "flex-1 px-3 space-y-1",
                     for item in TOP_MENU {
                         SidebarLink {
-                            item: *item,
+                            item: item.clone(),
                             collapsed: is_collapsed,
                             active: *props.current_route.read() == item.route,
                             onclick: move |_| props.on_navigate.call(item.route)
@@ -214,7 +212,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                     div { class: "h-px bg-white/5 my-4 mx-3" }
                     for item in BOTTOM_MENU {
                         SidebarLink {
-                            item: *item,
+                            item: item.clone(),
                             collapsed: is_collapsed,
                             active: *props.current_route.read() == item.route,
                             onclick: move |_| props.on_navigate.call(item.route)
@@ -263,7 +261,7 @@ fn SidebarLink(
     rsx! {
         a {
             class: "flex items-center {alignment_class} group relative p-3 rounded-lg transition-all duration-200 cursor-pointer {active_class}",
-            title: if is_collapsed { item.name } else { "" },
+            title: if is_collapsed { rust_i18n::t!(item.key).to_string() } else { String::new() },
             onclick: move |evt| onclick.call(evt),
 
             div {
@@ -274,7 +272,7 @@ fn SidebarLink(
             if !is_collapsed {
                 span {
                     class: "ml-4 text-sm font-medium tracking-tight {opacity_class} transition-opacity",
-                    "{item.name}"
+                    "{rust_i18n::t!(item.key)}"
                 }
             }
 

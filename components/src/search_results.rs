@@ -31,7 +31,7 @@ pub fn SearchResults(
         div { class: "mt-8 space-y-8",
             if !tracks.is_empty() {
                 div {
-                    h2 { class: "text-xl font-semibold text-white/80 mb-4", "Tracks" }
+                    h2 { class: "text-xl font-semibold text-white/80 mb-4", "{rust_i18n::t!(\"tracks\")}" }
                     div { class: "space-y-2",
                         for (idx, (track, cover_url)) in tracks.iter().enumerate() {
                             {
@@ -85,7 +85,7 @@ pub fn SearchResults(
 
             if !albums.is_empty() {
                 div {
-                    h2 { class: "text-xl font-semibold text-white/80 mb-4", "Albums" }
+                    h2 { class: "text-xl font-semibold text-white/80 mb-4", "{rust_i18n::t!(\"albums\")}" }
                     div { class: "grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4",
                         for (album, cover_url) in &albums {
                             div {
@@ -115,7 +115,7 @@ pub fn SearchResults(
 
             if tracks.is_empty() && albums.is_empty() {
                 div { class: "text-center py-12 text-slate-500",
-                    p { "No results found for \"{search_query}\"" }
+                    p { "{rust_i18n::t!(\"no_results_found\", query = search_query)}" }
                 }
             }
         }

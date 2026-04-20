@@ -24,6 +24,16 @@ pub fn Bottombar(
 ) -> Element {
     let mut is_dragging = use_signal(|| false);
     let mut drag_progress = use_signal(|| 0u64);
+    
+    let initial_volume = *volume.read();
+    let mut is_muted = use_signal(move || initial_volume <= f32::EPSILON);
+    let mut volume_before_mute = use_signal(move || {
+        if initial_volume > f32::EPSILON {
+            initial_volume
+        } else {
+            0.5f32
+        }
+    });
 
     let display_progress = if *is_dragging.read() {
         *drag_progress.read()
@@ -110,7 +120,11 @@ pub fn Bottombar(
                 }
                 button {
                     class: "{heart_class}",
-                    title: if is_favorite { "Remove from Favorites" } else { "Add to Favorites" },
+                    title: if is_favorite { 
+                        rust_i18n::t!("remove_from_favorites").to_string()
+                    } else { 
+                        rust_i18n::t!("add_to_favorites").to_string()
+                    },
                     onclick: move |_| {
                         let q = queue.read();
                         let idx = *current_queue_index.read();
@@ -200,8 +214,12 @@ pub fn Bottombar(
                     class: "flex items-center gap-6",
                     button {
                         class: format!("{} transition-all active:scale-95 relative", if *ctrl.shuffle.read() { "text-white" } else { "text-slate-400 hover:text-white" }),
+                        title: if *ctrl.shuffle.read() { 
+                            rust_i18n::t!("shuffle_on").to_string()
+                        } else { 
+                            rust_i18n::t!("shuffle_off").to_string()
+                        },
                         onclick: move |_| ctrl.toggle_shuffle(),
-                        title: if *ctrl.shuffle.read() { "Shuffle: On" } else { "Shuffle: Off" },
                         i { class: "fa-solid fa-shuffle text-sm" }
                     }
                     button {
@@ -232,13 +250,11 @@ pub fn Bottombar(
                                 LoopMode::Queue => "text-white",
                                 LoopMode::Track => "text-white",
                             }
-                        ),
-                        onclick: move |_| ctrl.toggle_loop(),
-                        title: match *ctrl.loop_mode.read() {
-                            LoopMode::None => "Repeat: Off",
-                            LoopMode::Queue => "Repeat: Queue",
-                            LoopMode::Track => "Repeat: Track",
-                        },
+                        ),                        title: match *ctrl.loop_mode.read() {
+                            LoopMode::None => rust_i18n::t!("repeat_off").to_string(),
+                            LoopMode::Queue => rust_i18n::t!("repeat_queue").to_string(),
+                            LoopMode::Track => rust_i18n::t!("repeat_track").to_string(),
+                        },                        onclick: move |_| ctrl.toggle_loop(),
                         i { class: "fa-solid fa-repeat text-sm" }
                         match *ctrl.loop_mode.read() {
                              LoopMode::Track => rsx! {
@@ -291,7 +307,30 @@ pub fn Bottombar(
                 class: "flex items-center justify-end gap-4 w-1/4",
                 div {
                     class: "flex items-center gap-2 group",
-                    i { class: "fa-solid fa-volume-high text-xs text-slate-400 group-hover:text-white" }
+                    button {
+                        class: "text-slate-400 hover:text-white transition-colors",
+                        onclick: move |_| {
+                            let muted = *is_muted.read();
+                            if muted {
+                                // Unmute: restore previous volume
+                                let vol = *volume_before_mute.read();
+                                player.write().set_volume(vol);
+                                volume.set(vol);
+                                config.write().volume = vol;
+                                is_muted.set(false);
+                            } else {
+                                // Mute: save current volume and set to 0
+                                volume_before_mute.set(*volume.read());
+                                player.write().set_volume(0.0);
+                                volume.set(0.0);
+                                config.write().volume = 0.0;
+                                is_muted.set(true);
+                            }
+                        },
+                        i { 
+                            class: if *is_muted.read() { "fa-solid fa-volume-xmark text-xs" } else { "fa-solid fa-volume-high text-xs" }
+                        }
+                    }
                     div {
                         class: "w-24 h-1 bg-white/10 rounded-full group/vol cursor-pointer relative",
                         div {
@@ -309,12 +348,18 @@ pub fn Bottombar(
                             onchange: move |evt| {
                                 if let Ok(val) = evt.value().parse::<f32>() {
                                     config.write().volume = val;
+                                    is_muted.set(val == 0.0);
                                 }
                             },
                             oninput: move |evt| {
                                 if let Ok(val) = evt.value().parse::<f32>() {
                                     player.write().set_volume(val);
                                     volume.set(val);
+                                    is_muted.set(val == 0.0);
+                                    // Keep track of last non-zero volume for unmute
+                                    if val > f32::EPSILON {
+                                        volume_before_mute.set(val);
+                                    }
                                 }
                             }
                         }

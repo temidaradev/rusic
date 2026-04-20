@@ -30,6 +30,7 @@ reader = { workspace = true }
 config = { workspace = true }
 pages = { workspace = true }
 rusic_route = { workspace = true }
+rust-i18n = { workspace = true }
 tokio = { workspace = true }
 http = { workspace = true }
 hooks = { workspace = true }
@@ -84,4 +85,3 @@ inherits = "dev"
 
 [profile.android-dev]
 inherits = "dev"
-reqwest = { workspace = true, features = ["blocking"] }

@@ -1,3 +1,5 @@
+rust_i18n::i18n!("../locales");
+
 pub mod album;
 pub mod artist;
 pub mod favorites;

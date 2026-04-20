@@ -18,3 +18,5 @@ pub mod sidebar;
 pub mod titlebar;
 pub mod stat_card;
 pub mod track_row;
+
+rust_i18n::i18n!("../locales");

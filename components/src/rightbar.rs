@@ -48,7 +48,7 @@ pub fn Rightbar(
                 {
                     Some(l)
                 } else {
-                    Some(utils::lyrics::Lyrics::Plain("Lyrics not found".to_string()))
+                    Some(utils::lyrics::Lyrics::Plain(rust_i18n::t!("lyrics_not_found").to_string()))
                 }
             } else {
                 None
@@ -161,6 +161,10 @@ pub fn Rightbar(
         }
     });
 
+    let back_text = rust_i18n::t!("back").to_string().to_uppercase();
+    let up_next_text = rust_i18n::t!("up_next").to_string();
+    let lyrics_text = rust_i18n::t!("lyrics").to_string();
+
     rsx! {
         div {
             class: "bg-black/40 border-l border-white/5 flex flex-col h-full flex-shrink-0 z-10 relative",
@@ -186,7 +190,7 @@ pub fn Rightbar(
                             "px-2 py-1 text-[10px] font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(0),
-                        "BACK"
+                        "{back_text}"
                     }
                     button {
                         class: if *active_tab.read() == 1 {
@@ -195,7 +199,7 @@ pub fn Rightbar(
                             "px-2 py-1 text-[10px] font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(1),
-                        "UP NEXT"
+                        "{up_next_text}"
                     }
                     button {
                         class: if *active_tab.read() == 2 {
@@ -204,7 +208,7 @@ pub fn Rightbar(
                             "px-2 py-1 text-[10px] font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(2),
-                        "LYRICS"
+                        "{lyrics_text}"
                     }
                 }
                 button {
@@ -249,12 +253,12 @@ pub fn Rightbar(
                                 div { class: "whitespace-pre-wrap", "{text}" }
                             },
                             Some(None) => rsx! { "" },
-                            None => rsx! { "Loading lyrics..." },
+                            None => rsx! { "{rust_i18n::t!(\"loading_lyrics\")}" },
                         }
                     }
                 } else if *active_tab.read() == 0 {
                     if *current_queue_index.read() == 0 {
-                        div { class: "text-white/30 text-center py-10 text-sm", "No previous songs" }
+                        div { class: "text-white/30 text-center py-10 text-sm", "{rust_i18n::t!(\"no_previous_songs\")}" }
                     }
                     for i in 0..*current_queue_index.read() {
                         {
@@ -288,7 +292,7 @@ pub fn Rightbar(
                     }
                 } else if *active_tab.read() == 1 {
                     if queue.read().len() <= *current_queue_index.read() + 1 {
-                        div { class: "text-white/30 text-center py-10 text-sm", "No more songs in queue" }
+                        div { class: "text-white/30 text-center py-10 text-sm", "{rust_i18n::t!(\"no_more_songs\")}" }
                     }
                     for i in (*current_queue_index.read() + 1)..queue.read().len() {
                         {

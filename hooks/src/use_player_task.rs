@@ -71,7 +71,7 @@ fn nudge_event_loop() {
     player::systemint::wake_run_loop();
 }
 
-pub fn use_player_task(mut ctrl: PlayerController) {
+pub fn use_player_task(ctrl: PlayerController) {
     #[cfg(not(target_arch = "wasm32"))]
     let presence: Option<Arc<Presence>> = use_context();
     let mut config: Signal<AppConfig> = use_context();

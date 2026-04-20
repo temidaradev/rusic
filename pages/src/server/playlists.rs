@@ -122,7 +122,7 @@ pub fn JellyfinPlaylists(
             if store.jellyfin_playlists.is_empty() {
                 div { class: "flex flex-col items-center justify-center h-64 text-slate-500",
                     i { class: "fa-regular fa-folder-open text-4xl mb-4 opacity-50" }
-                    p { "No playlists found." }
+                    p { "{rust_i18n::t!(\"no_playlists_found\")}" }
                 }
             } else {
                 div { class: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6",

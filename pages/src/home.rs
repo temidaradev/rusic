@@ -23,7 +23,7 @@ pub fn Home(
             class: "p-8 space-y-12 pb-32 animate-fade-in w-full max-w-[1600px] mx-auto",
 
             div { class: "flex items-center justify-between mb-2",
-                h1 { class: "text-4xl font-black text-white tracking-tight", "Home" }
+                h1 { class: "text-4xl font-black text-white tracking-tight", "{rust_i18n::t!(\"home\")}" }
             }
 
             if is_server {

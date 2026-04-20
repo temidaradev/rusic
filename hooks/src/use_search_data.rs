@@ -120,8 +120,8 @@ pub fn use_search_data(
         let album_map: std::collections::HashMap<&String, &Album> =
             lib.albums.iter().map(|a| (&a.id, a)).collect();
 
-        let mut tracks: Vec<(Track, Option<String>)> = Vec::new();
-        let mut albums: Vec<(Album, Option<String>)> = Vec::new();
+        let tracks: Vec<(Track, Option<String>)>;
+        let albums: Vec<(Album, Option<String>)>;
 
         match active_source {
             MusicSource::Local => {

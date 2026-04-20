@@ -69,15 +69,18 @@ pub fn JellyfinAlbum(
             .collect::<Vec<_>>()
     });
 
+    let add_all_to_playlist_text = rust_i18n::t!("add_all_to_playlist").to_string();
+    let remove_from_cache_text = rust_i18n::t!("remove_from_cache").to_string();
+
     let album_menu_actions = vec![
-        MenuAction::new("Add All to Playlist", "fa-solid fa-list-music"),
-        MenuAction::new("Remove from Cache", "fa-solid fa-trash").destructive(),
+        MenuAction::new(add_all_to_playlist_text.as_str(), "fa-solid fa-list-music"),
+        MenuAction::new(remove_from_cache_text.as_str(), "fa-solid fa-trash").destructive(),
     ];
 
     rsx! {
         div {
             if jellyfin_albums().is_empty() {
-                p { class: "text-slate-500", "No albums found in your music library." }
+                p { class: "text-slate-500", "{rust_i18n::t!(\"no_albums_found\")}" }
             } else {
                 div { class: "grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6",
                     for (album_id_val, album_title, artist, cover_url) in jellyfin_albums() {
@@ -243,6 +246,9 @@ pub fn JellyfinAlbumDetails(
 
     let total_seconds: u64 = album_tracks().iter().map(|(t, _)| t.duration).sum();
     let duration_min = total_seconds / 60;
+
+    let songs_text = rust_i18n::t!("songs").to_string();
+    let min_text = rust_i18n::t!("min").to_string();
 
     let cover_url = {
         let conf = config.read();
@@ -412,7 +418,7 @@ pub fn JellyfinAlbumDetails(
                     class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
                     onclick: move |_| on_close.call(()),
                     i { class: "fa-solid fa-arrow-left" }
-                    "Back to Albums"
+                    "{rust_i18n::t!(\"back_to_albums\")}"
                 }
             }
 
@@ -433,9 +439,9 @@ pub fn JellyfinAlbumDetails(
                     }
                     h1 { class: "text-5xl md:text-7xl font-bold text-white mb-6", "{album_title}" }
                     div { class: "flex items-center gap-6 text-slate-400",
-                        p { "{album_tracks().len()} songs" }
+                        p { "{album_tracks().len()} {songs_text}" }
                         span { "•" }
-                        p { "{duration_min} min" }
+                        p { "{duration_min} {min_text}" }
                     }
                 }
                 div { class: "flex items-center gap-4",
@@ -460,13 +466,13 @@ pub fn JellyfinAlbumDetails(
                 if album_tracks().is_empty() {
                     div { class: "py-12 flex flex-col items-center justify-center text-slate-600",
                         i { class: "fa-regular fa-folder-open text-4xl mb-4" }
-                        p { class: "text-lg", "No songs here." }
+                        p { class: "text-lg", "{rust_i18n::t!(\"no_songs_here\")}" }
                     }
                 } else {
                     div { class: "grid grid-cols-[auto_1fr_1fr_auto_auto] gap-4 px-4 py-2 border-b border-white/5 text-sm font-medium text-slate-500 mb-2 uppercase tracking-wider",
                         div { class: "w-8 text-center", "#" }
-                        div { "Title" }
-                        div { "Album" }
+                        div { "{rust_i18n::t!(\"title\")}" }
+                        div { "{rust_i18n::t!(\"album\")}" }
                     }
                     for (idx, (track, track_cover_url)) in album_tracks().into_iter().enumerate() {
                         {

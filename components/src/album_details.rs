@@ -32,7 +32,7 @@ pub fn AlbumDetails(
     let lib = library.read();
     let album = match lib.albums.iter().find(|a| a.id == album_id) {
         Some(a) => a,
-        None => return rsx! { div { "Album not found" } },
+        None => return rsx! { div { "{rust_i18n::t!(\"album_not_found\")}" } },
     };
 
     let tracks: Vec<_> = lib
@@ -53,7 +53,7 @@ pub fn AlbumDetails(
                     class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
                     onclick: move |_| on_close.call(()),
                     i { class: "fa-solid fa-arrow-left" }
-                    "Back to Albums"
+                    "{rust_i18n::t!(\"back_to_albums\")}"
                 }
             }
 

@@ -31,7 +31,7 @@ pub fn FavoritesPage(
             div {
                 class: "flex items-center gap-3 mb-8",
                 i { class: "fa-solid fa-heart text-red-400 text-2xl" }
-                h1 { class: "text-3xl font-bold text-white", "Favorites" }
+                h1 { class: "text-3xl font-bold text-white", "{rust_i18n::t!(\"favorites\")}" }
             }
 
             if is_server {

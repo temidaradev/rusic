@@ -47,8 +47,8 @@ pub fn LocalLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Element
             div { class: "max-w-[1600px] mx-auto",
                 div { class: "mb-8 flex items-end justify-between",
                     div {
-                        h1 { class: "text-3xl font-bold text-white mb-2", "Listening Logs" }
-                        p { class: "text-slate-400 text-sm", "Your most played local tracks." }
+                        h1 { class: "text-3xl font-bold text-white mb-2", "{rust_i18n::t!(\"listening_logs\")}" }
+                        p { class: "text-slate-400 text-sm", "{rust_i18n::t!(\"most_played_local_tracks\")}" }
                     }
                     div {
                         div { class: "w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-slate-400",
@@ -59,11 +59,11 @@ pub fn LocalLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Element
 
                 div { class: "flex items-center px-4 py-3 mb-2 text-xs font-semibold tracking-wider text-slate-400 uppercase border-b border-white/10",
                     div { class: "w-12 shrink-0 text-center", "#" }
-                    div { class: "flex-1 min-w-0 pl-14 pr-4", "Title" }
-                    div { class: "w-48 lg:w-64 shrink-0 hidden md:block pr-4", "Album" }
-                    div { class: "w-24 shrink-0 hidden lg:block pr-4", "Genre" }
-                    div { class: "w-24 shrink-0 text-right", "Time" }
-                    div { class: "w-24 shrink-0 text-right", "Plays" }
+                    div { class: "flex-1 min-w-0 pl-14 pr-4", "{rust_i18n::t!(\"title\")}" }
+                    div { class: "w-48 lg:w-64 shrink-0 hidden md:block pr-4", "{rust_i18n::t!(\"album\")}" }
+                    div { class: "w-24 shrink-0 hidden lg:block pr-4", "{rust_i18n::t!(\"genre\")}" }
+                    div { class: "w-24 shrink-0 text-right", "{rust_i18n::t!(\"time\")}" }
+                    div { class: "w-24 shrink-0 text-right", "{rust_i18n::t!(\"plays\")}" }
                 }
 
                 div { class: "flex flex-col pb-32 space-y-1",
@@ -108,7 +108,7 @@ pub fn LocalLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Element
                                                 "{track.title}"
                                                 i {
                                                     class: "fa-solid fa-hard-drive text-[10px] text-slate-500",
-                                                    title: "Local"
+                                                    title: rust_i18n::t!("local").to_string()
                                                 }
                                             }
                                             div { class: "text-slate-400 text-sm truncate group-hover:text-slate-300 transition-colors", "{track.artist}" }
@@ -144,7 +144,7 @@ pub fn LocalLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Element
                     if sorted_tracks.read().is_empty() {
                         div { class: "flex flex-col items-center justify-center py-24 text-slate-500",
                             i { class: "fa-solid fa-headphones text-4xl mb-4 opacity-50" }
-                            p { "No tracks found in your library." }
+                            p { "{rust_i18n::t!(\"no_tracks_in_library\")}" }
                         }
                     }
                 }

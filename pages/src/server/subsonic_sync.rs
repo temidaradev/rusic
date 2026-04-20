@@ -245,7 +245,7 @@ pub async fn fetch_subsonic_library(
             });
 
             let songs = remote.get_album_songs(&album.id).await.map_err(|e| {
-                format!("Failed to fetch songs for album '{}': {}", album.id, e)
+                rust_i18n::t!("error_fetch_songs", album_id = album.id.clone(), error = e.to_string()).to_string()
             })?;
 
             for song in songs {

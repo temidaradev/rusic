@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 #[component]
-pub fn StatCard(label: &'static str, value: String, icon: &'static str) -> Element {
+pub fn StatCard(label: String, value: String, icon: &'static str) -> Element {
     rsx! {
         div {
             class: " border border-white/5 p-5 rounded-xl flex items-center space-x-4",

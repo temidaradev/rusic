@@ -35,6 +35,7 @@ rand = "0.8"
 web-time = "1.1"
 gloo-timers = { version = "0.3", features = ["futures"] }
 directories = "6.0"
+rust-i18n = "4.0"
 player = { path = "./player" }
 reader = { path = "./reader" }
 components = { path = "./components" }

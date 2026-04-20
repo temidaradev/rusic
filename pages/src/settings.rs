@@ -1,7 +1,7 @@
 use ::server::provider::ProviderClient;
 use components::settings_items::{
-    DirectoryPicker, DiscordPresenceSettings, MusicBrainzSettings, ServerSettings, SettingItem,
-    ThemeSelector, ToggleSetting,
+    DirectoryPicker, DiscordPresenceSettings, LanguageSelector, MusicBrainzSettings,
+    ServerSettings, SettingItem, ThemeSelector, ToggleSetting,
 };
 use components::settings_popups::{AddServerPopup, LoginPopup};
 use config::{AppConfig, MusicService};
@@ -25,7 +25,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
 
     let handle_add_server = move |_| {
         if !server_url().starts_with("http") {
-            error.set(Some("Invalid server URL".into()));
+            error.set(Some(rust_i18n::t!("invalid_server_url").to_string()));
             return;
         }
 
@@ -54,7 +54,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
 
     let handle_login = move |_| {
         if username().is_empty() || password().is_empty() {
-            login_error.set(Some("Username and password are required".into()));
+            login_error.set(Some(rust_i18n::t!("username_and_password_required").to_string()));
             return;
         }
 
@@ -86,7 +86,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                         show_login.set(false);
                     }
                     Err(e) => {
-                        login_error.set(Some(format!("Login failed: {}", e)));
+                        login_error.set(Some(rust_i18n::t!("login_failed", error = e.to_string()).to_string()));
                     }
                 }
             });
@@ -95,19 +95,33 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
 
     rsx! {
         div { class: "p-8 max-w-4xl",
-            h1 { class: "text-3xl font-bold text-white mb-6", "Settings" }
+            h1 { class: "text-3xl font-bold text-white mb-6", "{rust_i18n::t!(\"settings\")}" }
 
             div { class: "space-y-8",
                 section {
                     h2 {
                         class: "text-lg font-semibold text-white/80 mb-4 border-b border-white/5 pb-2",
-                        "General"
+                        "{rust_i18n::t!(\"general\")}"
                     }
 
                     div { class: "space-y-4",
                         SettingItem {
-                            title: "Appearance",
-                            description: "Select your preferred color theme.".to_string(),
+                            title: rust_i18n::t!("language").to_string(),
+                            description: rust_i18n::t!("select_preferred_language").to_string(),
+                            control: rsx! {
+                                LanguageSelector {
+                                    current_language: config.read().language.clone(),
+                                    on_change: move |lang: String| {
+                                        config.write().language = lang.clone();
+                                        rust_i18n::set_locale(&lang);
+                                    }
+                                }
+                            }
+                        }
+
+                        SettingItem {
+                            title: rust_i18n::t!("appearance").to_string(),
+                            description: rust_i18n::t!("select_preferred_theme").to_string(),
                             control: rsx! {
                                 ThemeSelector {
                                     current_theme: config.read().theme.clone(),
@@ -120,8 +134,8 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
 
                         if !cfg!(target_arch = "wasm32") {
                             SettingItem {
-                                title: "Music Directory",
-                                description: format!("Current path: {}", config.read().music_directory.display()),
+                                title: rust_i18n::t!("music_directory").to_string(),
+                                description: format!("{}: {}", rust_i18n::t!("current_path").to_string(), config.read().music_directory.display()),
                                 control: rsx! {
                                     DirectoryPicker {
                                         on_change: move |path| {
@@ -133,15 +147,15 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                         }
 
                         SettingItem {
-                            title: "Media Server",
+                            title: rust_i18n::t!("media_server").to_string(),
                             description: if config.read().server.is_some() {
                                 if let Some(server) = &config.read().server {
-                                    format!("{} configured", server.service.display_name())
+                                     rust_i18n::t!("configured", name = server.service.display_name()).to_string()
                                 } else {
-                                    "Server configured".to_string()
+                                    rust_i18n::t!("server_configured").to_string()
                                 }
                             } else {
-                                "No server configured".to_string()
+                                rust_i18n::t!("no_server_configured").to_string()
                             },
                             control: rsx! {
                                 ServerSettings {
@@ -154,11 +168,11 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                         }
                         if !cfg!(target_arch = "wasm32") {
                             SettingItem {
-                                title: "Discord Presence",
+                                title: rust_i18n::t!("discord_presence").to_string(),
                                 description: if config.read().discord_presence.unwrap_or(true) {
-                                    "Discord presence enabled".to_string()
+                                    rust_i18n::t!("discord_presence_enabled").to_string()
                                 } else {
-                                    "Discord presence disabled".to_string()
+                                    rust_i18n::t!("discord_presence_disabled").to_string()
                                 },
                                 control: rsx! {
                                     DiscordPresenceSettings {
@@ -169,11 +183,11 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                             }
                         }
                         SettingItem {
-                            title: "Reduce Animations",
+                            title: rust_i18n::t!("reduce_animations").to_string(),
                             description: if config.read().reduce_animations {
-                                "Animations are reduced".to_string()
+                                rust_i18n::t!("animations_reduced").to_string()
                             } else {
-                                "Animations are enabled".to_string()
+                                rust_i18n::t!("animations_enabled").to_string()
                             },
                             control: rsx! {
                                 ToggleSetting {
@@ -183,8 +197,8 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                             }
                         }
                         SettingItem {
-                            title: "ListenBrainz",
-                            description: "Enter your ListenBrainz token",
+                            title: rust_i18n::t!("listenbrainz").to_string(),
+                            description: rust_i18n::t!("listenbrainz_token").to_string(),
                             control: rsx! {
                                 MusicBrainzSettings {
                                     current: config.read().musicbrainz_token.clone(),
@@ -229,7 +243,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                             .server
                             .as_ref()
                             .map(|server| server.service.display_name().to_string())
-                            .unwrap_or_else(|| "Server".to_string()),
+                            .unwrap_or_else(|| rust_i18n::t!("server").to_string()),
                         error: login_error,
                         loading: is_loading,
                         on_close: move |_| {

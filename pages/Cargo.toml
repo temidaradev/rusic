@@ -23,3 +23,4 @@ server = { workspace = true }
 reqwest = { workspace = true }
 tokio = { workspace = true }
 rand = { workspace = true }
+rust-i18n = { workspace = true }

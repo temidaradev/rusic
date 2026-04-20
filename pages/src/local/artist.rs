@@ -87,7 +87,7 @@ pub fn LocalArtist(
                                         }
                                     }
                                     h3 { class: "text-white font-medium truncate text-center w-full group-hover:text-indigo-400 transition-colors", "{artist}" }
-                                    p { class: "text-xs text-slate-500 uppercase tracking-wider mt-1", "Artist" }
+                                    p { class: "text-xs text-slate-500 uppercase tracking-wider mt-1", "{rust_i18n::t!(\"artist\")}" }
                                 }
                             }
                         }
@@ -171,74 +171,73 @@ pub fn LocalArtist(
                         }
                     }
 
-                    div { class: "flex items-center justify-between mb-8",
-                        button {
-                            class: "flex items-center gap-2 text-slate-400 hover:text-white transition-colors",
-                            onclick: move |_| artist_name.set(String::new()),
-                            i { class: "fa-solid fa-arrow-left" }
-                            "Back to Artists"
+                    if artist_tracks().is_empty() {
+                        div {
+                            class: "flex flex-col items-center justify-center h-64 text-slate-500",
+                            i { class: "fa-regular fa-music text-4xl mb-4 opacity-30" }
+                            p { class: "text-base", "{rust_i18n::t!(\"no_tracks_found\")}" }
                         }
-                    }
-
-                    components::showcase::Showcase {
-                        name: name.clone(),
-                        description: "Artist".to_string(),
-                        cover_url: artist_cover(),
-                        tracks: artist_tracks(),
-                        library,
-                        active_track: active_menu_track.read().clone(),
-                        is_selection_mode: is_selection_mode(),
-                        selected_tracks: selected_tracks.read().clone(),
-                        on_long_press: move |idx: usize| {
-                            if let Some(track) = artist_tracks().get(idx) {
-                                is_selection_mode.set(true);
-                                selected_tracks.write().insert(track.path.clone());
-                            }
-                        },
-                        on_select: move |(idx, selected): (usize, bool)| {
-                            if let Some(track) = artist_tracks().get(idx) {
-                                if selected {
+                    } else {
+                        components::showcase::Showcase {
+                            name: name.clone(),
+                            description: rust_i18n::t!("artist").to_string(),
+                            cover_url: artist_cover(),
+                            tracks: artist_tracks(),
+                            library,
+                            active_track: active_menu_track.read().clone(),
+                            is_selection_mode: is_selection_mode(),
+                            selected_tracks: selected_tracks.read().clone(),
+                            on_long_press: move |idx: usize| {
+                                if let Some(track) = artist_tracks().get(idx) {
+                                    is_selection_mode.set(true);
                                     selected_tracks.write().insert(track.path.clone());
-                                } else {
-                                    selected_tracks.write().remove(&track.path);
-                                    if selected_tracks.read().is_empty() {
-                                        is_selection_mode.set(false);
+                                }
+                            },
+                            on_select: move |(idx, selected): (usize, bool)| {
+                                if let Some(track) = artist_tracks().get(idx) {
+                                    if selected {
+                                        selected_tracks.write().insert(track.path.clone());
+                                    } else {
+                                        selected_tracks.write().remove(&track.path);
+                                        if selected_tracks.read().is_empty() {
+                                            is_selection_mode.set(false);
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        on_play: move |idx: usize| {
-                            let tracks = artist_tracks();
-                            queue.set(tracks.clone());
-                            current_queue_index.set(idx);
-                            ctrl.play_track(idx);
-                        },
-                        on_click_menu: move |idx: usize| {
-                            if let Some(track) = artist_tracks().get(idx) {
-                                if active_menu_track.read().as_ref() == Some(&track.path) {
+                            },
+                            on_play: move |idx: usize| {
+                                let tracks = artist_tracks();
+                                queue.set(tracks.clone());
+                                current_queue_index.set(idx);
+                                ctrl.play_track(idx);
+                            },
+                            on_click_menu: move |idx: usize| {
+                                if let Some(track) = artist_tracks().get(idx) {
+                                    if active_menu_track.read().as_ref() == Some(&track.path) {
+                                        active_menu_track.set(None);
+                                    } else {
+                                        active_menu_track.set(Some(track.path.clone()));
+                                    }
+                                }
+                            },
+                            on_close_menu: move |_| active_menu_track.set(None),
+                            on_add_to_playlist: move |idx: usize| {
+                                if let Some(track) = artist_tracks().get(idx) {
+                                    selected_track_for_playlist.set(Some(track.path.clone()));
+                                    show_playlist_modal.set(true);
                                     active_menu_track.set(None);
-                                } else {
-                                    active_menu_track.set(Some(track.path.clone()));
                                 }
-                            }
-                        },
-                        on_close_menu: move |_| active_menu_track.set(None),
-                        on_add_to_playlist: move |idx: usize| {
-                            if let Some(track) = artist_tracks().get(idx) {
-                                selected_track_for_playlist.set(Some(track.path.clone()));
-                                show_playlist_modal.set(true);
-                                active_menu_track.set(None);
-                            }
-                        },
-                        on_delete_track: move |idx: usize| {
-                            if let Some(track) = artist_tracks().get(idx) {
-                                if std::fs::remove_file(&track.path).is_ok() {
-                                    library.write().remove_track(&track.path);
+                            },
+                            on_delete_track: move |idx: usize| {
+                                if let Some(track) = artist_tracks().get(idx) {
+                                    if std::fs::remove_file(&track.path).is_ok() {
+                                        library.write().remove_track(&track.path);
+                                    }
                                 }
-                            }
-                            active_menu_track.set(None)
-                        },
-                        actions: None,
+                                active_menu_track.set(None)
+                            },
+                            actions: None,
+                        }
                     }
                 }
             }

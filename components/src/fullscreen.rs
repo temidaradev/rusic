@@ -80,7 +80,7 @@ pub fn Fullscreen(
                 {
                     Some(l)
                 } else {
-                    Some(utils::lyrics::Lyrics::Plain("Lyrics not found".to_string()))
+                    Some(utils::lyrics::Lyrics::Plain(rust_i18n::t!("lyrics_not_found").to_string()))
                 }
             } else {
                 None
@@ -266,7 +266,7 @@ pub fn Fullscreen(
                     button {
                         class: format!("{} transition-all active:scale-95 relative flex-shrink-0", if *ctrl.shuffle.read() { "text-white" } else { "text-white/50 hover:text-white" }),
                         onclick: move |_| ctrl.toggle_shuffle(),
-                        title: if *ctrl.shuffle.read() { "Shuffle: On" } else { "Shuffle: Off" },
+                        title: if *ctrl.shuffle.read() { rust_i18n::t!("shuffle_on").to_string() } else { rust_i18n::t!("shuffle_off").to_string() },
                         i { class: "fa-solid fa-shuffle text-lg" }
                     }
                     div {
@@ -303,9 +303,9 @@ pub fn Fullscreen(
                         ),
                         onclick: move |_| ctrl.toggle_loop(),
                         title: match *ctrl.loop_mode.read() {
-                            LoopMode::None => "Repeat: Off",
-                            LoopMode::Queue => "Repeat: Queue",
-                            LoopMode::Track => "Repeat: Track",
+                            LoopMode::None => rust_i18n::t!("repeat_off").to_string(),
+                            LoopMode::Queue => rust_i18n::t!("repeat_queue").to_string(),
+                            LoopMode::Track => rust_i18n::t!("repeat_track").to_string(),
                         },
                         i { class: "fa-solid fa-repeat text-lg" }
                         match *ctrl.loop_mode.read() {
@@ -379,7 +379,7 @@ pub fn Fullscreen(
                             "px-4 py-2 text-xs font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(0),
-                        "BACK TO"
+                        "{rust_i18n::t!(\"back_to_previous\")}"
                     }
                     button {
                         class: if *active_tab.read() == 1 {
@@ -388,7 +388,7 @@ pub fn Fullscreen(
                             "px-4 py-2 text-xs font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(1),
-                        "UP NEXT"
+                        "{rust_i18n::t!(\"up_next\")}"
                     }
                     button {
                         class: if *active_tab.read() == 2 {
@@ -397,7 +397,7 @@ pub fn Fullscreen(
                             "px-4 py-2 text-xs font-medium tracking-wider text-white/40 hover:text-white/70 transition-colors"
                         },
                         onclick: move |_| active_tab.set(2),
-                        "LYRICS"
+                        "{rust_i18n::t!(\"lyrics\")}"
                     }
                 }
 
@@ -432,12 +432,12 @@ pub fn Fullscreen(
                                     }
                                 }
                                 Some(None) => rsx! { "" },
-                                None => rsx! { "Loading lyrics..." },
+                                None => rsx! { "{rust_i18n::t!(\"loading_lyrics\")}" },
                             }
                         }
                     } else if *active_tab.read() == 0 {
                         if *current_queue_index.read() == 0 {
-                            div { class: "text-white/30 text-center py-10 text-sm", "No previous songs" }
+                            div { class: "text-white/30 text-center py-10 text-sm", "{rust_i18n::t!(\"no_previous_songs\")}" }
                         }
                         for i in 0..*current_queue_index.read() {
                             {
@@ -471,7 +471,7 @@ pub fn Fullscreen(
                         }
                     } else if *active_tab.read() == 1 {
                         if queue.read().len() <= *current_queue_index.read() + 1 {
-                            div { class: "text-white/30 text-center py-10 text-sm", "No more songs in queue" }
+                            div { class: "text-white/30 text-center py-10 text-sm", "{rust_i18n::t!(\"no_more_songs\")}" }
                         }
                         for i in (*current_queue_index.read() + 1)..queue.read().len() {
                             {

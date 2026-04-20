@@ -23,6 +23,8 @@ use crate::web_storage::{
 
 mod web_storage;
 
+rust_i18n::i18n!("../locales");
+
 const FAVICON: Asset = asset!("../assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("../assets/main.css");
 const THEME_CSS: Asset = asset!("../assets/themes.css");
@@ -237,7 +239,7 @@ fn App() -> Element {
     let mut selected_album_id = use_signal(String::new);
     let mut selected_playlist_id = use_signal(|| None::<String>);
     let mut selected_artist_name = use_signal(String::new);
-    let mut search_query = use_signal(String::new);
+    let search_query = use_signal(String::new);
     let mut last_server_playlist_key = use_signal(|| None::<String>);
     let mut server_playlist_key_initialized = use_signal(|| false);
 
@@ -390,6 +392,7 @@ fn App() -> Element {
                     config.set(loaded.clone());
                     volume.set(loaded.volume);
                     player.write().set_volume(loaded.volume);
+                    rust_i18n::set_locale(&loaded.language);
                 }
                 if let Ok(Ok(loaded)) = pl_res {
                     playlist_store.set(loaded);
@@ -408,9 +411,11 @@ fn App() -> Element {
                 loaded.active_source = config::MusicSource::Server;
             }
             let loaded_volume = loaded.volume;
+            let loaded_language = loaded.language.clone();
             config.set(loaded);
             volume.set(loaded_volume);
             player.write().set_volume(loaded_volume);
+            rust_i18n::set_locale(&loaded_language);
 
             if let Some((
                 route,
@@ -724,10 +729,6 @@ fn App() -> Element {
                                 current_song_progress: current_song_progress,
                                 queue: queue,
                                 current_queue_index: current_queue_index,
-                                on_close: move |_evt: ()| {
-                                    selected_artist_name.set(String::new());
-                                    current_route.set(Route::Home);
-                                }
                             }
                         },
                         Route::Favorites => rsx! {
