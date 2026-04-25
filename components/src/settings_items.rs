@@ -3,13 +3,10 @@ use dioxus::prelude::*;
 use rfd::AsyncFileDialog;
 
 #[component]
-pub fn SettingItem(title: String, description: String, control: Element) -> Element {
+pub fn SettingItem(title: String, control: Element) -> Element {
     rsx! {
         div { class: "flex items-center justify-between py-2",
-            div {
-                p { class: "text-white font-medium", "{title}" }
-                p { class: "text-sm text-slate-500", "{description}" }
-            }
+            p { class: "text-white font-medium", "{title}" }
             {control}
         }
     }
@@ -88,20 +85,23 @@ pub fn ThemeSelector(current_theme: String, on_change: EventHandler<String>) -> 
 }
 
 #[component]
-pub fn DirectoryPicker(on_change: EventHandler<std::path::PathBuf>) -> Element {
+pub fn DirectoryPicker(current_path: String, on_change: EventHandler<std::path::PathBuf>) -> Element {
     rsx! {
-        button {
-            onclick: move |_| {
-                #[cfg(not(target_arch = "wasm32"))]
-                spawn(async move {
-                    if let Some(handle) = AsyncFileDialog::new().pick_folder().await {
-                        let path = handle.path().to_path_buf();
-                        on_change.call(path);
-                    }
-                });
-            },
-            class: "bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm text-white transition-colors",
-            "{rust_i18n::t!(\"change\")}"
+        div { class: "flex items-center gap-3",
+            span { class: "text-xs text-slate-500 font-mono truncate max-w-xs", "{current_path}" }
+            button {
+                onclick: move |_| {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    spawn(async move {
+                        if let Some(handle) = AsyncFileDialog::new().pick_folder().await {
+                            let path = handle.path().to_path_buf();
+                            on_change.call(path);
+                        }
+                    });
+                },
+                class: "bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-sm text-white transition-colors shrink-0",
+                "{rust_i18n::t!(\"change\")}"
+            }
         }
     }
 }
