@@ -1,4 +1,5 @@
 language-name = Русский
+is_rtl = false
 
 settings = Настройки
 theme_editor = Редактор тем

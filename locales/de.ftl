@@ -1,4 +1,5 @@
 language-name = Deutsch
+is_rtl = false
 
 settings = Einstellungen
 theme_editor = Theme-Editor

@@ -1,4 +1,5 @@
 language-name = English
+is_rtl = false
 
 settings = Settings
 theme_editor = Theme Editor

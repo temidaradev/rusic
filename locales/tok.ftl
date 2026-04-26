@@ -1,4 +1,5 @@
 language-name = toki pona
+is_rtl = false
 
 settings = nasin ilo
 theme_editor = o ante e lukin

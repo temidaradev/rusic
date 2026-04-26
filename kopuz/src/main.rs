@@ -581,6 +581,14 @@ fn App() -> Element {
         format!("theme-{}", config.read().theme)
     };
 
+    let is_rtl = i18n::is_rtl();
+    let dir = if is_rtl { "rtl" } else { "ltr" };
+    let content_row_class = if is_rtl {
+        "flex flex-1 overflow-hidden flex-row-reverse"
+    } else {
+        "flex flex-1 overflow-hidden"
+    };
+
     let background_style = if config.read().theme == "album-art" {
         utils::color::get_background_style(palette.read().as_deref())
     } else {
@@ -597,6 +605,7 @@ fn App() -> Element {
         div {
             class: "flex flex-col h-screen text-white select-none {theme_class}",
             style: "{background_style}",
+            dir: "{dir}",
             "data-reduce-animations": "{config.read().reduce_animations}",
             tabindex: "0",
             autofocus: true,
@@ -611,7 +620,7 @@ fn App() -> Element {
                 Titlebar {}
             }
             div {
-                class: "flex flex-1 overflow-hidden",
+                class: "{content_row_class}",
                 Sidebar {
                     current_route,
                     on_navigate: move |route| {

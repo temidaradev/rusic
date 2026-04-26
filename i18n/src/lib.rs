@@ -100,3 +100,7 @@ pub fn t_with(key: &str, args: &[(&str, String)]) -> String {
 pub fn available_languages() -> &'static [(&'static str, &'static str)] {
     AVAILABLE_LANGUAGES
 }
+
+pub fn is_rtl() -> bool {
+    t("is_rtl") == "true"
+}

@@ -1,4 +1,5 @@
 language-name = עברית
+is_rtl = true
 
 settings = הגדרות
 theme_editor = עורך ערכת נושא

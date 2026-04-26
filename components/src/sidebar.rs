@@ -64,13 +64,17 @@ pub fn Sidebar(props: SidebarProps) -> Element {
 
     let extra_padding = if cfg!(target_os = "macos") { "pt-10" } else { "" };
 
+    let is_rtl = i18n::is_rtl();
+    let border_side = if is_rtl { "border-l" } else { "border-r" };
+
     let is_server = config.read().active_source == MusicSource::Server;
     let local_class  = if !is_server { "text-white" } else { "text-slate-500 hover:text-slate-300" };
     let server_class = if  is_server { "text-white" } else { "text-slate-500 hover:text-slate-300" };
-    let slider_style = if is_server {
-        "left: calc(50% + 2px); width: calc(50% - 4px);"
-    } else {
-        "left: 4px; width: calc(50% - 4px);"
+    let slider_style = match (is_rtl, is_server) {
+        (false, false) => "left: 4px; width: calc(50% - 4px);",
+        (false, true)  => "left: calc(50% + 2px); width: calc(50% - 4px);",
+        (true,  false) => "right: 4px; width: calc(50% - 4px);",
+        (true,  true)  => "right: calc(50% + 2px); width: calc(50% - 4px);",
     };
 
     // Build ordered item list from saved config, appending any items not yet in the saved order
@@ -100,7 +104,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
         }
 
         div {
-            class: "h-full bg-black/40 text-slate-400 flex flex-col flex-shrink-0 select-none relative border-r border-white/5 {extra_padding}",
+            class: "h-full bg-black/40 text-slate-400 flex flex-col flex-shrink-0 select-none relative {border_side} border-white/5 {extra_padding}",
             style: "width: {current_width}px",
 
             if cfg!(all(not(target_arch = "wasm32"), target_os = "macos")) {
@@ -155,6 +159,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             item: item.clone(),
                             collapsed: is_collapsed,
                             active: *props.current_route.read() == item.route,
+                            is_rtl,
                             can_move_up: idx > 0,
                             can_move_down: idx < item_count - 1,
                             onclick: move |_| props.on_navigate.call(item.route),
@@ -180,6 +185,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             item: item.clone(),
                             collapsed: is_collapsed,
                             active: *props.current_route.read() == item.route,
+                            is_rtl,
                             can_move_up: false,
                             can_move_down: false,
                             onclick: move |_| props.on_navigate.call(item.route),
@@ -190,10 +196,18 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                 }
             }
 
-            div {
-                class: "absolute top-0 right-0 w-2 h-full cursor-col-resize group/handle z-50",
-                onmousedown: move |_| is_resizing.set(true),
-                div { class: "absolute inset-y-0 right-0 w-px bg-white/0 group-hover/handle:bg-white/10 transition-colors" }
+            if !is_rtl {
+                div {
+                    class: "absolute top-0 right-0 w-2 h-full cursor-col-resize group/handle z-50",
+                    onmousedown: move |_| is_resizing.set(true),
+                    div { class: "absolute inset-y-0 right-0 w-px bg-white/0 group-hover/handle:bg-white/10 transition-colors" }
+                }
+            } else {
+                div {
+                    class: "absolute top-0 left-0 w-2 h-full cursor-col-resize group/handle z-50",
+                    onmousedown: move |_| is_resizing.set(true),
+                    div { class: "absolute inset-y-0 left-0 w-px bg-white/0 group-hover/handle:bg-white/10 transition-colors" }
+                }
             }
         }
     }
@@ -204,6 +218,7 @@ fn SidebarLink(
     item: SidebarItem,
     collapsed: Signal<bool>,
     active: bool,
+    is_rtl: bool,
     can_move_up: bool,
     can_move_down: bool,
     onclick: EventHandler<MouseEvent>,
@@ -212,6 +227,11 @@ fn SidebarLink(
 ) -> Element {
     let is_collapsed = *collapsed.read();
     let alignment_class = if is_collapsed { "justify-center" } else { "justify-start px-3" };
+    let indicator_base = if is_rtl {
+        "absolute right-0 w-0.5 rounded-l-full transition-all duration-300"
+    } else {
+        "absolute left-0 w-0.5 rounded-r-full transition-all duration-300"
+    };
 
     let active_class = if active {
         "bg-white/10 text-white"
@@ -242,9 +262,9 @@ fn SidebarLink(
 
                 div {
                     class: if active {
-                        "absolute left-0 w-0.5 rounded-r-full transition-all duration-300 h-6 bg-white"
+                        "{indicator_base} h-6 bg-white"
                     } else {
-                        "absolute left-0 w-0.5 rounded-r-full transition-all duration-300 h-0 bg-white/40 group-hover:h-4"
+                        "{indicator_base} h-0 bg-white/40 group-hover:h-4"
                     }
                 }
             }

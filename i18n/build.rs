@@ -4,14 +4,13 @@ fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let locales_dir = PathBuf::from(&manifest_dir).join("../locales");
 
-    println!("cargo:rerun-if-changed=../locales");
-
     let mut languages: Vec<(String, String)> = vec![];
 
     for entry in fs::read_dir(&locales_dir).expect("locales directory not found") {
         let entry = entry.unwrap();
         let path = entry.path();
         if path.extension().map_or(false, |e| e == "ftl") {
+            println!("cargo:rerun-if-changed={}", path.display());
             let code = path.file_stem().unwrap().to_str().unwrap().to_string();
             let content = fs::read_to_string(&path).unwrap();
             let name = extract_language_name(&content).unwrap_or_else(|| code.clone());
