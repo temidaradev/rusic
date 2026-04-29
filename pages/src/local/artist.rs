@@ -127,22 +127,13 @@ pub fn LocalArtist(
             });
     };
 
-    let tracks_for_album = |library: &Library, album_title: &str| -> Vec<PathBuf> {
+    let tracks_for_album = |library: &Library, album_id: &str| -> Vec<PathBuf> {
         library
             .tracks
             .iter()
-            .filter(|t| t.album == album_title)
+            .filter(|t| t.album_id == album_id)
             .map(|t| t.path.clone())
             .collect()
-    };
-
-    let album_title_by_id = |library: &Library, album_id: &str| -> String {
-        library
-            .albums
-            .iter()
-            .find(|a| a.id == album_id)
-            .map(|a| a.title.clone())
-            .unwrap_or_default()
     };
 
     let clear_selection =
@@ -243,8 +234,7 @@ pub fn LocalArtist(
                                 on_add_to_playlist: move |playlist_id: String| {
                                     if let Some(album_id) = pending_album_id_for_playlist.read().clone() {
                                         let lib = library.read();
-                                        let title = album_title_by_id(&lib, &album_id);
-                                        let paths = tracks_for_album(&lib, &title);
+                                        let paths = tracks_for_album(&lib, &album_id);
                                         drop(lib);
                                         add_tracks_to_playlist(playlist_id, paths);
                                     }
@@ -257,8 +247,7 @@ pub fn LocalArtist(
                                         .as_deref()
                                         .map(|id| {
                                             let lib = library.read();
-                                            let title = album_title_by_id(&lib, id);
-                                            tracks_for_album(&lib, &title)
+                                            tracks_for_album(&lib, id)
                                         })
                                         .unwrap_or_default();
                                     create_playlist(playlist_name, paths);
@@ -286,7 +275,6 @@ pub fn LocalArtist(
                                             {
                                                 let id_for_menu = album.id.clone();
                                                 let id_for_action = album.id.clone();
-                                                let title_for_action = album.title.clone();
                                                 let is_open = open_album_menu.read().as_deref() == Some(&album.id);
                                                 let cover_url = utils::format_artwork_url(album.cover_path.as_ref());
                                                 rsx! {
@@ -331,7 +319,6 @@ pub fn LocalArtist(
                                                                 anchor: "right".to_string(),
                                                                 on_action: {
                                                                     let id = id_for_action.clone();
-                                                                    let title = title_for_action.clone();
                                                                     move |idx: usize| {
                                                                         open_album_menu.set(None);
                                                                         match idx {
@@ -344,15 +331,15 @@ pub fn LocalArtist(
                                                                                     .read()
                                                                                     .tracks
                                                                                     .iter()
-                                                                                    .filter(|t| t.album == title)
+                                                                                    .filter(|t| t.album_id == id)
                                                                                     .map(|t| t.path.clone())
                                                                                     .collect();
                                                                                 for path in &tracks_to_delete {
                                                                                     let _ = std::fs::remove_file(path);
                                                                                 }
                                                                                 let mut lib = library.write();
-                                                                                lib.albums.retain(|a| a.title != title);
-                                                                                lib.tracks.retain(|t| t.album != title);
+                                                                                lib.albums.retain(|a| a.id != id);
+                                                                                lib.tracks.retain(|t| t.album_id != id);
                                                                             }
                                                                             _ => {}
                                                                         }
