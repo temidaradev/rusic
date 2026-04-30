@@ -68,7 +68,7 @@ pub fn JellyfinFavorites(
                                 .map(|items| items.into_iter().map(|i| i.id).collect())
                                 .unwrap_or_default()
                         }
-                        MusicService::Subsonic | MusicService::Custom => {
+                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                             let remote = SubsonicClient::new(&url, &user_id, &token);
                             remote.get_starred_song_ids().await.unwrap_or_default()
                         }
@@ -224,7 +224,7 @@ pub fn JellyfinFavorites(
                                                             );
                                                             let _ = remote.add_to_playlist(&pid, item_id).await;
                                                         }
-                                                        MusicService::Subsonic | MusicService::Custom => {
+                                                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                             let remote = SubsonicClient::new(&server.url, user_id, token);
                                                             let _ = remote.add_to_playlist(&pid, item_id).await;
                                                         }
@@ -280,7 +280,7 @@ pub fn JellyfinFavorites(
                                                         .create_playlist(&playlist_name, &item_id_refs)
                                                         .await;
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = SubsonicClient::new(&server.url, user_id, token);
                                                     let _ = remote.create_playlist(&playlist_name, &item_id_refs).await;
                                                 }

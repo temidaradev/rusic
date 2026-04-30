@@ -4,6 +4,7 @@ use reader::{FavoritesStore, Library, PlaylistStore};
 
 use crate::local::home::LocalHome;
 use crate::server::home::ServerHome;
+use crate::server::ytm::YouTubeMusicHome;
 
 #[component]
 pub fn Home(
@@ -16,7 +17,7 @@ pub fn Home(
     on_search_artist: EventHandler<String>,
 ) -> Element {
     let config = use_context::<Signal<AppConfig>>();
-    let is_server = config.read().active_source == MusicSource::Server;
+    let is_server = config.read().active_source.is_server();
 
     rsx! {
         div {
@@ -26,7 +27,9 @@ pub fn Home(
                 h1 { class: "text-4xl font-black text-white tracking-tight", "{i18n::t(\"home\")}" }
             }
 
-            if is_server {
+            if config.read().active_source == MusicSource::YouTubeMusic {
+                YouTubeMusicHome {}
+            } else if is_server {
                 ServerHome {
                     library,
                     playlist_store,

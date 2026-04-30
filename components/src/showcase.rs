@@ -1,5 +1,5 @@
 use crate::track_row::TrackRow;
-use config::{AppConfig, MusicService, MusicSource};
+use config::{AppConfig, MusicService};
 use dioxus::prelude::*;
 use reader::{Library, Track};
 use std::collections::HashSet;
@@ -41,7 +41,7 @@ pub fn Showcase(props: ShowcaseProps) -> Element {
     let duration_min = total_seconds / 60;
 
     let lib = props.library.read();
-    let is_server_source = config.read().active_source == MusicSource::Server;
+    let is_server_source = config.read().active_source.is_server();
 
     rsx! {
          div {
@@ -117,7 +117,7 @@ pub fn Showcase(props: ShowcaseProps) -> Element {
                                                  80,
                                              )
                                          }
-                                         MusicService::Subsonic | MusicService::Custom => {
+                                         MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                              utils::subsonic_image::subsonic_image_url_from_path(
                                                  &path_str,
                                                  &server.url,

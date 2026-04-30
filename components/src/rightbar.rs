@@ -89,7 +89,7 @@ pub fn Rightbar(
         let lib = library.read();
         let conf = config.read();
 
-        let is_server_track = conf.active_source == config::MusicSource::Server;
+        let is_server_track = conf.active_source.is_server();
 
         if is_server_track {
             if let Some(server) = &conf.server {
@@ -104,7 +104,7 @@ pub fn Rightbar(
                             80,
                         )
                     }
-                    config::MusicService::Subsonic | config::MusicService::Custom => {
+                    config::MusicService::Subsonic | config::MusicService::Custom | config::MusicService::YouTubeMusic => {
                         utils::subsonic_image::subsonic_image_url_from_path(
                             &path_str,
                             &server.url,

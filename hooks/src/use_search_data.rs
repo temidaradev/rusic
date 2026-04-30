@@ -27,7 +27,7 @@ pub fn use_search_data(
         let server = conf.server.clone();
         let lib = library.read();
 
-        if active_source == MusicSource::Server {
+        if active_source.is_server() {
             let mut genre_items = std::collections::HashMap::new();
             for album in &lib.jellyfin_albums {
                 for g in album.genre.split(|c| c == '/' || c == ';' || c == ',') {
@@ -55,7 +55,7 @@ pub fn use_search_data(
                                             80,
                                         )
                                     }
-                                    None => None,
+                                    Some(MusicService::YouTubeMusic) | None => None,
                                 }
                             })
                         } else {
@@ -124,6 +124,10 @@ pub fn use_search_data(
         let albums: Vec<(Album, Option<String>)>;
 
         match active_source {
+            MusicSource::YouTubeMusic => {
+                tracks = Vec::new();
+                albums = Vec::new();
+            }
             MusicSource::Local => {
                 tracks = lib
                     .tracks
@@ -196,7 +200,7 @@ pub fn use_search_data(
                                         80,
                                     )
                                 }
-                                None => None,
+                                Some(MusicService::YouTubeMusic) | None => None,
                             }
                         } else {
                             None
@@ -239,7 +243,7 @@ pub fn use_search_data(
                                             80,
                                         )
                                     }
-                                    None => None,
+                                    Some(MusicService::YouTubeMusic) | None => None,
                                 }
                             })
                         } else {

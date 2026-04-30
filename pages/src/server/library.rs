@@ -282,7 +282,7 @@ pub fn JellyfinLibrary(
                                                     }
                                                 }
                                             }
-                                            MusicService::Subsonic | MusicService::Custom => {
+                                            MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                 let remote =
                                                     SubsonicClient::new(&server.url, user_id, token);
                                                 for path in selected_paths {
@@ -349,7 +349,7 @@ pub fn JellyfinLibrary(
                                                         .create_playlist(&playlist_name, &item_id_refs)
                                                         .await;
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote =
                                                         SubsonicClient::new(&server.url, user_id, token);
                                                     let _ = remote

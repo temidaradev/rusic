@@ -284,7 +284,7 @@ pub fn JellyfinHome(
                                                                             remote.unmark_favorite(id).await
                                                                         }
                                                                     }
-                                                                    MusicService::Subsonic | MusicService::Custom => {
+                                                                    MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                                         let remote = SubsonicClient::new(&url, &user_id, &token);
                                                                         if new_fav {
                                                                             remote.star(id).await

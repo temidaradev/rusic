@@ -144,7 +144,7 @@ pub fn Fullscreen(
                             80,
                         )
                     }
-                    config::MusicService::Subsonic | config::MusicService::Custom => {
+                    config::MusicService::Subsonic | config::MusicService::Custom | config::MusicService::YouTubeMusic => {
                         utils::subsonic_image::subsonic_image_url_from_path(
                             &path_str,
                             &server.url,

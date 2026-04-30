@@ -80,7 +80,7 @@ pub fn JellyfinPlaylists(
                         }
                     }
                 }
-                MusicService::Subsonic | MusicService::Custom => {
+                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                     let remote = SubsonicClient::new(&url, &user_id, &token);
                     if let Ok(playlists) = remote.get_playlists().await {
                         for p in playlists {
