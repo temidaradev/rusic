@@ -112,7 +112,7 @@ pub fn JellyfinSearch(
                                                     );
                                                     let _ = remote.add_to_playlist(&pid, item_id).await;
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = server::subsonic::SubsonicClient::new(
                                                         &server.url,
                                                         user_id,
@@ -158,7 +158,7 @@ pub fn JellyfinSearch(
                                                         .create_playlist(&playlist_name, &[item_id])
                                                         .await;
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = server::subsonic::SubsonicClient::new(
                                                         &server.url,
                                                         user_id,

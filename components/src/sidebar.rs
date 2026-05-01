@@ -22,6 +22,16 @@ const TOP_MENU: &[SidebarItem] = &[
     SidebarItem { key: "activity",  route: Route::Activity,  icon: "fa-solid fa-chart-simple" },
 ];
 
+const YTM_TOP_MENU: &[SidebarItem] = &[
+    SidebarItem { key: "home",      route: Route::Home,      icon: "fa-solid fa-house" },
+    SidebarItem { key: "explore",   route: Route::Search,    icon: "fa-regular fa-compass" },
+    SidebarItem { key: "library",   route: Route::Library,   icon: "fa-regular fa-bookmark" },
+];
+
+const YTM_LIBRARY_MENU: &[SidebarItem] = &[
+    SidebarItem { key: "liked_music", route: Route::Favorites, icon: "fa-solid fa-thumbtack" },
+];
+
 const BOTTOM_MENU: &[SidebarItem] = &[SidebarItem {
     key: "settings",
     route: Route::Settings,
@@ -67,18 +77,29 @@ pub fn Sidebar(props: SidebarProps) -> Element {
     let is_rtl = i18n::is_rtl();
     let border_side = if is_rtl { "border-l" } else { "border-r" };
 
-    let is_server = config.read().active_source == MusicSource::Server;
-    let local_class  = if !is_server { "text-white" } else { "text-slate-500 hover:text-slate-300" };
-    let server_class = if  is_server { "text-white" } else { "text-slate-500 hover:text-slate-300" };
-    let slider_style = match (is_rtl, is_server) {
-        (false, false) => "left: 4px; width: calc(50% - 4px);",
-        (false, true)  => "left: calc(50% + 2px); width: calc(50% - 4px);",
-        (true,  false) => "right: 4px; width: calc(50% - 4px);",
-        (true,  true)  => "right: calc(50% + 2px); width: calc(50% - 4px);",
+    let active_source = config.read().active_source.clone();
+    let is_local = active_source == MusicSource::Local;
+    let is_server = active_source == MusicSource::Server;
+    let is_ytm = active_source == MusicSource::YouTubeMusic;
+
+    let local_class  = if is_local  { "text-white" } else { "text-slate-500 hover:text-slate-300" };
+    let server_class = if is_server { "text-white" } else { "text-slate-500 hover:text-slate-300" };
+    let ytm_class    = if is_ytm    { "text-white" } else { "text-slate-500 hover:text-slate-300" };
+
+    let slider_style = if is_rtl {
+        if is_local       { "right: 4px; width: calc(33.33% - 4px);" }
+        else if is_server { "right: calc(33.33% + 2px); width: calc(33.33% - 4px);" }
+        else              { "right: calc(66.66% + 2px); width: calc(33.33% - 4px);" }
+    } else {
+        if is_local       { "left: 4px; width: calc(33.33% - 4px);" }
+        else if is_server { "left: calc(33.33% + 2px); width: calc(33.33% - 4px);" }
+        else              { "left: calc(66.66% + 2px); width: calc(33.33% - 4px);" }
     };
 
     // Build ordered item list from saved config, appending any items not yet in the saved order
-    let ordered_items: Vec<SidebarItem> = {
+    let ordered_items: Vec<SidebarItem> = if is_ytm {
+        YTM_TOP_MENU.to_vec()
+    } else {
         let order = config.read().sidebar_order.clone();
         let mut items: Vec<SidebarItem> = order
             .iter()
@@ -130,7 +151,7 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                                 style: "{slider_style}"
                             }
                             button {
-                                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {local_class}",
+                                class: "flex-1 text-[10px] font-bold z-10 transition-colors duration-300 {local_class}",
                                 onclick: move |_| {
                                     let mut cfg = config.write();
                                     cfg.active_source = MusicSource::Local;
@@ -139,13 +160,22 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                                 "{i18n::t(\"local\").to_uppercase()}"
                             }
                             button {
-                                class: "flex-1 text-[11px] font-bold z-10 transition-colors duration-300 {server_class}",
+                                class: "flex-1 text-[10px] font-bold z-10 transition-colors duration-300 {server_class}",
                                 onclick: move |_| {
                                     let mut cfg = config.write();
                                     cfg.active_source = MusicSource::Server;
                                     cfg.source_explicitly_set = true;
                                 },
                                 "{i18n::t(\"server\").to_uppercase()}"
+                            }
+                            button {
+                                class: "flex-1 text-[10px] font-bold z-10 transition-colors duration-300 {ytm_class}",
+                                onclick: move |_| {
+                                    let mut cfg = config.write();
+                                    cfg.active_source = MusicSource::YouTubeMusic;
+                                    cfg.source_explicitly_set = true;
+                                },
+                                "YT MUSIC"
                             }
                         }
                     }
@@ -179,6 +209,25 @@ pub fn Sidebar(props: SidebarProps) -> Element {
                             },
                         }
                     }
+                    
+                    if is_ytm {
+                        div { class: "h-px bg-white/5 my-4 mx-3" }
+                        for item in YTM_LIBRARY_MENU {
+                            SidebarLink {
+                                key: "{item.key}",
+                                item: item.clone(),
+                                collapsed: is_collapsed,
+                                active: *props.current_route.read() == item.route,
+                                is_rtl,
+                                can_move_up: false,
+                                can_move_down: false,
+                                onclick: move |_| props.on_navigate.call(item.route),
+                                on_move_up: move |_| {},
+                                on_move_down: move |_| {},
+                            }
+                        }
+                    }
+
                     div { class: "h-px bg-white/5 my-4 mx-3" }
                     for item in BOTTOM_MENU {
                         SidebarLink {

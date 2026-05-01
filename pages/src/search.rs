@@ -5,6 +5,7 @@ use reader::Library;
 
 use crate::local::search::LocalSearch;
 use crate::server::search::ServerSearch;
+use crate::server::ytm::YouTubeMusicSearch;
 
 #[component]
 pub fn Search(
@@ -23,10 +24,13 @@ pub fn Search(
     queue: Signal<Vec<reader::models::Track>>,
     current_queue_index: Signal<usize>,
 ) -> Element {
-    let is_server = config.read().active_source == MusicSource::Server;
+    let active_source = config.read().active_source.clone();
+    let is_server = active_source.is_server();
 
     rsx! {
-        if is_server {
+        if active_source == MusicSource::YouTubeMusic {
+            YouTubeMusicSearch { search_query }
+        } else if is_server {
             ServerSearch {
                 library,
                 config,

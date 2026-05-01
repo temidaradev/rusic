@@ -124,7 +124,7 @@ pub fn PlaylistDetail(
                                         has_loaded_jellyfin_tracks.set(true);
                                     }
                                 }
-                                MusicService::Subsonic | MusicService::Custom => {
+                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                     let remote = server::subsonic::SubsonicClient::new(
                                         &server.url,
                                         user_id,
@@ -330,7 +330,7 @@ pub fn PlaylistDetail(
                                                 let _ = remote.move_playlist_item(&pid, &item_id, idx - 1).await;
                                             }
                                         }
-                                        MusicService::Subsonic | MusicService::Custom => {
+                                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                             let remote = server::subsonic::SubsonicClient::new(&server.url, user_id, token);
                                             let ids: Vec<String> = track_list.iter().filter_map(|t| {
                                                 let s = t.path.to_string_lossy();
@@ -370,7 +370,7 @@ pub fn PlaylistDetail(
                                                 let _ = remote.move_playlist_item(&pid, &item_id, idx + 1).await;
                                             }
                                         }
-                                        MusicService::Subsonic | MusicService::Custom => {
+                                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                             let remote = server::subsonic::SubsonicClient::new(&server.url, user_id, token);
                                             let ids: Vec<String> = track_list.iter().filter_map(|t| {
                                                 let s = t.path.to_string_lossy();
@@ -432,7 +432,7 @@ pub fn PlaylistDetail(
                                                         false
                                                     }
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = server::subsonic::SubsonicClient::new(&server.url, user_id, token);
                                                     remote.remove_from_playlist(&pid_clone, remove_idx).await.is_ok()
                                                 }
@@ -528,7 +528,7 @@ pub fn PlaylistDetail(
                                                             );
                                                             let _ = remote.add_to_playlist(&pid, item_id).await;
                                                         }
-                                                        MusicService::Subsonic | MusicService::Custom => {
+                                                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                             let remote = server::subsonic::SubsonicClient::new(&server.url, user_id, token);
                                                             let _ = remote.add_to_playlist(&pid, item_id).await;
                                                         }
@@ -582,7 +582,7 @@ pub fn PlaylistDetail(
                                                         );
                                                         let _ = remote.create_playlist(&playlist_name, &item_id_refs).await;
                                                     }
-                                                    MusicService::Subsonic | MusicService::Custom => {
+                                                    MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                         let remote = server::subsonic::SubsonicClient::new(&server.url, user_id, token);
                                                         let _ = remote.create_playlist(&playlist_name, &item_id_refs).await;
                                                     }

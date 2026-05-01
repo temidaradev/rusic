@@ -1,7 +1,7 @@
 use components::folder_detail::FolderDetail;
 use components::playlist_detail::PlaylistDetail;
 use components::playlist_popups::AddPlaylistPopup;
-use config::{AppConfig, MusicService, MusicSource};
+use config::{AppConfig, MusicService};
 use dioxus::prelude::*;
 use player::player;
 use reader::{Library, PlaylistStore};
@@ -28,7 +28,7 @@ pub fn PlaylistsPage(
     mut current_queue_index: Signal<usize>,
     mut selected_playlist_id: Signal<Option<String>>,
 ) -> Element {
-    let is_server = config.read().active_source == MusicSource::Server;
+    let is_server = config.read().active_source.is_server();
 
     let mut selected_folder = use_signal(|| Option::<String>::None);
     let mut show_add_playlist = use_signal(|| false);
@@ -58,7 +58,7 @@ pub fn PlaylistsPage(
                             let remote = JellyfinClient::new(&url, Some(&token), &device_id, Some(&user_id));
                             remote.create_playlist(&name, &[]).await
                         }
-                        MusicService::Subsonic | MusicService::Custom => {
+                        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                             let remote = SubsonicClient::new(&url, &user_id, &token);
                             remote.create_playlist(&name, &[]).await
                         }

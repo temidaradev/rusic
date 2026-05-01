@@ -77,8 +77,94 @@ impl PlayerController {
                 .unwrap_or_default()
                 .to_ascii_lowercase();
             let is_server_item = matches!(scheme.as_str(), "jellyfin" | "subsonic" | "custom");
+            let is_ytm_item = scheme == "ytmusic";
 
-            if is_server_item {
+            if is_ytm_item {
+                let video_id = path_str
+                    .strip_prefix("ytmusic:")
+                    .unwrap_or(&path_str)
+                    .to_string();
+                let conf = self.config.read();
+                let browser = conf.ytm_browser.clone();
+                drop(conf);
+
+                let thumbnail_url = format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", video_id);
+
+                self.current_song_title.set(track.title.clone());
+                self.current_song_artist.set(track.artist.clone());
+                self.current_song_album.set(track.album.clone());
+                self.current_song_duration.set(track.duration);
+                self.current_song_progress.set(0);
+                self.current_song_cover_url.set(thumbnail_url.clone());
+                self.current_queue_index.set(idx);
+                self.is_loading.set(true);
+
+                let mut player = self.player;
+                let mut is_playing = self.is_playing;
+                let mut is_loading = self.is_loading;
+                let mut skip_in_progress = self.skip_in_progress;
+                let play_generation = self.play_generation;
+                let volume = self.volume;
+
+                #[cfg(not(target_arch = "wasm32"))]
+                spawn(async move {
+                    match ::server::youtube_music::yt_dlp_stream_url(
+                        &video_id,
+                        browser.as_deref(),
+                    ).await {
+                        Ok(stream_url) => {
+                            if *play_generation.read() != current_gen {
+                                is_loading.set(false);
+                                skip_in_progress.set(false);
+                                return;
+                            }
+                            let stream = utils::stream_buffer::StreamBuffer::new(stream_url);
+                            let source_res = tokio::task::spawn_blocking(move || {
+                                let (source, hint) = ::player::decoder::from_stream(stream);
+                                Ok::<_, std::io::Error>((source, hint))
+                            })
+                            .await;
+                            if let Ok(Ok((source, hint))) = source_res {
+                                if *play_generation.read() == current_gen {
+                                    let meta = ::player::player::NowPlayingMeta {
+                                        title: track.title.clone(),
+                                        artist: track.artist.clone(),
+                                        album: track.album.clone(),
+                                        duration: std::time::Duration::from_secs(track.duration),
+                                        artwork: Some(thumbnail_url),
+                                    };
+                                    player.write().stop();
+                                    is_playing.set(false);
+                                    if let Err(e) = player.write().play(source, meta, hint) {
+                                        eprintln!("YTM playback error: {e}");
+                                        is_loading.set(false);
+                                        skip_in_progress.set(false);
+                                        return;
+                                    }
+                                    player.write().set_volume(*volume.peek());
+                                    is_loading.set(false);
+                                    is_playing.set(true);
+                                    skip_in_progress.set(false);
+                                }
+                            } else {
+                                is_loading.set(false);
+                                skip_in_progress.set(false);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("YTM stream URL error: {e}");
+                            is_loading.set(false);
+                            skip_in_progress.set(false);
+                        }
+                    }
+                });
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    is_loading.set(false);
+                    skip_in_progress.set(false);
+                }
+            } else if is_server_item {
                 let parts: Vec<&str> = path_str.split(':').collect();
                 let id = parts.get(1).unwrap_or(&"").to_string();
 
@@ -133,6 +219,7 @@ impl PlayerController {
 
                             (stream_url, cover_url)
                         }
+                        MusicService::YouTubeMusic => (String::new(), String::new()),
                     };
 
                     if stream_url.is_empty() {
@@ -583,9 +670,7 @@ impl PlayerController {
         let back_behavior = self.config.peek().back_behavior;
 
         if back_behavior == BackBehavior::RewindThenPrev && progress > 3 {
-            self.player
-                .write()
-                .seek(std::time::Duration::ZERO);
+            self.player.write().seek(std::time::Duration::ZERO);
             self.current_song_progress.set(0);
             return;
         }

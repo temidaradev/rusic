@@ -315,7 +315,7 @@ pub fn JellyfinAlbumDetails(
                                                     }
                                                 }
                                             }
-                                            MusicService::Subsonic | MusicService::Custom => {
+                                            MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                 let remote = SubsonicClient::new(&server.url, user_id, token);
                                                 for path in selected_paths {
                                                     let parts: Vec<&str> = path.to_str().unwrap_or_default().split(':').collect();
@@ -375,7 +375,7 @@ pub fn JellyfinAlbumDetails(
                                                         .create_playlist(&playlist_name, &item_id_refs)
                                                         .await;
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = SubsonicClient::new(&server.url, user_id, token);
                                                     let _ = remote
                                                         .create_playlist(&playlist_name, &item_id_refs)
@@ -588,6 +588,18 @@ pub fn ServerAlbum(
                 pending_album_id_for_playlist,
             }
         },
+        MusicService::YouTubeMusic => rsx! {
+            JellyfinAlbum {
+                library,
+                config,
+                album_id,
+                playlist_store,
+                queue,
+                open_album_menu,
+                show_album_playlist_modal,
+                pending_album_id_for_playlist,
+            }
+        },
     }
 }
 
@@ -678,6 +690,16 @@ pub fn ServerAlbumDetails(
         },
         MusicService::Custom => rsx! {
             CustomAlbumDetails {
+                album_jellyfin_id,
+                library,
+                config,
+                playlist_store,
+                queue,
+                on_close,
+            }
+        },
+        MusicService::YouTubeMusic => rsx! {
+            JellyfinAlbumDetails {
                 album_jellyfin_id,
                 library,
                 config,

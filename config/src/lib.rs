@@ -15,11 +15,12 @@ pub enum MusicSource {
     Local,
     #[serde(alias = "Jellyfin")]
     Server,
+    YouTubeMusic,
 }
 
 impl MusicSource {
     pub fn is_server(&self) -> bool {
-        matches!(self, Self::Server)
+        matches!(self, Self::Server | Self::YouTubeMusic)
     }
 }
 
@@ -30,6 +31,7 @@ pub enum MusicService {
     #[serde(alias = "Navidrome")]
     Subsonic,
     Custom,
+    YouTubeMusic,
 }
 
 impl MusicService {
@@ -38,6 +40,7 @@ impl MusicService {
             Self::Jellyfin => "Jellyfin",
             Self::Subsonic => "Subsonic",
             Self::Custom => "Custom",
+            Self::YouTubeMusic => "YouTube Music",
         }
     }
 }
@@ -102,6 +105,14 @@ pub struct AppConfig {
     pub custom_themes: HashMap<String, CustomTheme>,
     #[serde(default)]
     pub back_behavior: BackBehavior,
+    #[serde(default)]
+    pub ytm_access_token: Option<String>,
+    #[serde(default)]
+    pub ytm_refresh_token: Option<String>,
+    #[serde(default)]
+    pub ytm_cookies: Option<String>,
+    #[serde(default)]
+    pub ytm_browser: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -112,6 +123,8 @@ pub struct MusicServer {
     pub service: MusicService,
     pub access_token: Option<String>,
     pub user_id: Option<String>,
+    #[serde(default)]
+    pub refresh_token: Option<String>,
 }
 
 pub type JellyfinServer = MusicServer;
@@ -129,6 +142,7 @@ impl MusicServer {
             service,
             access_token: None,
             user_id: None,
+            refresh_token: None,
         }
     }
 }
@@ -221,6 +235,10 @@ impl Default for AppConfig {
             volume: default_volume(),
             custom_themes: HashMap::new(),
             back_behavior: BackBehavior::RewindThenPrev,
+            ytm_access_token: None,
+            ytm_refresh_token: None,
+            ytm_cookies: None,
+            ytm_browser: None,
         }
     }
 }
@@ -233,6 +251,7 @@ impl Default for MusicServer {
             service: MusicService::Jellyfin,
             access_token: None,
             user_id: None,
+            refresh_token: None,
         }
     }
 }

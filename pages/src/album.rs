@@ -1,4 +1,4 @@
-use config::{AppConfig, MusicService, MusicSource};
+use config::{AppConfig, MusicService};
 use dioxus::prelude::*;
 use player::player;
 use reader::{Library, PlaylistStore};
@@ -25,7 +25,7 @@ pub fn Album(
     mut queue: Signal<Vec<reader::models::Track>>,
     mut current_queue_index: Signal<usize>,
 ) -> Element {
-    let is_server = config.read().active_source == MusicSource::Server;
+    let is_server = config.read().active_source.is_server();
 
     let open_album_menu = use_signal(|| None::<String>);
     let mut show_album_playlist_modal = use_signal(|| false);
@@ -140,7 +140,7 @@ pub fn Album(
                                                             }
                                                         }
                                                     }
-                                                    MusicService::Subsonic | MusicService::Custom => {
+                                                    MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                         let remote = SubsonicClient::new(&url, &user_id, &token);
                                                         for id in &item_ids {
                                                             if remote.add_to_playlist(&pid, id).await.is_ok() {
@@ -222,7 +222,7 @@ pub fn Album(
                                                         let remote = JellyfinClient::new(&url, Some(&token), &device_id, Some(&user_id));
                                                         remote.create_playlist(&playlist_name, &id_refs).await
                                                     }
-                                                    MusicService::Subsonic | MusicService::Custom => {
+                                                    MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                         let remote = SubsonicClient::new(&url, &user_id, &token);
                                                         remote.create_playlist(&playlist_name, &id_refs).await
                                                     }

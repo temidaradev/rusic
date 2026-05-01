@@ -179,7 +179,7 @@ pub fn Bottombar(
                                                         remote.unmark_favorite(&item_id).await
                                                     }
                                                 }
-                                                MusicService::Subsonic | MusicService::Custom => {
+                                                MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
                                                     let remote = server::subsonic::SubsonicClient::new(
                                                         &url,
                                                         &user_id,

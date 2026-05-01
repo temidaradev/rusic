@@ -172,7 +172,7 @@ pub fn ServerLogs(library: Signal<Library>, config: Signal<AppConfig>) -> Elemen
         .unwrap_or(MusicService::Jellyfin);
 
     match service {
-        MusicService::Jellyfin | MusicService::Subsonic | MusicService::Custom => rsx! {
+        MusicService::Jellyfin | MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => rsx! {
             JellyfinLogs { library, config }
         },
     }

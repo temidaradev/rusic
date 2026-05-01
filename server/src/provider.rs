@@ -6,6 +6,7 @@ use web_time::Instant;
 
 use crate::jellyfin::JellyfinClient;
 use crate::subsonic::SubsonicClient;
+use crate::youtube_music::YouTubeMusicClient;
 
 static SUBSONIC_SESSION_SECRETS: LazyLock<Mutex<HashMap<String, (String, Instant)>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
@@ -83,7 +84,17 @@ impl ProviderClient {
                     user_id: username.to_string(),
                 })
             }
+            // YTM login is a device-flow OAuth — not username/password.
+            // This arm is unreachable in normal use; the settings UI calls
+            // youtube_music::start_device_auth() and youtube_music::poll_device_token() directly.
+            MusicService::YouTubeMusic => {
+                Err("YouTube Music uses OAuth device flow. Use the 'Connect YouTube Music' button in settings.".to_string())
+            }
         }
+    }
+
+    pub fn make_ytm_client(&self, access_token: &str) -> YouTubeMusicClient {
+        YouTubeMusicClient::new(access_token)
     }
 
     pub fn make_jellyfin_client(&self, access_token: &str, user_id: &str) -> JellyfinClient {

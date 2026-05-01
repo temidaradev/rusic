@@ -14,6 +14,7 @@ pub fn AddServerPopup(
         MusicService::Jellyfin => "jellyfin",
         MusicService::Subsonic => "subsonic",
         MusicService::Custom => "custom",
+        MusicService::YouTubeMusic => "ytmusic",
     };
     
     let server_name_optional = i18n::t("server_name_optional").to_string();
@@ -57,6 +58,7 @@ pub fn AddServerPopup(
                         let service = match e.value().as_str() {
                             "subsonic" => MusicService::Subsonic,
                             "custom" => MusicService::Custom,
+                            "ytmusic" => MusicService::YouTubeMusic,
                             _ => MusicService::Jellyfin,
                         };
                         server_service.set(service);

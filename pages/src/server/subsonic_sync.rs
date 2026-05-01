@@ -174,7 +174,7 @@ pub async fn sync_server_library(
                 lib_write.jellyfin_genres = out_genres;
             }
         }
-        MusicService::Subsonic | MusicService::Custom => {
+        MusicService::Subsonic | MusicService::Custom | MusicService::YouTubeMusic => {
             let data = fetch_subsonic_library(service, &server_url, &user_id, &token).await?;
             let mut lib_write = library.write();
             lib_write.jellyfin_albums = data.albums;
@@ -197,6 +197,7 @@ pub async fn fetch_subsonic_library(
         MusicService::Subsonic => "subsonic",
         MusicService::Custom => "custom",
         MusicService::Jellyfin => "jellyfin",
+        MusicService::YouTubeMusic => "ytmusic",
     };
 
     let mut albums_out = Vec::new();

@@ -24,6 +24,8 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
     let mut login_error = use_signal(|| Option::<String>::None);
     let mut is_loading = use_signal(|| false);
 
+    let available_browsers = use_memo(|| ::server::youtube_music::detect_available_browsers());
+
     let handle_add_server = move |_| {
         if !server_url().starts_with("http") {
             error.set(Some(i18n::t("invalid_server_url").to_string()));
@@ -231,6 +233,68 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                         //         }
                         //     }
                         // }
+                    }
+                }
+
+                section {
+                    h2 {
+                        class: "text-lg font-semibold text-white/80 mb-4 border-b border-white/5 pb-2",
+                        "YouTube Music"
+                    }
+                    div { class: "space-y-6",
+                        {
+                            let selected = config.read().ytm_browser.clone();
+                            let browsers = available_browsers.read();
+
+                            rsx! {
+                                div { class: "space-y-3",
+                                    p { class: "text-slate-400 text-sm",
+                                        "Select your browser. Kopuz reads your YouTube login automatically — no passwords or tokens needed."
+                                    }
+                                    if browsers.is_empty() {
+                                        p { class: "text-red-400 text-xs", "No supported browsers found. Install Firefox or Chromium." }
+                                    } else {
+                                        div { class: "flex flex-wrap gap-2",
+                                            for browser in browsers.iter() {
+                                                {
+                                                    let b = browser.to_string();
+                                                    let b2 = b.clone();
+                                                    let is_selected = selected.as_deref() == Some(*browser);
+                                                    let btn_class = if is_selected {
+                                                        "flex items-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                                                    } else {
+                                                        "flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                                                    };
+                                                    rsx! {
+                                                        button {
+                                                            class: "{btn_class}",
+                                                            onclick: move |_| {
+                                                                config.write().ytm_browser = Some(b.clone());
+                                                            },
+                                                            i { class: "fa-brands fa-{b2} text-xs" }
+                                                            { b2.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default() + &b2[1..] }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if selected.is_some() {
+                                                button {
+                                                    class: "text-xs text-slate-500 hover:text-red-400 transition-colors px-3 py-2 rounded-xl hover:bg-white/5",
+                                                    onclick: move |_| { config.write().ytm_browser = None; },
+                                                    "Disconnect"
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if let Some(b) = &selected {
+                                        p { class: "text-green-400 text-xs",
+                                            i { class: "fa-solid fa-circle-check mr-1" }
+                                            "Using {b}. Make sure you're logged into YouTube Music in that browser."
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
