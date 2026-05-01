@@ -9,6 +9,8 @@ pub struct YtdlpOptions {
     #[serde(default = "default_true")]
     pub embed_thumbnail: bool,
     #[serde(default)]
+    pub postprocess_thumbnail_square: bool,
+    #[serde(default)]
     pub embed_chapters: bool,
     #[serde(default)]
     pub embed_subs: bool,
@@ -53,6 +55,7 @@ impl Default for YtdlpOptions {
         Self {
             embed_metadata: true,
             embed_thumbnail: true,
+            postprocess_thumbnail_square: false,
             embed_chapters: false,
             embed_subs: false,
             embed_info_json: false,

@@ -139,7 +139,12 @@ fn build_command(
     if opts.split_chapters {
         cmd.arg("--split-chapters");
     }
-    if !opts.convert_thumbnail.is_empty() {
+    if opts.postprocess_thumbnail_square {
+        cmd.arg("--convert-thumbnails").arg("png");
+        cmd.arg("--postprocessor-args").arg(
+            r#"ThumbnailsConvertor+FFmpeg_o:-c:v png -vf crop="'if(gt(ih,iw),iw,ih)':'if(gt(iw,ih),ih,iw)'""#,
+        );
+    } else if !opts.convert_thumbnail.is_empty() {
         cmd.arg("--convert-thumbnails").arg(&opts.convert_thumbnail);
     }
 
@@ -650,6 +655,12 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
                         desc: "--split-chapters",
                         enabled: opts().split_chapters,
                         on_change: move |v| config.write().ytdlp_options.split_chapters = v,
+                    }
+                    OptToggle {
+                        label: "Center-crop thumbnails",
+                        desc: "--postprocessor-args (square crop)",
+                        enabled: opts().postprocess_thumbnail_square,
+                        on_change: move |v| config.write().ytdlp_options.postprocess_thumbnail_square = v,
                     }
                 }
                 div {
