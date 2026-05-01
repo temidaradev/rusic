@@ -6,6 +6,7 @@
 , openssl
 , tailwindcss_4
 , dioxus-cli
+, yt-dlp
 , src
 # Linux only
 , wrapGAppsHook3 ? null
@@ -49,6 +50,7 @@ rustPlatform.buildRustPackage {
     xdotool
     wayland
     dbus
+    yt-dlp
   ] ++ extraBuildInputs;
 
   doCheck = false;
@@ -103,7 +105,10 @@ CODESIGN_EOF
   '';
 
   preFixup = lib.optionalString stdenv.isLinux ''
-    gappsWrapperArgs+=(--chdir $out/bin)
+    gappsWrapperArgs+=(
+      --chdir $out/bin
+      --prefix PATH : ${lib.makeBinPath [ yt-dlp ]}
+    )
   '';
 
   meta = with lib; {

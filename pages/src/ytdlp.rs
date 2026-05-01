@@ -2,6 +2,15 @@ use config::{AppConfig, YtdlpOptions};
 use dioxus::prelude::*;
 use std::io::BufRead;
 
+// Prefixes used by --print/--progress-template for deterministic parsing.
+const TITLE_PREFIX: &str = "title=";
+const PROGRESS_PREFIX: &str = "progress=";
+const PROCESSING_PREFIX: &str = "processing=";
+const PRINT_TITLE: &str = "title=%(title)s";
+const PROGRESS_TEMPLATE_DOWNLOAD: &str =
+    "download:progress=%(progress)s|speed=%(speed)s|eta=%(eta)s";
+const PROGRESS_TEMPLATE_POSTPROCESS: &str = "postprocess:processing=1";
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct DownloadJob {
     pub id: String,
@@ -29,7 +38,6 @@ pub enum AudioFormat {
     Mp3,
     Flac,
     Wav,
-    Video,
 }
 
 impl AudioFormat {
@@ -39,7 +47,6 @@ impl AudioFormat {
             Self::Mp3 => "MP3",
             Self::Flac => "FLAC",
             Self::Wav => "WAV",
-            Self::Video => "Video (MP4)",
         }
     }
 
@@ -48,7 +55,6 @@ impl AudioFormat {
             "MP3" => Self::Mp3,
             "FLAC" => Self::Flac,
             "WAV" => Self::Wav,
-            "Video (MP4)" => Self::Video,
             _ => Self::BestAudio,
         }
     }
@@ -59,7 +65,6 @@ impl AudioFormat {
             Self::Mp3 => vec!["-x", "--audio-format", "mp3", "--audio-quality", "0"],
             Self::Flac => vec!["-x", "--audio-format", "flac"],
             Self::Wav => vec!["-x", "--audio-format", "wav"],
-            Self::Video => vec!["-f", "bestvideo+bestaudio", "--merge-output-format", "mp4"],
         }
     }
 }
@@ -74,8 +79,14 @@ fn build_command(
 
     cmd.arg("--newline")
         .arg("--no-warnings")
+        .arg("--print")
+        .arg(PRINT_TITLE)
+        .arg("--progress-template")
+        .arg(PROGRESS_TEMPLATE_DOWNLOAD)
+        .arg("--progress-template")
+        .arg(PROGRESS_TEMPLATE_POSTPROCESS)
         .arg("-o")
-        .arg("%(uploader)s - %(title)s.%(ext)s");
+        .arg("%(playlist_title,album,title|single)s/%(title)s.%(ext)s");
 
     if !out.is_empty() {
         cmd.arg("--paths").arg(out);
@@ -187,59 +198,37 @@ enum LineInfo {
 fn parse_line(line: &str) -> Option<LineInfo> {
     let line = line.trim();
 
-    if line.starts_with("ERROR") || line.contains("ERROR:") {
-        return Some(LineInfo::Error(line.to_string()));
+    if let Some(title) = line.strip_prefix(TITLE_PREFIX) {
+        if !title.is_empty() {
+            return Some(LineInfo::Title(title.to_string()));
+        }
+        return None;
     }
-    if line.starts_with("[download]") && line.contains('%') && line.contains("at") {
-        let pct = line
-            .split('%')
+    if let Some(rest) = line.strip_prefix(PROGRESS_PREFIX) {
+        let mut parts = rest.split('|');
+        let pct = parts
             .next()
-            .and_then(|s| s.split_whitespace().last())
-            .and_then(|s| s.parse::<f64>().ok())
+            .unwrap_or("")
+            .trim()
+            .trim_end_matches('%')
+            .parse::<f64>()
             .unwrap_or(0.0);
-        let speed = line
-            .split("at")
-            .nth(1)
-            .and_then(|s| s.split_whitespace().next())
-            .unwrap_or("")
-            .to_string();
-        let eta = line
-            .split("ETA")
-            .nth(1)
-            .and_then(|s| s.split_whitespace().next())
-            .unwrap_or("")
-            .to_string();
+        let mut speed = String::new();
+        let mut eta = String::new();
+        for part in parts {
+            let part = part.trim();
+            if let Some(value) = part.strip_prefix("speed=") {
+                speed = value.to_string();
+            } else if let Some(value) = part.strip_prefix("eta=") {
+                eta = value.to_string();
+            }
+        }
         return Some(LineInfo::Progress { pct, speed, eta });
     }
-    if line.starts_with("[download]") && line.contains("100%") {
-        return Some(LineInfo::Progress {
-            pct: 100.0,
-            speed: String::new(),
-            eta: String::new(),
-        });
-    }
-    if line.contains("Destination:") {
-        let title = line
-            .split("Destination:")
-            .nth(1)
-            .map(|s| {
-                std::path::Path::new(s.trim())
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or(s.trim())
-                    .to_string()
-            })
-            .unwrap_or_default();
-        if !title.is_empty() {
-            return Some(LineInfo::Title(title));
+    if let Some(value) = line.strip_prefix(PROCESSING_PREFIX) {
+        if value.trim() == "1" || value.trim() == "true" {
+            return Some(LineInfo::Processing);
         }
-    }
-    if line.contains("[ExtractAudio]")
-        || line.contains("Deleting original")
-        || line.contains("[Merger]")
-        || line.contains("[ffmpeg]")
-    {
-        return Some(LineInfo::Processing);
     }
     None
 }
@@ -281,7 +270,12 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
             return;
         }
 
-        let out = out_dir();
+        let mut out = out_dir();
+        if out.trim().is_empty() {
+            if let Some(path) = config.peek().music_directory.first() {
+                out = path.to_string_lossy().to_string();
+            }
+        }
         let fmt = format();
         let opts = config.peek().ytdlp_options.clone();
         let job_id = uuid::Uuid::new_v4().to_string();
@@ -325,6 +319,20 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                     }
                 };
 
+                let stderr_handle = child.stderr.take().map(|stderr| {
+                    let stderr_tx = tx.clone();
+                    std::thread::spawn(move || {
+                        let errs: Vec<String> = std::io::BufReader::new(stderr)
+                            .lines()
+                            .flatten()
+                            .filter(|l| l.contains("ERROR"))
+                            .collect();
+                        if !errs.is_empty() {
+                            let _ = stderr_tx.send(LineInfo::Error(errs.join("\n")));
+                        }
+                    })
+                });
+
                 if let Some(stdout) = child.stdout.take() {
                     for line in std::io::BufReader::new(stdout).lines().flatten() {
                         if let Some(info) = parse_line(&line) {
@@ -332,15 +340,9 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                         }
                     }
                 }
-                if let Some(stderr) = child.stderr.take() {
-                    let errs: Vec<String> = std::io::BufReader::new(stderr)
-                        .lines()
-                        .flatten()
-                        .filter(|l| l.contains("ERROR"))
-                        .collect();
-                    if !errs.is_empty() {
-                        let _ = tx.send(LineInfo::Error(errs.join("\n")));
-                    }
+
+                if let Some(handle) = stderr_handle {
+                    let _ = handle.join();
                 }
                 match child.wait() {
                     Ok(s) if s.success() => {
@@ -467,7 +469,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
             }
 
             div { class: "flex gap-2 mb-4 flex-wrap",
-                for fmt in [AudioFormat::BestAudio, AudioFormat::Mp3, AudioFormat::Flac, AudioFormat::Wav, AudioFormat::Video] {
+                for fmt in [AudioFormat::BestAudio, AudioFormat::Mp3, AudioFormat::Flac, AudioFormat::Wav] {
                     button {
                         class: if *format.read() == fmt {
                             "text-xs px-3 py-1.5 rounded-lg bg-white/20 text-white font-medium transition-colors"
@@ -691,7 +693,7 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
                 }
                 div { class: "grid grid-cols-2 gap-x-6 gap-y-2 mb-4",
                     OptToggle {
-                        label: "Single video only",
+                        label: "Single release only",
                         desc: "--no-playlist",
                         enabled: opts().no_playlist,
                         on_change: move |v| config.write().ytdlp_options.no_playlist = v,

@@ -297,9 +297,16 @@ where
 
 impl Default for AppConfig {
     fn default() -> Self {
-        let music_directory = directories::UserDirs::new()
+        let user_dirs = directories::UserDirs::new();
+        let music_directory = user_dirs
+            .as_ref()
             .and_then(|u| u.audio_dir().map(|p| p.to_path_buf()))
             .unwrap_or_else(|| PathBuf::from("./assets"));
+        let ytdlp_output_dir = user_dirs
+            .as_ref()
+            .and_then(|u| u.download_dir().map(|p| p.to_path_buf()))
+            .or_else(|| directories::BaseDirs::new().map(|b| b.home_dir().join("Downloads")))
+            .unwrap_or_else(|| PathBuf::from("./Downloads"));
         Self {
             server: None,
             active_source: MusicSource::Local,
@@ -320,7 +327,7 @@ impl Default for AppConfig {
             volume: default_volume(),
             custom_themes: HashMap::new(),
             back_behavior: BackBehavior::RewindThenPrev,
-            ytdlp_output_dir: String::new(),
+            ytdlp_output_dir: ytdlp_output_dir.to_string_lossy().to_string(),
             ytdlp_options: YtdlpOptions::default(),
             ytdlp_history: Vec::new(),
         }
