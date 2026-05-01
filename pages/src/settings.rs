@@ -1,6 +1,5 @@
 use crate::theme_editor::ThemeEditorPage;
 use ::server::provider::ProviderClient;
-use ::server::youtube_music;
 use components::settings_items::{
     BackBehaviorSelector, DirectoryPicker, DiscordPresenceSettings, LanguageSelector,
     MusicBrainzSettings, ServerSettings, SettingItem, ThemeSelector, ToggleSetting,
@@ -25,54 +24,7 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
     let mut login_error = use_signal(|| Option::<String>::None);
     let mut is_loading = use_signal(|| false);
 
-    let mut ytm_user_code = use_signal(|| Option::<String>::None);
-    let mut ytm_verify_url = use_signal(|| Option::<String>::None);
-    let mut ytm_error = use_signal(|| Option::<String>::None);
-    let mut ytm_loading = use_signal(|| false);
-
-    let handle_ytm_connect = move |_| {
-        ytm_loading.set(true);
-        ytm_error.set(None);
-        ytm_user_code.set(None);
-        ytm_verify_url.set(None);
-
-        spawn(async move {
-            match youtube_music::start_device_auth().await {
-                Ok(auth) => {
-                    let device_code = auth.device_code.clone();
-                    let interval = auth.interval;
-                    ytm_user_code.set(Some(auth.user_code));
-                    ytm_verify_url.set(Some(auth.verification_url));
-                    ytm_loading.set(false);
-
-                    loop {
-                        utils::sleep(std::time::Duration::from_secs(interval.max(5))).await;
-                        match youtube_music::poll_device_token(&device_code).await {
-                            Ok(Some(tokens)) => {
-                                let mut cfg = config.write();
-                                cfg.ytm_access_token = Some(tokens.access_token);
-                                cfg.ytm_refresh_token = Some(tokens.refresh_token);
-                                ytm_user_code.set(None);
-                                ytm_verify_url.set(None);
-                                break;
-                            }
-                            Ok(None) => continue,
-                            Err(e) => {
-                                ytm_error.set(Some(e));
-                                ytm_user_code.set(None);
-                                ytm_verify_url.set(None);
-                                break;
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    ytm_error.set(Some(e));
-                    ytm_loading.set(false);
-                }
-            }
-        });
-    };
+    let available_browsers = use_memo(|| ::server::youtube_music::detect_available_browsers());
 
     let handle_add_server = move |_| {
         if !server_url().starts_with("http") {
@@ -280,61 +232,56 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                         class: "text-lg font-semibold text-white/80 mb-4 border-b border-white/5 pb-2",
                         "YouTube Music"
                     }
-                    div { class: "space-y-4",
+                    div { class: "space-y-6",
                         {
-                            let ytm_connected = config.read().ytm_access_token.is_some();
+                            let selected = config.read().ytm_browser.clone();
+                            let browsers = available_browsers.read();
 
                             rsx! {
-                                if ytm_connected {
-                                    div { class: "flex items-center justify-between",
-                                        div { class: "flex items-center gap-3",
-                                            div { class: "w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center",
-                                                i { class: "fa-brands fa-youtube text-red-400 text-sm" }
-                                            }
-                                            span { class: "text-white text-sm font-medium", "YouTube Music connected" }
-                                        }
-                                        button {
-                                            class: "text-xs text-slate-400 hover:text-red-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/5",
-                                            onclick: move |_| {
-                                                let mut cfg = config.write();
-                                                cfg.ytm_access_token = None;
-                                                cfg.ytm_refresh_token = None;
-                                            },
-                                            "Disconnect"
-                                        }
+                                div { class: "space-y-3",
+                                    p { class: "text-slate-400 text-sm",
+                                        "Select your browser. Kopuz reads your YouTube login automatically — no passwords or tokens needed."
                                     }
-                                } else if ytm_user_code().is_some() {
-                                    div { class: "space-y-3",
-                                        p { class: "text-slate-400 text-sm", "Visit the URL below and enter this code:" }
-                                        div { class: "bg-white/5 rounded-xl p-4 space-y-2 border border-white/10",
-                                            if let Some(url) = ytm_verify_url() {
-                                                a {
-                                                    class: "text-blue-400 text-sm font-medium hover:underline block",
-                                                    href: "{url}",
-                                                    "{url}"
+                                    if browsers.is_empty() {
+                                        p { class: "text-red-400 text-xs", "No supported browsers found. Install Firefox or Chromium." }
+                                    } else {
+                                        div { class: "flex flex-wrap gap-2",
+                                            for browser in browsers.iter() {
+                                                {
+                                                    let b = browser.to_string();
+                                                    let b2 = b.clone();
+                                                    let is_selected = selected.as_deref() == Some(*browser);
+                                                    let btn_class = if is_selected {
+                                                        "flex items-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                                                    } else {
+                                                        "flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                                                    };
+                                                    rsx! {
+                                                        button {
+                                                            class: "{btn_class}",
+                                                            onclick: move |_| {
+                                                                config.write().ytm_browser = Some(b.clone());
+                                                            },
+                                                            i { class: "fa-brands fa-{b2} text-xs" }
+                                                            { b2.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default() + &b2[1..] }
+                                                        }
+                                                    }
                                                 }
                                             }
-                                            if let Some(code) = ytm_user_code() {
-                                                div { class: "font-mono text-2xl font-bold text-white tracking-widest text-center py-2",
-                                                    "{code}"
+                                            if selected.is_some() {
+                                                button {
+                                                    class: "text-xs text-slate-500 hover:text-red-400 transition-colors px-3 py-2 rounded-xl hover:bg-white/5",
+                                                    onclick: move |_| { config.write().ytm_browser = None; },
+                                                    "Disconnect"
                                                 }
                                             }
                                         }
-                                        p { class: "text-slate-500 text-xs", "Waiting for authorization..." }
                                     }
-                                } else {
-                                    div { class: "flex items-center justify-between",
-                                        p { class: "text-slate-400 text-sm", "Connect your YouTube Music account via Google OAuth." }
-                                        button {
-                                            class: "flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium px-4 py-2 rounded-xl transition-colors border border-red-500/20 disabled:opacity-50",
-                                            disabled: ytm_loading(),
-                                            onclick: handle_ytm_connect,
-                                            i { class: "fa-brands fa-youtube" }
-                                            if ytm_loading() { "Connecting..." } else { "Connect YouTube Music" }
+                                    if let Some(b) = &selected {
+                                        p { class: "text-green-400 text-xs",
+                                            i { class: "fa-solid fa-circle-check mr-1" }
+                                            "Using {b}. Make sure you're logged into YouTube Music in that browser."
                                         }
-                                    }
-                                    if let Some(err) = ytm_error() {
-                                        p { class: "text-red-400 text-xs mt-2", "{err}" }
                                     }
                                 }
                             }

@@ -12,4 +12,6 @@ config = { workspace = true }
 rand = { workspace = true }
 uuid = { workspace = true }
 md5 = "0.7"
+sha1 = "0.10"
 web-time = { workspace = true }
+tokio = { workspace = true }

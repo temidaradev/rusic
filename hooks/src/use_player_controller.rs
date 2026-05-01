@@ -85,7 +85,8 @@ impl PlayerController {
                     .unwrap_or(&path_str)
                     .to_string();
                 let conf = self.config.read();
-                let access_token = conf.ytm_access_token.clone().unwrap_or_default();
+                let browser = conf.ytm_browser.clone();
+                drop(conf);
 
                 let thumbnail_url = format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", video_id);
 
@@ -107,8 +108,10 @@ impl PlayerController {
 
                 #[cfg(not(target_arch = "wasm32"))]
                 spawn(async move {
-                    let ytm = ::server::youtube_music::YouTubeMusicClient::new(&access_token);
-                    match ytm.get_stream_url(&video_id).await {
+                    match ::server::youtube_music::yt_dlp_stream_url(
+                        &video_id,
+                        browser.as_deref(),
+                    ).await {
                         Ok(stream_url) => {
                             if *play_generation.read() != current_gen {
                                 is_loading.set(false);

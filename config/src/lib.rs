@@ -108,6 +108,10 @@ pub struct AppConfig {
     pub ytm_access_token: Option<String>,
     #[serde(default)]
     pub ytm_refresh_token: Option<String>,
+    #[serde(default)]
+    pub ytm_cookies: Option<String>,
+    #[serde(default)]
+    pub ytm_browser: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -214,6 +218,8 @@ impl Default for AppConfig {
             back_behavior: BackBehavior::RewindThenPrev,
             ytm_access_token: None,
             ytm_refresh_token: None,
+            ytm_cookies: None,
+            ytm_browser: None,
         }
     }
 }
