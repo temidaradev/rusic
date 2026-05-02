@@ -622,15 +622,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.58"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0f78a02292a74a88ac736019ab962ece0bc380e3f977bf72e376c5d78ff0678"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "cocoa"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4320,13 +4311,9 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "opusic-sys"
-version = "0.5.8"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f43c183739dc81651487e7c9f3e4330fe4a3fd26c0fa961c788ce5fb21fa75b"
-dependencies = [
- "cmake",
- "libc",
-]
+checksum = "dc3280fe5b6f97ac1a35a0ac003e2fb0b92f8e4bdf2b2057e1bf9b87acca5696"
 
 [[package]]
 name = "ordered-stream"
@@ -5915,10 +5902,11 @@ dependencies = [
 
 [[package]]
 name = "symphonia-adapter-libopus"
-version = "0.1.2"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5a630acf003f3d39d93eaaa3b8d09c872170ea202ff39bef2248c96682de1a4"
+checksum = "b9d17450685dda0e87467eddf3e0f9c0b2a1707fc5c3234c111f70d46c6e4494"
 dependencies = [
+ "log",
  "opusic-sys",
  "symphonia-core",
 ]

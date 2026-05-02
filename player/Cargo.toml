@@ -6,7 +6,7 @@ edition = "2024"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 cpal = { workspace = true }
 symphonia = { workspace = true }
-symphonia-adapter-libopus = "0.1"
+symphonia-adapter-libopus = { version = "0.2", default-features = false }
 rb = { workspace = true }
 tokio = { workspace = true }
 
