@@ -375,6 +375,16 @@ fn eq_apply_drag(base: &EqualizerConfig, index: usize, y: f64) -> EqualizerConfi
     eq_apply_band_gain(base, index, eq_y_to_gain(y))
 }
 
+fn eq_interpolate_bands(from: [f32; 5], to: [f32; 5], progress: f32) -> [f32; 5] {
+    std::array::from_fn(|index| from[index] + (to[index] - from[index]) * progress)
+}
+
+fn eq_drag_readout_position(index: usize, gain: f32, total: usize) -> (f64, f64) {
+    let x = eq_band_x(index, total).clamp(76.0, EQ_GRAPH_WIDTH - 76.0);
+    let y = (eq_gain_to_y(gain) - 30.0).clamp(18.0, EQ_GRAPH_HEIGHT - EQ_GRAPH_PAD_BOTTOM - 18.0);
+    (x, y)
+}
+
 fn eq_preset_label(preset: EqPreset) -> String {
     match preset {
         EqPreset::Flat => i18n::t("eq_preset_flat"),
@@ -394,10 +404,13 @@ pub fn EqualizerPanel(
 ) -> Element {
     const BAND_LABELS: [&str; 5] = ["60 Hz", "250 Hz", "1 kHz", "4 kHz", "12 kHz"];
 
+    let config = use_context::<Signal<AppConfig>>();
     let mut draft = use_signal(|| current.clone());
     let mut dragging_band = use_signal(|| None::<usize>);
+    let mut displayed_bands = use_signal(|| current.resolved_bands());
+    let mut animation_token = use_signal(|| 0_u64);
     let enabled = draft.read().enabled;
-    let resolved_bands = draft.read().resolved_bands();
+    let resolved_bands = *displayed_bands.read();
     let slider_style = if enabled {
         "inset-inline-start: 4px; width: calc(50% - 4px);"
     } else {
@@ -415,6 +428,7 @@ pub fn EqualizerPanel(
     } else {
         "text-slate-500 hover:text-slate-300"
     };
+    let active_drag_band = *dragging_band.read();
 
     let graph_path = resolved_bands
         .iter()
@@ -470,8 +484,38 @@ pub fn EqualizerPanel(
                         value: "{draft.read().preset.as_storage()}",
                         onchange: move |evt| {
                             let mut next = draft.peek().clone();
-                            next.preset = EqPreset::from_storage(&evt.value());
+                            let preset = EqPreset::from_storage(&evt.value());
+                            let previous_bands = *displayed_bands.peek();
+                            next.preset = preset;
+                            if let Some(default_preamp_db) = preset.default_preamp_db() {
+                                next.preamp_db = default_preamp_db;
+                            }
+                            let next_bands = next.resolved_bands();
                             draft.set(next.clone());
+                            let token = *animation_token.read() + 1;
+                            animation_token.set(token);
+                            if config.read().reduce_animations {
+                                displayed_bands.set(next_bands);
+                            } else {
+                                spawn(async move {
+                                    const STEPS: u32 = 10;
+                                    const FRAME_MS: u64 = 18;
+                                    for step in 1..=STEPS {
+                                        if *animation_token.read() != token {
+                                            return;
+                                        }
+                                        let progress = step as f32 / STEPS as f32;
+                                        displayed_bands.set(eq_interpolate_bands(
+                                            previous_bands,
+                                            next_bands,
+                                            progress,
+                                        ));
+                                        if step < STEPS {
+                                            utils::sleep(std::time::Duration::from_millis(FRAME_MS)).await;
+                                        }
+                                    }
+                                });
+                            }
                             on_preview.call(next.clone());
                             on_commit.call(next);
                         },
@@ -534,6 +578,9 @@ pub fn EqualizerPanel(
                         dragging_band.set(Some(index));
                         let next = eq_apply_drag(&draft.peek().clone(), index, point.y);
                         draft.set(next.clone());
+                        let token = *animation_token.read() + 1;
+                        animation_token.set(token);
+                        displayed_bands.set(next.resolved_bands());
                         on_preview.call(next);
                     },
                     onmousemove: move |evt: MouseEvent| {
@@ -541,6 +588,7 @@ pub fn EqualizerPanel(
                             let point = evt.element_coordinates();
                             let next = eq_apply_drag(&draft.peek().clone(), index, point.y);
                             draft.set(next.clone());
+                            displayed_bands.set(next.resolved_bands());
                             on_preview.call(next);
                         }
                     },
@@ -610,8 +658,8 @@ pub fn EqualizerPanel(
                         circle {
                             cx: "{eq_band_x(index, BAND_LABELS.len())}",
                             cy: "{eq_gain_to_y(*gain)}",
-                            r: if *dragging_band.read() == Some(index) { "8" } else { "6" },
-                            style: if *dragging_band.read() == Some(index) {
+                            r: if active_drag_band == Some(index) { "8" } else { "6" },
+                            style: if active_drag_band == Some(index) {
                                 "fill: var(--color-indigo-400);"
                             } else {
                                 "fill: var(--color-white);"
@@ -623,11 +671,40 @@ pub fn EqualizerPanel(
                             r: "14",
                             fill: "transparent",
                             stroke_width: "1",
-                            style: if *dragging_band.read() == Some(index) {
+                            style: if active_drag_band == Some(index) {
                                 "stroke: color-mix(in oklab, var(--color-indigo-400) 40%, transparent);"
                             } else {
                                 "stroke: color-mix(in oklab, var(--color-white) 10%, transparent);"
                             },
+                        }
+                    }
+                    if let Some(index) = active_drag_band {
+                        {
+                            let gain = resolved_bands[index];
+                            let (tooltip_x, tooltip_y) =
+                                eq_drag_readout_position(index, gain, BAND_LABELS.len());
+                            rsx! {
+                                rect {
+                                    x: "{tooltip_x - 34.0}",
+                                    y: "{tooltip_y - 12.0}",
+                                    rx: "10",
+                                    ry: "10",
+                                    width: "68",
+                                    height: "24",
+                                    style: "fill: color-mix(in oklab, var(--color-neutral-900) 92%, transparent); stroke: color-mix(in oklab, var(--color-indigo-400) 26%, transparent);",
+                                    stroke_width: "1",
+                                }
+                                text {
+                                    x: "{tooltip_x}",
+                                    y: "{tooltip_y + 3.5}",
+                                    text_anchor: "middle",
+                                    font_size: "11",
+                                    font_family: "JetBrains Mono, monospace",
+                                    font_weight: "700",
+                                    style: "fill: var(--color-white);",
+                                    {format!("{gain:+.1} dB")}
+                                }
+                            }
                         }
                     }
                 }

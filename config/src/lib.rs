@@ -221,6 +221,17 @@ impl EqPreset {
             Self::Loudness => [4.0, 2.0, 0.5, 2.5, 4.0],
         }
     }
+
+    pub const fn default_preamp_db(self) -> Option<f32> {
+        match self {
+            Self::Flat => Some(0.0),
+            Self::BassBoost => Some(-4.0),
+            Self::TrebleBoost => Some(-2.0),
+            Self::VocalBoost => Some(-1.5),
+            Self::Loudness => Some(-5.0),
+            Self::Custom => None,
+        }
+    }
 }
 
 fn default_eq_bands() -> [f32; 5] {
