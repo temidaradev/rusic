@@ -8,6 +8,7 @@
 , dioxus-cli
 , yt-dlp
 , src
+, libopus
 # Linux only
 , wrapGAppsHook3 ? null
 , webkitgtk_4_1 ? null
@@ -51,6 +52,7 @@ rustPlatform.buildRustPackage {
     wayland
     dbus
     yt-dlp
+    libopus
   ] ++ extraBuildInputs;
 
   doCheck = false;
