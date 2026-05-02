@@ -1,6 +1,14 @@
-# Kopuz (formerly known as Rusic)
+<div align="center">
+  <img src="kopuz/assets/banner.svg" alt="FlockNet Logo" height="300"/>
 
-Kopuz is a modern, lightweight, music player application built with Rust and the Dioxus framework. It provides a clean and responsive interface for managing and enjoying your local music collection.
+  # Kopuz (Formerly Rusic)
+  Kopuz is a modern, lightweight, music player application built with Rust and the Dioxus framework. It provides a clean and responsive interface for managing and enjoying your local music collection.
+
+[![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/K6Bmzw2E4M)
+![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
+![Kopuz](https://github.com/user-attachments/assets/c0cdbcfa-f468-4a51-8910-2e27f3d55127)
+
+</div>
 
 ## About the Name
 
@@ -10,10 +18,6 @@ The Kyrgyz komuz is not the same instrument, but likely a descendant of the kopu
 
 In Turkic legend, the kopuz is linked to Dede Korkut, a legendary bard, though this is mythological rather than historical.
 
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/K6Bmzw2E4M)
-![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
-
-![Kopuz](https://github.com/user-attachments/assets/c0cdbcfa-f468-4a51-8910-2e27f3d55127)
 
 ## Overview
 
