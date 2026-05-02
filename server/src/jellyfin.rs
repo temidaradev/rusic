@@ -371,7 +371,7 @@ impl JellyfinClient {
         let user_id = self.user_id()?;
         let path = format!("/Users/{}/Items", user_id);
 
-        let fields = "DateCreated,DateLastMediaAdded".to_string();
+        let fields = "DateCreated,DateLastMediaAdded,ImageTags".to_string();
         let query = [
             ("IncludeItemTypes", "Playlist"),
             ("Recursive", "true"),

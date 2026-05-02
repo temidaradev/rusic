@@ -212,25 +212,36 @@ pub fn PlaylistDetail(
                 .and_then(|a| utils::format_artwork_url(a.cover_path.as_ref()))
         })
     } else {
-        if let Some(_p) = store
+        if let Some(p) = store
             .jellyfin_playlists
             .iter()
             .find(|p| p.id == playlist_id)
         {
-            tracks_val.first().and_then(|t| {
-                if let Some(server) = &config.read().server {
-                    let path_str = t.path.to_string_lossy();
-                    utils::jellyfin_image::jellyfin_image_url_from_path(
-                        &path_str,
+            if let Some(server) = &config.read().server {
+                if let Some(tag) = &p.image_tag {
+                    Some(utils::jellyfin_image::jellyfin_image_url(
                         &server.url,
+                        &p.id,
+                        Some(tag.as_str()),
                         server.access_token.as_deref(),
                         512,
                         90,
-                    )
+                    ))
                 } else {
-                    None
+                    tracks_val.first().and_then(|t| {
+                        let path_str = t.path.to_string_lossy();
+                        utils::jellyfin_image::jellyfin_image_url_from_path(
+                            &path_str,
+                            &server.url,
+                            server.access_token.as_deref(),
+                            512,
+                            90,
+                        )
+                    })
                 }
-            })
+            } else {
+                None
+            }
         } else {
             None
         }

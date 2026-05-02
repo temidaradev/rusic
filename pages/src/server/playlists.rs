@@ -62,6 +62,11 @@ pub fn JellyfinPlaylists(
                         JellyfinClient::new(&url, Some(&token), &device_id, Some(&user_id));
                     if let Ok(playlists) = remote.get_playlists().await {
                         for p in playlists {
+                            let image_tag = p
+                                .image_tags
+                                .as_ref()
+                                .and_then(|tags| tags.get("Primary"))
+                                .cloned();
                             if let Ok(items) = remote.get_playlist_items(&p.id).await {
                                 let tracks: Vec<String> =
                                     items.into_iter().map(|item| item.id).collect();
@@ -69,12 +74,14 @@ pub fn JellyfinPlaylists(
                                     id: p.id.clone(),
                                     name: p.name.clone(),
                                     tracks,
+                                    image_tag,
                                 });
                             } else {
                                 server_playlists.push(reader::models::JellyfinPlaylist {
                                     id: p.id.clone(),
                                     name: p.name.clone(),
                                     tracks: vec![],
+                                    image_tag,
                                 });
                             }
                         }
@@ -95,6 +102,7 @@ pub fn JellyfinPlaylists(
                                 id: p.id,
                                 name: p.name,
                                 tracks,
+                                image_tag: None,
                             });
                         }
                     }
@@ -122,29 +130,40 @@ pub fn JellyfinPlaylists(
             } else {
                 div { class: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6",
                     {store.jellyfin_playlists.iter().map(|playlist| {
-                        let cover_url = if let Some(first_track_id) = playlist.tracks.first() {
-                            let lib = library.peek();
-                            lib.jellyfin_tracks
-                                .iter()
-                                .find(|t| t.path.to_string_lossy().contains(first_track_id.as_str()))
-                                .and_then(|t| {
-                                    let conf = config.peek();
-                                    if let Some(server) = &conf.server {
-                                        let path_str = t.path.to_string_lossy();
-                                        utils::jellyfin_image::track_cover_url_with_album_fallback(
-                                            &path_str,
-                                            &t.album_id,
-                                            &server.url,
-                                            server.access_token.as_deref(),
-                                            384,
-                                            80,
-                                        )
-                                    } else {
-                                        None
-                                    }
-                                })
-                        } else {
-                            None
+                        let cover_url = {
+                            let conf = config.peek();
+                            if let Some(server) = &conf.server {
+                                if let Some(tag) = &playlist.image_tag {
+                                    Some(utils::jellyfin_image::jellyfin_image_url(
+                                        &server.url,
+                                        &playlist.id,
+                                        Some(tag.as_str()),
+                                        server.access_token.as_deref(),
+                                        384,
+                                        80,
+                                    ))
+                                } else if let Some(first_track_id) = playlist.tracks.first() {
+                                    let lib = library.peek();
+                                    lib.jellyfin_tracks
+                                        .iter()
+                                        .find(|t| t.path.to_string_lossy().contains(first_track_id.as_str()))
+                                        .and_then(|t| {
+                                            let path_str = t.path.to_string_lossy();
+                                            utils::jellyfin_image::track_cover_url_with_album_fallback(
+                                                &path_str,
+                                                &t.album_id,
+                                                &server.url,
+                                                server.access_token.as_deref(),
+                                                384,
+                                                80,
+                                            )
+                                        })
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
                         };
 
                         rsx! {

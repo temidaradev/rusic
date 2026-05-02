@@ -233,6 +233,7 @@ pub fn Album(
                                                         id: new_id,
                                                         name: playlist_name,
                                                         tracks: item_ids,
+                                                        image_tag: None,
                                                     });
                                                 }
                                             });

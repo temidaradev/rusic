@@ -154,6 +154,8 @@ pub struct JellyfinPlaylist {
     pub id: String,
     pub name: String,
     pub tracks: Vec<String>,
+    #[serde(default)]
+    pub image_tag: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
