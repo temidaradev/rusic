@@ -33,7 +33,21 @@ pub enum AudioFormat {
 }
 
 impl AudioFormat {
-    fn label(self) -> &'static str {
+    fn label_key(self) -> &'static str {
+        match self {
+            Self::BestAudio => "ytdlp_format_best_audio",
+            Self::Mp3 => "ytdlp_format_mp3",
+            Self::Flac => "ytdlp_format_flac",
+            Self::Wav => "ytdlp_format_wav",
+            Self::Video => "ytdlp_format_video",
+        }
+    }
+
+    fn label(self) -> String {
+        i18n::t(self.label_key())
+    }
+
+    fn storage_label(self) -> &'static str {
         match self {
             Self::BestAudio => "Best Audio",
             Self::Mp3 => "MP3",
@@ -315,10 +329,9 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                     Ok(c) => c,
                     Err(e) => {
                         let msg = if e.kind() == std::io::ErrorKind::NotFound {
-                            "yt-dlp not found in PATH. Install it: https://github.com/yt-dlp/yt-dlp"
-                                .into()
+                            i18n::t("ytdlp_error_not_found")
                         } else {
-                            format!("Failed to start yt-dlp: {e}")
+                            i18n::t_with("ytdlp_error_start", &[("error", e.to_string())])
                         };
                         let _ = tx.send(LineInfo::Error(msg));
                         return;
@@ -347,7 +360,10 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                         let _ = tx.send(LineInfo::Done);
                     }
                     Ok(s) => {
-                        let _ = tx.send(LineInfo::Error(format!("yt-dlp exited: {s}")));
+                        let _ = tx.send(LineInfo::Error(i18n::t_with(
+                            "ytdlp_error_exit",
+                            &[("status", s.to_string())],
+                        )));
                     }
                     Err(e) => {
                         let _ = tx.send(LineInfo::Error(e.to_string()));
@@ -382,7 +398,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                             config::YtdlpHistoryEntry {
                                 url: j.url.clone(),
                                 title: j.title.clone(),
-                                format: j.format.label().to_string(),
+                                format: j.format.storage_label().to_string(),
                                 status: "completed".into(),
                                 error: None,
                             }
@@ -405,7 +421,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                             config::YtdlpHistoryEntry {
                                 url: j.url.clone(),
                                 title: j.title.clone(),
-                                format: j.format.label().to_string(),
+                                format: j.format.storage_label().to_string(),
                                 status: "failed".into(),
                                 error: Some(msg.clone()),
                             }
@@ -432,9 +448,9 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                 div {
                     h1 { class: "text-2xl font-bold text-white mb-1",
                         i { class: "fa-solid fa-download mr-3 text-slate-400" }
-                        "Downloads"
+                        "{i18n::t(\"ytdlp_title\")}"
                     }
-                    p { class: "text-slate-500 text-sm", "Powered by yt-dlp" }
+                    p { class: "text-slate-500 text-sm", "{i18n::t(\"ytdlp_subtitle\")}" }
                 }
                 button {
                     class: if *show_opts.read() {
@@ -442,7 +458,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                     } else {
                         "text-slate-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors"
                     },
-                    title: "Options",
+                    title: i18n::t("ytdlp_options").to_string(),
                     onclick: move |_| show_opts.set(!show_opts()),
                     i { class: "fa-solid fa-sliders" }
                 }
@@ -451,7 +467,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
             div { class: "flex gap-2 mb-3",
                 input {
                     class: "flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-white/30 transition-colors text-sm",
-                    placeholder: "YouTube URL, playlist, channel…",
+                    placeholder: "{i18n::t(\"ytdlp_url_placeholder\")}",
                     value: "{url_input}",
                     oninput: move |e| url_input.set(e.value()),
                     onkeydown: move |e| {
@@ -462,7 +478,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                     class: "bg-white/10 hover:bg-white/20 text-white px-5 py-3 rounded-xl transition-colors font-medium text-sm shrink-0",
                     onclick: move |_| do_download(),
                     i { class: "fa-solid fa-download mr-2" }
-                    "Download"
+                    "{i18n::t(\"ytdlp_download\")}"
                 }
             }
 
@@ -484,7 +500,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                 i { class: "fa-solid fa-folder text-slate-600 text-sm shrink-0" }
                 input {
                     class: "flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-white/30 transition-colors",
-                    placeholder: "Output directory (defaults to music folder)",
+                    placeholder: "{i18n::t(\"ytdlp_output_dir_placeholder\")}",
                     value: "{out_dir}",
                     oninput: move |e| {
                         out_dir.set(e.value());
@@ -493,7 +509,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                 }
                 button {
                     class: "text-slate-400 hover:text-white transition-colors px-2 py-2 rounded-lg hover:bg-white/5 shrink-0",
-                    title: "Pick folder",
+                    title: i18n::t("ytdlp_pick_folder").to_string(),
                     onclick: move |_| {
                         spawn(async move {
                             if let Some(folder) = rfd::AsyncFileDialog::new().pick_folder().await {
@@ -523,7 +539,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
                                 ));
                                 config.write().ytdlp_history.clear();
                             },
-                            "Clear history"
+                            "{i18n::t(\"ytdlp_clear_history\")}"
                         }
                     }
                     for job in jobs.read().clone().into_iter() {
@@ -533,7 +549,7 @@ pub fn YtdlpPage(config: Signal<AppConfig>) -> Element {
             } else {
                 div { class: "text-center py-16 text-slate-600",
                     i { class: "fa-solid fa-download text-4xl mb-4 block opacity-30" }
-                    p { class: "text-sm", "Paste a YouTube URL above to start" }
+                    p { class: "text-sm", "{i18n::t(\"ytdlp_empty_state\")}" }
                 }
             }
         }
@@ -549,35 +565,35 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
 
             div {
                 p { class: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3",
-                    "Embed into file"
+                    "{i18n::t(\"ytdlp_section_embed\")}"
                 }
                 div { class: "grid grid-cols-2 gap-x-6 gap-y-2",
                     OptToggle {
-                        label: "Embed metadata",
+                        label: i18n::t("ytdlp_embed_metadata"),
                         desc: "--embed-metadata",
                         enabled: opts().embed_metadata,
                         on_change: move |v| config.write().ytdlp_options.embed_metadata = v,
                     }
                     OptToggle {
-                        label: "Embed thumbnail",
+                        label: i18n::t("ytdlp_embed_thumbnail"),
                         desc: "--embed-thumbnail",
                         enabled: opts().embed_thumbnail,
                         on_change: move |v| config.write().ytdlp_options.embed_thumbnail = v,
                     }
                     OptToggle {
-                        label: "Embed chapters",
+                        label: i18n::t("ytdlp_embed_chapters"),
                         desc: "--embed-chapters",
                         enabled: opts().embed_chapters,
                         on_change: move |v| config.write().ytdlp_options.embed_chapters = v,
                     }
                     OptToggle {
-                        label: "Embed subtitles",
+                        label: i18n::t("ytdlp_embed_subtitles"),
                         desc: "--embed-subs",
                         enabled: opts().embed_subs,
                         on_change: move |v| config.write().ytdlp_options.embed_subs = v,
                     }
                     OptToggle {
-                        label: "Embed info JSON",
+                        label: i18n::t("ytdlp_embed_info_json"),
                         desc: "--embed-info-json",
                         enabled: opts().embed_info_json,
                         on_change: move |v| config.write().ytdlp_options.embed_info_json = v,
@@ -589,41 +605,41 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
 
             div {
                 p { class: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3",
-                    "Write separate files"
+                    "{i18n::t(\"ytdlp_section_write\")}"
                 }
                 div { class: "grid grid-cols-2 gap-x-6 gap-y-2",
                     OptToggle {
-                        label: "Write thumbnail",
+                        label: i18n::t("ytdlp_write_thumbnail"),
                         desc: "--write-thumbnail",
                         enabled: opts().write_thumbnail,
                         on_change: move |v| config.write().ytdlp_options.write_thumbnail = v,
                     }
                     OptToggle {
-                        label: "Write description",
+                        label: i18n::t("ytdlp_write_description"),
                         desc: "--write-description",
                         enabled: opts().write_description,
                         on_change: move |v| config.write().ytdlp_options.write_description = v,
                     }
                     OptToggle {
-                        label: "Write info JSON",
+                        label: i18n::t("ytdlp_write_info_json"),
                         desc: "--write-info-json",
                         enabled: opts().write_info_json,
                         on_change: move |v| config.write().ytdlp_options.write_info_json = v,
                     }
                     OptToggle {
-                        label: "Write subtitles",
+                        label: i18n::t("ytdlp_write_subtitles"),
                         desc: "--write-subs",
                         enabled: opts().write_subs,
                         on_change: move |v| config.write().ytdlp_options.write_subs = v,
                     }
                     OptToggle {
-                        label: "Write auto-subtitles",
+                        label: i18n::t("ytdlp_write_auto_subtitles"),
                         desc: "--write-auto-subs",
                         enabled: opts().write_auto_subs,
                         on_change: move |v| config.write().ytdlp_options.write_auto_subs = v,
                     }
                     OptToggle {
-                        label: "Write comments",
+                        label: i18n::t("ytdlp_write_comments"),
                         desc: "--write-comments",
                         enabled: opts().write_comments,
                         on_change: move |v| config.write().ytdlp_options.write_comments = v,
@@ -635,40 +651,40 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
 
             div {
                 p { class: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3",
-                    "Post-processing"
+                    "{i18n::t(\"ytdlp_section_postprocess\")}"
                 }
                 div { class: "grid grid-cols-2 gap-x-6 gap-y-2 mb-4",
                     OptToggle {
-                        label: "Remove sponsors",
+                        label: i18n::t("ytdlp_remove_sponsors"),
                         desc: "--sponsorblock-remove",
                         enabled: opts().sponsorblock,
                         on_change: move |v| config.write().ytdlp_options.sponsorblock = v,
                     }
                     OptToggle {
-                        label: "Mark sponsors as chapters",
+                        label: i18n::t("ytdlp_mark_sponsors"),
                         desc: "--sponsorblock-mark",
                         enabled: opts().sponsorblock_mark,
                         on_change: move |v| config.write().ytdlp_options.sponsorblock_mark = v,
                     }
                     OptToggle {
-                        label: "Split by chapters",
+                        label: i18n::t("ytdlp_split_chapters"),
                         desc: "--split-chapters",
                         enabled: opts().split_chapters,
                         on_change: move |v| config.write().ytdlp_options.split_chapters = v,
                     }
                     OptToggle {
-                        label: "Center-crop thumbnails",
+                        label: i18n::t("ytdlp_crop_thumbnails"),
                         desc: "--postprocessor-args (square crop)",
                         enabled: opts().postprocess_thumbnail_square,
                         on_change: move |v| config.write().ytdlp_options.postprocess_thumbnail_square = v,
                     }
                 }
                 div {
-                    label { class: "text-xs text-slate-500 mb-1 block",
-                        "--convert-thumbnails"
-                    }
-                    div { class: "flex gap-2",
-                        for (val, lbl) in [("", "None"), ("jpg", "JPG"), ("png", "PNG"), ("webp", "WebP")] {
+                        label { class: "text-xs text-slate-500 mb-1 block",
+                            "--convert-thumbnails"
+                        }
+                        div { class: "flex gap-2",
+                        for (val, lbl) in [("", i18n::t("ytdlp_none")), ("jpg", "JPG".to_string()), ("png", "PNG".to_string()), ("webp", "WebP".to_string())] {
                             button {
                                 class: if opts().convert_thumbnail == val {
                                     "text-xs px-3 py-1.5 rounded-lg bg-white/20 text-white font-medium transition-colors"
@@ -687,23 +703,23 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
 
             div {
                 p { class: "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3",
-                    "Behavior"
+                    "{i18n::t(\"ytdlp_section_behavior\")}"
                 }
                 div { class: "grid grid-cols-2 gap-x-6 gap-y-2 mb-4",
                     OptToggle {
-                        label: "Single video only",
+                        label: i18n::t("ytdlp_single_video"),
                         desc: "--no-playlist",
                         enabled: opts().no_playlist,
                         on_change: move |v| config.write().ytdlp_options.no_playlist = v,
                     }
                     OptToggle {
-                        label: "Write xattrs",
+                        label: i18n::t("ytdlp_write_xattrs"),
                         desc: "--xattrs",
                         enabled: opts().xattrs,
                         on_change: move |v| config.write().ytdlp_options.xattrs = v,
                     }
                     OptToggle {
-                        label: "Don't set file mtime",
+                        label: i18n::t("ytdlp_no_mtime"),
                         desc: "--no-mtime",
                         enabled: opts().no_mtime,
                         on_change: move |v| config.write().ytdlp_options.no_mtime = v,
@@ -716,7 +732,7 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
                         }
                         input {
                             class: "w-full bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm placeholder-slate-700 focus:outline-none focus:border-white/30 transition-colors",
-                            placeholder: "unlimited",
+                            placeholder: "{i18n::t(\"ytdlp_unlimited\")}",
                             value: "{opts().rate_limit}",
                             oninput: move |e| config.write().ytdlp_options.rate_limit = e.value(),
                         }
@@ -731,7 +747,7 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
                                 let v = e.value();
                                 if v == "none" { String::new() } else { v }
                             },
-                            option { value: "none",     selected: opts().cookies_from_browser.is_empty(), "None" }
+                            option { value: "none",     selected: opts().cookies_from_browser.is_empty(), "{i18n::t(\"ytdlp_none\")}" }
                             option { value: "chrome",   selected: opts().cookies_from_browser == "chrome",   "Chrome" }
                             option { value: "firefox",  selected: opts().cookies_from_browser == "firefox",  "Firefox" }
                             option { value: "chromium", selected: opts().cookies_from_browser == "chromium", "Chromium" }
@@ -749,7 +765,7 @@ fn OptionsPanel(config: Signal<AppConfig>) -> Element {
 
 #[derive(Props, Clone, PartialEq)]
 struct OptToggleProps {
-    label: &'static str,
+    label: String,
     desc: &'static str,
     enabled: bool,
     on_change: EventHandler<bool>,
@@ -799,12 +815,15 @@ fn JobRow(props: JobRowProps) -> Element {
 
     let status_text = match &job.status {
         JobStatus::Downloading if !job.speed.is_empty() => {
-            format!("{:.0}%  {}  ETA {}", pct, job.speed, job.eta)
+            i18n::t_with(
+                "ytdlp_status_downloading_eta",
+                &[("percent", format!("{pct:.0}")), ("speed", job.speed.clone()), ("eta", job.eta.clone())],
+            )
         }
-        JobStatus::Downloading => format!("{:.0}%", pct),
-        JobStatus::Processing => "Processing…".into(),
-        JobStatus::Completed => "Completed".into(),
-        JobStatus::Pending => "Waiting…".into(),
+        JobStatus::Downloading => i18n::t_with("ytdlp_status_downloading", &[("percent", format!("{pct:.0}"))]),
+        JobStatus::Processing => i18n::t("ytdlp_status_processing"),
+        JobStatus::Completed => i18n::t("ytdlp_status_completed"),
+        JobStatus::Pending => i18n::t("ytdlp_status_waiting"),
         JobStatus::Failed(msg) => msg.clone(),
     };
 

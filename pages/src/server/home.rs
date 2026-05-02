@@ -196,10 +196,10 @@ pub fn JellyfinHome(
                             div { class: "relative h-full flex flex-col justify-center p-8 md:p-12",
                                 span { class: "text-indigo-400 font-bold tracking-widest uppercase text-[10px] mb-3 flex items-center gap-2",
                                     i { class: "fa-solid fa-star text-[8px]" }
-                                    "Featured Album"
+                                    "{i18n::t(\"featured_album\")}"
                                 }
                                 h1 { class: "text-3xl md:text-5xl font-black text-white mb-4 leading-tight max-w-xl break-words", "{title}" }
-                                p { class: "text-base md:text-lg text-white/60 mb-8 font-medium line-clamp-1 max-w-md", "By {artist}" }
+                                p { class: "text-base md:text-lg text-white/60 mb-8 font-medium line-clamp-1 max-w-md", "{i18n::t_with(\"by_artist_full\", &[(\"artist\", artist.to_string())])}" }
                                 div { class: "flex items-center gap-4",
                                     button {
                                         class: "flex items-center gap-3 bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-white/90 hover:scale-105 active:scale-95 transition-all w-fit",

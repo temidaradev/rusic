@@ -7,6 +7,17 @@ on:
     branches: [main, master]
 
 jobs:
+  locale-parity:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Check locale parity against en.ftl
+        run: nix shell nixpkgs#nushell --command nu scripts/check_locales.nu
+
   build:
     strategy:
       matrix:
