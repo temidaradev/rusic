@@ -13,7 +13,7 @@ In Turkic legend, the kopuz is linked to Dede Korkut, a legendary bard, though t
 [![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/K6Bmzw2E4M)
 ![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)
 
-![Kopuz](https://github.com/user-attachments/assets/554f7d71-5cce-4fe8-80c4-b72a2ce02fe6)
+![Kopuz](https://github.com/user-attachments/assets/c0cdbcfa-f468-4a51-8910-2e27f3d55127)
 
 ## Overview
 
