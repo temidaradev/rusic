@@ -165,6 +165,13 @@ impl PlayerController {
         self.pending_resume.set(None);
     }
 
+    fn set_pending_resume_for_track(&mut self, track: &Track, progress_secs: u64) {
+        self.pending_resume.set(Some(PendingResumeState {
+            track_path: Self::track_key(track),
+            progress_secs: progress_secs.min(track.duration),
+        }));
+    }
+
     fn apply_restore_seek(&mut self, seek_secs: u64) {
         self.player.write().seek(Duration::from_secs(seek_secs));
         self.current_song_progress.set(seek_secs);
@@ -789,14 +796,8 @@ impl PlayerController {
         if !self.player.peek().can_resume() {
             let idx = *self.current_queue_index.peek();
             if let Some(track) = self.current_track(idx) {
-                let pending_resume = self.pending_resume.read().clone();
-                if let Some(mut pending) = pending_resume {
-                    if pending.track_path == Self::track_key(&track) {
-                        pending.progress_secs =
-                            (*self.current_song_progress.peek()).min(track.duration);
-                        self.pending_resume.set(Some(pending));
-                    }
-                }
+                let progress_secs = (*self.current_song_progress.peek()).min(track.duration);
+                self.set_pending_resume_for_track(&track, progress_secs);
                 self.play_track_no_history(idx);
             }
             return;
@@ -862,14 +863,7 @@ impl PlayerController {
         let progress_secs = progress_secs.min(track.duration);
 
         self.hydrate_current_track_metadata(idx, progress_secs);
-        self.pending_resume.set(if progress_secs > 0 {
-            Some(PendingResumeState {
-                track_path: Self::track_key(&track),
-                progress_secs,
-            })
-        } else {
-            None
-        });
+        self.set_pending_resume_for_track(&track, progress_secs);
     }
 }
 

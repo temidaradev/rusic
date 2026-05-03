@@ -406,6 +406,7 @@ fn App() -> Element {
     let current_song_progress = use_signal(|| 0u64);
     let mut volume = use_signal(|| 1.0f32);
     let mut persisted_volume = use_signal(|| 1.0f32);
+    let mut configured_music_dirs = use_signal(|| config.peek().music_directory.clone());
 
     let is_playing = use_signal(|| false);
     let is_fullscreen = use_signal(|| false);
@@ -443,6 +444,13 @@ fn App() -> Element {
             });
         } else {
             palette.set(None);
+        }
+    });
+
+    use_effect(move || {
+        let next_dirs = config.read().music_directory.clone();
+        if *configured_music_dirs.peek() != next_dirs {
+            configured_music_dirs.set(next_dirs);
         }
     });
 
@@ -676,6 +684,7 @@ fn App() -> Element {
                 }
                 if let Ok(loaded) = cfg_res {
                     config.set(loaded.clone());
+                    configured_music_dirs.set(loaded.music_directory.clone());
                     volume.set(loaded.volume);
                     persisted_volume.set(loaded.volume);
                     player.write().set_volume(loaded.volume);
@@ -726,6 +735,7 @@ fn App() -> Element {
             }
             let loaded_volume = loaded.volume;
             let loaded_language = loaded.language.clone();
+            configured_music_dirs.set(loaded.music_directory.clone());
             config.set(loaded);
             volume.set(loaded_volume);
             persisted_volume.set(loaded_volume);
@@ -797,7 +807,7 @@ fn App() -> Element {
         if !*initial_load_done.read() {
             return;
         }
-        let configured_dirs = config.read().music_directory.clone();
+        let configured_dirs = configured_music_dirs.read().clone();
         let _ = trigger_rescan.read();
 
         #[cfg(not(target_arch = "wasm32"))]
