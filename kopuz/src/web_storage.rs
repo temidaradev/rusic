@@ -1,4 +1,6 @@
 #[cfg(target_arch = "wasm32")]
+use crate::queue_state::PersistedQueueState;
+#[cfg(target_arch = "wasm32")]
 use reader::FavoritesStore;
 #[cfg(target_arch = "wasm32")]
 use kopuz_route::Route;
@@ -13,6 +15,8 @@ const WEB_LIBRARY_STORAGE_KEY: &str = "kopuz.library.v1";
 const WEB_PLAYLISTS_STORAGE_KEY: &str = "kopuz.playlists.v1";
 #[cfg(target_arch = "wasm32")]
 const WEB_FAVORITES_STORAGE_KEY: &str = "kopuz.favorites.v1";
+#[cfg(target_arch = "wasm32")]
+const WEB_QUEUE_STATE_STORAGE_KEY: &str = "kopuz.queue-state.v1";
 
 #[cfg(target_arch = "wasm32")]
 fn route_to_storage(route: Route) -> &'static str {
@@ -197,5 +201,36 @@ pub fn save_web_favorites(store: &FavoritesStore) {
         serde_json::to_string(store),
     ) {
         let _ = storage.set_item(WEB_FAVORITES_STORAGE_KEY, &raw);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn load_web_queue_state() -> Option<PersistedQueueState> {
+    let storage = web_sys::window()
+        .and_then(|w| w.local_storage().ok())
+        .flatten()?;
+    let raw = storage.get_item(WEB_QUEUE_STATE_STORAGE_KEY).ok().flatten()?;
+    serde_json::from_str::<PersistedQueueState>(&raw).ok()
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn save_web_queue_state(state: &PersistedQueueState) {
+    if let (Some(storage), Ok(raw)) = (
+        web_sys::window()
+            .and_then(|w| w.local_storage().ok())
+            .flatten(),
+        serde_json::to_string(state),
+    ) {
+        let _ = storage.set_item(WEB_QUEUE_STATE_STORAGE_KEY, &raw);
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn clear_web_queue_state() {
+    if let Some(storage) = web_sys::window()
+        .and_then(|w| w.local_storage().ok())
+        .flatten()
+    {
+        let _ = storage.remove_item(WEB_QUEUE_STATE_STORAGE_KEY);
     }
 }

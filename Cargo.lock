@@ -3282,6 +3282,7 @@ dependencies = [
  "player",
  "rand 0.8.5",
  "reader",
+ "serde",
  "serde_json",
  "tokio",
  "tracing",

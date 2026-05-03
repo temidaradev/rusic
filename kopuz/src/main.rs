@@ -1,7 +1,9 @@
 #[cfg(target_arch = "wasm32")]
 use crate::web_storage::{
-    load_web_config, load_web_favorites, load_web_library, load_web_playlists, load_web_ui_state,
-    save_web_config, save_web_favorites, save_web_library, save_web_playlists, save_web_ui_state,
+    clear_web_queue_state, load_web_config, load_web_favorites, load_web_library,
+    load_web_playlists, load_web_queue_state, load_web_ui_state, save_web_config,
+    save_web_favorites, save_web_library, save_web_playlists, save_web_queue_state,
+    save_web_ui_state,
 };
 use components::{
     bottombar::Bottombar, fullscreen::Fullscreen, rightbar::Rightbar, sidebar::Sidebar,
@@ -18,12 +20,14 @@ use dioxus::prelude::*;
 use discord_presence::Presence;
 use kopuz_route::Route;
 use player::player::Player;
+use queue_state::PersistedQueueState;
 use reader::FavoritesStore;
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 #[cfg(not(target_arch = "wasm32"))]
 use std::sync::Arc;
 
+mod queue_state;
 mod web_storage;
 
 const FAVICON: Asset = asset!("../assets/favicon.ico");
@@ -50,6 +54,127 @@ fn persist_config_snapshot(config_snapshot: config::AppConfig, path: std::path::
 #[cfg(target_arch = "wasm32")]
 fn persist_config_snapshot(config_snapshot: config::AppConfig, _path: std::path::PathBuf) {
     save_web_config(&config_snapshot);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn persist_queue_state_snapshot(
+    queue_state: Option<PersistedQueueState>,
+    path: std::path::PathBuf,
+) {
+    spawn(async move {
+        let result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+            if let Some(queue_state) = queue_state {
+                queue_state.save(&path)
+            } else {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                match std::fs::remove_file(&path) {
+                    Ok(()) => Ok(()),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                    Err(e) => Err(e),
+                }
+            }
+        })
+        .await;
+
+        match result {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => tracing::error!("Failed to save queue state: {}", e),
+            Err(e) => tracing::error!("Failed to join queue state save task: {}", e),
+        }
+    });
+}
+
+#[cfg(target_arch = "wasm32")]
+fn persist_queue_state_snapshot(
+    queue_state: Option<PersistedQueueState>,
+    _path: std::path::PathBuf,
+) {
+    if let Some(queue_state) = queue_state {
+        save_web_queue_state(&queue_state);
+    } else {
+        clear_web_queue_state();
+    }
+}
+
+fn is_server_queue_track(track: &reader::Track) -> bool {
+    matches!(
+        track
+            .path
+            .to_string_lossy()
+            .split(':')
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "jellyfin" | "subsonic" | "custom"
+    )
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn is_restorable_queue_track(track: &reader::Track) -> bool {
+    is_server_queue_track(track) || track.path.exists()
+}
+
+#[cfg(target_arch = "wasm32")]
+fn is_restorable_queue_track(_track: &reader::Track) -> bool {
+    true
+}
+
+fn sanitize_queue_state(state: PersistedQueueState) -> Option<PersistedQueueState> {
+    if state.queue.is_empty() {
+        return None;
+    }
+
+    let original_index = state.current_queue_index.min(state.queue.len().saturating_sub(1));
+    let mut selected_track_survived = false;
+    let survivors: Vec<(usize, reader::Track)> = state
+        .queue
+        .into_iter()
+        .enumerate()
+        .filter(|(idx, track)| {
+            let keep = is_restorable_queue_track(track);
+            if keep && *idx == original_index {
+                selected_track_survived = true;
+            }
+            keep
+        })
+        .collect();
+
+    if survivors.is_empty() {
+        return None;
+    }
+
+    let restored_index = if selected_track_survived {
+        survivors
+            .iter()
+            .position(|(idx, _)| *idx == original_index)
+            .unwrap_or(0)
+    } else {
+        survivors
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, (idx, _))| (idx.abs_diff(original_index), *idx > original_index))
+            .map(|(restored_idx, _)| restored_idx)
+            .unwrap_or(0)
+    };
+
+    let queue: Vec<_> = survivors.into_iter().map(|(_, track)| track).collect();
+    let progress_secs = if selected_track_survived {
+        queue.get(restored_index)
+            .map(|track| state.progress_secs.min(track.duration))
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
+    Some(PersistedQueueState {
+        version: state.version,
+        queue,
+        current_queue_index: restored_index,
+        progress_secs,
+    })
 }
 
 fn main() {
@@ -231,6 +356,7 @@ fn App() -> Element {
     let mut playlist_store = use_signal(reader::PlaylistStore::default);
     #[allow(unused_variables)]
     let favorites_path = use_memo(move || cache_dir().join("favorites.json"));
+    let queue_state_path = use_memo(move || cache_dir().join("queue_state.json"));
     let mut favorites_store = use_signal(FavoritesStore::default);
     let mut initial_load_done = use_signal(|| false);
     #[allow(unused_variables)]
@@ -297,9 +423,28 @@ fn App() -> Element {
     let mut selected_album_id = use_signal(String::new);
     let mut selected_playlist_id = use_signal(|| None::<String>);
     let mut selected_artist_name = use_signal(String::new);
-    let mut search_query = use_signal(String::new);
+    let search_query = use_signal(String::new);
     let mut last_server_playlist_key = use_signal(|| None::<String>);
     let mut server_playlist_key_initialized = use_signal(|| false);
+    let mut queue = use_signal(Vec::<reader::Track>::new);
+    let current_queue_index = use_signal(|| 0usize);
+    let mut ctrl = hooks::use_player_controller(
+        player,
+        is_playing,
+        queue,
+        current_queue_index,
+        current_song_title,
+        current_song_artist,
+        current_song_album,
+        current_song_khz,
+        current_song_bitrate,
+        current_song_duration,
+        current_song_progress,
+        current_song_cover_url,
+        volume,
+        library,
+        config,
+    );
 
     use_effect(move || {
         if !*initial_load_done.read() {
@@ -418,6 +563,32 @@ fn App() -> Element {
         }
     });
 
+    use_effect(move || {
+        if !*initial_load_done.read() {
+            return;
+        }
+
+        let queue_snapshot = queue.read().clone();
+        let queue_state = if queue_snapshot.is_empty() {
+            None
+        } else {
+            let current_idx = (*current_queue_index.read()).min(queue_snapshot.len() - 1);
+            let progress_secs = queue_snapshot
+                .get(current_idx)
+                .map(|track| (*current_song_progress.read()).min(track.duration))
+                .unwrap_or(0);
+
+            Some(PersistedQueueState {
+                version: 1,
+                queue: queue_snapshot,
+                current_queue_index: current_idx,
+                progress_secs,
+            })
+        };
+
+        persist_queue_state_snapshot(queue_state, queue_state_path());
+    });
+
     use_hook(move || {
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -425,20 +596,26 @@ fn App() -> Element {
             let config_path = config_path();
             let playlist_path = playlist_path();
             let favorites_path = favorites_path();
+            let queue_state_path = queue_state_path();
+            let mut ctrl = ctrl;
 
             spawn(async move {
                 let lib_path_c = lib_path.clone();
                 let config_path_c = config_path.clone();
                 let playlist_path_c = playlist_path.clone();
                 let favorites_path_c = favorites_path.clone();
+                let queue_state_path_c = queue_state_path.clone();
 
-                let (lib_res, cfg_res, pl_res, fav_res) = tokio::join!(
+                let (lib_res, cfg_res, pl_res, fav_res, queue_res) = tokio::join!(
                     tokio::task::spawn_blocking(move || reader::Library::load(&lib_path_c)),
                     tokio::task::spawn_blocking(move || config::AppConfig::load(&config_path_c)),
                     tokio::task::spawn_blocking(move || reader::PlaylistStore::load(
                         &playlist_path_c
                     )),
                     tokio::task::spawn_blocking(move || FavoritesStore::load(&favorites_path_c)),
+                    tokio::task::spawn_blocking(move || {
+                        PersistedQueueState::load(&queue_state_path_c)
+                    }),
                 );
 
                 if let Ok(Ok(loaded)) = lib_res {
@@ -474,11 +651,22 @@ fn App() -> Element {
                     }
                 }
 
+                if let Ok(Ok(loaded_queue_state)) = queue_res {
+                    if let Some(queue_state) = sanitize_queue_state(loaded_queue_state) {
+                        ctrl.restore_queue_state(
+                            queue_state.queue,
+                            queue_state.current_queue_index,
+                            queue_state.progress_secs,
+                        );
+                    }
+                }
+
                 initial_load_done.set(true);
             });
         }
         #[cfg(target_arch = "wasm32")]
         {
+            let mut ctrl = ctrl;
             let mut loaded = load_web_config().unwrap_or_default();
             if loaded.server.is_none() {
                 loaded.active_source = config::MusicSource::Server;
@@ -514,6 +702,15 @@ fn App() -> Element {
             }
             if let Some(loaded_favorites) = load_web_favorites() {
                 favorites_store.set(loaded_favorites);
+            }
+            if let Some(loaded_queue_state) = load_web_queue_state() {
+                if let Some(queue_state) = sanitize_queue_state(loaded_queue_state) {
+                    ctrl.restore_queue_state(
+                        queue_state.queue,
+                        queue_state.current_queue_index,
+                        queue_state.progress_secs,
+                    );
+                }
             }
 
             initial_load_done.set(true);
@@ -631,26 +828,6 @@ fn App() -> Element {
         );
     });
 
-    let mut queue = use_signal(Vec::<reader::Track>::new);
-    let current_queue_index = use_signal(|| 0usize);
-
-    let mut ctrl = hooks::use_player_controller(
-        player,
-        is_playing,
-        queue,
-        current_queue_index,
-        current_song_title,
-        current_song_artist,
-        current_song_album,
-        current_song_khz,
-        current_song_bitrate,
-        current_song_duration,
-        current_song_progress,
-        current_song_cover_url,
-        volume,
-        library,
-        config,
-    );
     provide_context(ctrl);
     provide_context(config);
 
