@@ -261,6 +261,7 @@ pub fn AlbumDetails(
                                 id: uuid::Uuid::new_v4().to_string(),
                                 name,
                                 tracks: selected_paths,
+                                cover_path: None,
                             });
                         }
                         show_playlist_modal.set(false);

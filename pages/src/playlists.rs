@@ -84,6 +84,7 @@ pub fn PlaylistsPage(
                 id: uuid::Uuid::new_v4().to_string(),
                 name,
                 tracks: Vec::new(),
+                cover_path: None,
             });
             show_add_playlist.set(false);
             playlist_name.set(String::new());

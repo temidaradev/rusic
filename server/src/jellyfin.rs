@@ -537,6 +537,27 @@ impl JellyfinClient {
         Ok(())
     }
 
+    pub async fn set_playlist_image(
+        &self,
+        playlist_id: &str,
+        image_bytes: Vec<u8>,
+        content_type: &str,
+    ) -> Result<(), String> {
+        let resp = self
+            .authorized_request(
+                reqwest::Method::POST,
+                &format!("/Items/{}/Images/Primary", playlist_id),
+            )?
+            .header("Content-Type", content_type)
+            .body(image_bytes)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Self::ensure_success(resp, "Failed to upload playlist image").await?;
+        Ok(())
+    }
+
     pub async fn get_genres(&self) -> Result<Vec<Genre>, String> {
         let user_id = self.user_id()?;
         let query = [

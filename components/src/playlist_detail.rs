@@ -4,6 +4,8 @@ use player::player;
 use reader::{Library, PlaylistStore};
 use std::collections::HashSet;
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
+use rfd::AsyncFileDialog;
 
 #[component]
 pub fn PlaylistDetail(
@@ -31,15 +33,15 @@ pub fn PlaylistDetail(
     let mut is_selection_mode = use_signal(|| false);
     let mut selected_tracks = use_signal(|| HashSet::<PathBuf>::new());
 
-    let (playlist_name, local_tracks_paths, is_jellyfin) =
+    let (playlist_name, local_tracks_paths, is_jellyfin, playlist_custom_cover, playlist_image_tag) =
         if let Some(p) = store.playlists.iter().find(|p| p.id == playlist_id) {
-            (p.name.clone(), p.tracks.clone(), false)
+            (p.name.clone(), p.tracks.clone(), false, p.cover_path.clone(), None::<String>)
         } else if let Some(p) = store
             .jellyfin_playlists
             .iter()
             .find(|p| p.id == playlist_id)
         {
-            (p.name.clone(), vec![], true)
+            (p.name.clone(), vec![], true, p.cover_path.clone(), p.image_tag.clone())
         } else {
             return rsx! { div { "{i18n::t(\"playlist_not_found\")}" } };
         };
@@ -205,46 +207,43 @@ pub fn PlaylistDetail(
 
     let tracks_val = tracks.read().clone();
     let playlist_cover = if !is_jellyfin {
-        tracks_val.first().and_then(|t| {
-            lib.albums
-                .iter()
-                .find(|a| a.id == t.album_id)
-                .and_then(|a| utils::format_artwork_url(a.cover_path.as_ref()))
-        })
-    } else {
-        if let Some(p) = store
-            .jellyfin_playlists
-            .iter()
-            .find(|p| p.id == playlist_id)
-        {
-            if let Some(server) = &config.read().server {
-                if let Some(tag) = &p.image_tag {
-                    Some(utils::jellyfin_image::jellyfin_image_url(
-                        &server.url,
-                        &p.id,
-                        Some(tag.as_str()),
-                        server.access_token.as_deref(),
-                        512,
-                        90,
-                    ))
-                } else {
-                    tracks_val.first().and_then(|t| {
-                        let path_str = t.path.to_string_lossy();
-                        utils::jellyfin_image::jellyfin_image_url_from_path(
-                            &path_str,
-                            &server.url,
-                            server.access_token.as_deref(),
-                            512,
-                            90,
-                        )
-                    })
-                }
-            } else {
-                None
-            }
+        playlist_custom_cover
+            .as_ref()
+            .and_then(|p| utils::format_artwork_url(Some(p)))
+            .or_else(|| {
+                tracks_val.first().and_then(|t| {
+                    lib.albums
+                        .iter()
+                        .find(|a| a.id == t.album_id)
+                        .and_then(|a| utils::format_artwork_url(a.cover_path.as_ref()))
+                })
+            })
+    } else if let Some(server) = &config.read().server {
+        if let Some(path) = &playlist_custom_cover {
+            utils::format_artwork_url(Some(path))
+        } else if let Some(tag) = &playlist_image_tag {
+            Some(utils::jellyfin_image::jellyfin_image_url(
+                &server.url,
+                &playlist_id,
+                Some(tag.as_str()),
+                server.access_token.as_deref(),
+                512,
+                90,
+            ))
         } else {
-            None
+            tracks_val.first().and_then(|t| {
+                let path_str = t.path.to_string_lossy();
+                utils::jellyfin_image::jellyfin_image_url_from_path(
+                    &path_str,
+                    &server.url,
+                    server.access_token.as_deref(),
+                    512,
+                    90,
+                )
+            })
         }
+    } else {
+        None
     };
 
     let pid_for_remove = playlist_id.clone();
@@ -268,6 +267,73 @@ pub fn PlaylistDetail(
                 name: playlist_name.clone(),
                 description: if is_jellyfin { i18n::t("server_playlist").to_string() } else { String::new() },
                 cover_url: playlist_cover,
+                on_cover_click: {
+                    let pid = playlist_id.clone();
+                    move |_| {
+                        let _ = &pid;
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            let pid = pid.clone();
+                            spawn(async move {
+                                let file = AsyncFileDialog::new()
+                                    .add_filter("Images", &["jpg", "jpeg", "png", "webp"])
+                                    .pick_file()
+                                    .await;
+                                if let Some(file) = file {
+                                    let path = file.path().to_path_buf();
+                                    if is_jellyfin {
+                                        let conf = config.peek();
+                                        if let Some(server) = &conf.server {
+                                            if let (Some(token), Some(user_id)) =
+                                                (&server.access_token, &server.user_id)
+                                            {
+                                                if server.service == MusicService::Jellyfin {
+                                                    if let Ok(bytes) = std::fs::read(&path) {
+                                                        let ext = path
+                                                            .extension()
+                                                            .and_then(|e| e.to_str())
+                                                            .unwrap_or("")
+                                                            .to_lowercase();
+                                                        let ct = if ext == "png" {
+                                                            "image/png"
+                                                        } else {
+                                                            "image/jpeg"
+                                                        };
+                                                        let remote =
+                                                            server::jellyfin::JellyfinClient::new(
+                                                                &server.url,
+                                                                Some(token),
+                                                                &conf.device_id,
+                                                                Some(user_id),
+                                                            );
+                                                        let _ = remote
+                                                            .set_playlist_image(&pid, bytes, ct)
+                                                            .await;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        let mut store = playlist_store.write();
+                                        if let Some(p) = store
+                                            .jellyfin_playlists
+                                            .iter_mut()
+                                            .find(|p| p.id == pid)
+                                        {
+                                            p.cover_path = Some(path);
+                                        }
+                                    } else {
+                                        let mut store = playlist_store.write();
+                                        if let Some(p) =
+                                            store.playlists.iter_mut().find(|p| p.id == pid)
+                                        {
+                                            p.cover_path = Some(path);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
                 tracks: tracks_val.clone(),
                 library: library,
                 is_selection_mode: is_selection_mode(),
@@ -572,6 +638,7 @@ pub fn PlaylistDetail(
                                     id: uuid::Uuid::new_v4().to_string(),
                                     name,
                                     tracks: selected_paths,
+                                    cover_path: None,
                                 });
                             } else {
                                 let playlist_name = name.clone();

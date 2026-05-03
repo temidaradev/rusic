@@ -147,6 +147,8 @@ pub struct Playlist {
     pub id: String,
     pub name: String,
     pub tracks: Vec<PathBuf>,
+    #[serde(default)]
+    pub cover_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -156,6 +158,8 @@ pub struct JellyfinPlaylist {
     pub tracks: Vec<String>,
     #[serde(default)]
     pub image_tag: Option<String>,
+    #[serde(default)]
+    pub cover_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

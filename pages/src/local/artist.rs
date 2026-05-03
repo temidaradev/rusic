@@ -143,6 +143,7 @@ pub fn LocalArtist(
                 id: uuid::Uuid::new_v4().to_string(),
                 name: playlist_name,
                 tracks: paths,
+                cover_path: None,
             });
     };
 

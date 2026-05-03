@@ -157,6 +157,7 @@ pub fn LocalFavorites(
                             id: uuid::Uuid::new_v4().to_string(),
                             name,
                             tracks,
+                            cover_path: None,
                         });
                         show_playlist_modal.set(false);
                         active_menu_track.set(None);

@@ -27,6 +27,7 @@ pub struct ShowcaseProps {
     pub selected_tracks: HashSet<PathBuf>,
     pub on_select: Option<EventHandler<(usize, bool)>>,
     pub on_long_press: Option<EventHandler<usize>>,
+    pub on_cover_click: Option<EventHandler<()>>,
     #[props(default = false)]
     pub is_reorderable: bool,
     #[props(default)]
@@ -55,6 +56,17 @@ pub fn Showcase(props: ShowcaseProps) -> Element {
                      } else {
                          div { class: "w-full h-full flex flex-col items-center justify-center text-white/20",
                              i { class: "fa-solid fa-music text-6xl mb-4" }
+                         }
+                     }
+                     if props.on_cover_click.is_some() {
+                         div {
+                             class: "absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer rounded-xl",
+                             onclick: move |_| {
+                                 if let Some(ref h) = props.on_cover_click {
+                                     h.call(());
+                                 }
+                             },
+                             i { class: "fa-solid fa-camera text-white text-3xl" }
                          }
                      }
                  }
@@ -110,8 +122,9 @@ pub fn Showcase(props: ShowcaseProps) -> Element {
                                      let path_str = track.path.to_string_lossy();
                                      match server.service {
                                          MusicService::Jellyfin => {
-                                             utils::jellyfin_image::jellyfin_image_url_from_path(
+                                             utils::jellyfin_image::track_cover_url_with_album_fallback(
                                                  &path_str,
+                                                 &track.album_id,
                                                  &server.url,
                                                  server.access_token.as_deref(),
                                                  80,

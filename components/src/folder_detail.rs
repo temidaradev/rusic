@@ -113,6 +113,7 @@ pub fn FolderDetail(
                                 id: uuid::Uuid::new_v4().to_string(),
                                 name,
                                 tracks: vec![path],
+                                cover_path: None,
                             });
                         }
                         show_playlist_modal.set(false);

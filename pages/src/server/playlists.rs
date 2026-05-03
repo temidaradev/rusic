@@ -75,6 +75,7 @@ pub fn JellyfinPlaylists(
                                     name: p.name.clone(),
                                     tracks,
                                     image_tag,
+                                    cover_path: None,
                                 });
                             } else {
                                 server_playlists.push(reader::models::JellyfinPlaylist {
@@ -82,6 +83,7 @@ pub fn JellyfinPlaylists(
                                     name: p.name.clone(),
                                     tracks: vec![],
                                     image_tag,
+                                    cover_path: None,
                                 });
                             }
                         }
@@ -103,6 +105,7 @@ pub fn JellyfinPlaylists(
                                 name: p.name,
                                 tracks,
                                 image_tag: None,
+                                cover_path: None,
                             });
                         }
                     }
@@ -114,6 +117,12 @@ pub fn JellyfinPlaylists(
             }
 
             let mut store_write = playlist_store.write();
+            // Preserve any locally-set cover_path when replacing server data
+            for p in &mut server_playlists {
+                if let Some(existing) = store_write.jellyfin_playlists.iter().find(|e| e.id == p.id) {
+                    p.cover_path = existing.cover_path.clone();
+                }
+            }
             store_write.jellyfin_playlists = server_playlists;
         });
     });
@@ -133,7 +142,9 @@ pub fn JellyfinPlaylists(
                         let cover_url = {
                             let conf = config.peek();
                             if let Some(server) = &conf.server {
-                                if let Some(tag) = &playlist.image_tag {
+                                if let Some(path) = &playlist.cover_path {
+                                    utils::format_artwork_url(Some(path))
+                                } else if let Some(tag) = &playlist.image_tag {
                                     Some(utils::jellyfin_image::jellyfin_image_url(
                                         &server.url,
                                         &playlist.id,
