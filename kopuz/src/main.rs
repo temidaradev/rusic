@@ -35,6 +35,8 @@ const MAIN_CSS: Asset = asset!("../assets/main.css");
 const THEME_CSS: Asset = asset!("../assets/themes.css");
 const TAILWIND_CSS: Asset = asset!("../assets/tailwind.css");
 const REDUCED_ANIMATIONS_CSS: Asset = asset!("../assets/reduced-animations.css");
+const QUEUE_STATE_SAVE_DEBOUNCE_MS: u64 = 1200;
+const QUEUE_STATE_PROGRESS_STEP_SECS: u64 = 5;
 
 #[cfg(not(target_arch = "wasm32"))]
 static PRESENCE: std::sync::OnceLock<Option<Arc<Presence>>> = std::sync::OnceLock::new();
@@ -57,37 +59,35 @@ fn persist_config_snapshot(config_snapshot: config::AppConfig, _path: std::path:
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn persist_queue_state_snapshot(
+async fn persist_queue_state_snapshot(
     queue_state: Option<PersistedQueueState>,
     path: std::path::PathBuf,
 ) {
-    spawn(async move {
-        let result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
-            if let Some(queue_state) = queue_state {
-                queue_state.save(&path)
-            } else {
-                if let Some(parent) = path.parent() {
-                    std::fs::create_dir_all(parent)?;
-                }
-                match std::fs::remove_file(&path) {
-                    Ok(()) => Ok(()),
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-                    Err(e) => Err(e),
-                }
+    let result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
+        if let Some(queue_state) = queue_state {
+            queue_state.save(&path)
+        } else {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
             }
-        })
-        .await;
-
-        match result {
-            Ok(Ok(())) => {}
-            Ok(Err(e)) => tracing::error!("Failed to save queue state: {}", e),
-            Err(e) => tracing::error!("Failed to join queue state save task: {}", e),
+            match std::fs::remove_file(&path) {
+                Ok(()) => Ok(()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                Err(e) => Err(e),
+            }
         }
-    });
+    })
+    .await;
+
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => tracing::error!("Failed to save queue state: {}", e),
+        Err(e) => tracing::error!("Failed to join queue state save task: {}", e),
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
-fn persist_queue_state_snapshot(
+async fn persist_queue_state_snapshot(
     queue_state: Option<PersistedQueueState>,
     _path: std::path::PathBuf,
 ) {
@@ -173,6 +173,35 @@ fn sanitize_queue_state(state: PersistedQueueState) -> Option<PersistedQueueStat
         version: state.version,
         queue,
         current_queue_index: restored_index,
+        progress_secs,
+    })
+}
+
+fn build_queue_state_snapshot(
+    queue: &[reader::Track],
+    current_queue_index: usize,
+    current_song_progress: u64,
+    is_playing: bool,
+) -> Option<PersistedQueueState> {
+    if queue.is_empty() {
+        return None;
+    }
+
+    let current_idx = current_queue_index.min(queue.len() - 1);
+    let progress_secs = queue
+        .get(current_idx)
+        .map(|track| current_song_progress.min(track.duration))
+        .unwrap_or(0);
+    let progress_secs = if is_playing {
+        progress_secs - (progress_secs % QUEUE_STATE_PROGRESS_STEP_SECS)
+    } else {
+        progress_secs
+    };
+
+    Some(PersistedQueueState {
+        version: 1,
+        queue: queue.to_vec(),
+        current_queue_index: current_idx,
         progress_secs,
     })
 }
@@ -383,6 +412,8 @@ fn App() -> Element {
     let is_rightbar_open = use_signal(|| false);
     let rightbar_width = use_signal(|| 320usize);
     let mut palette = use_signal(|| Option::<Vec<utils::color::Color>>::None);
+    let mut pending_queue_state_snapshot = use_signal(|| None::<PersistedQueueState>);
+    let mut pending_queue_state_revision = use_signal(|| 0u64);
 
     #[cfg(all(not(target_arch = "wasm32"), target_os = "macos"))]
     use_effect(move || {
@@ -569,24 +600,46 @@ fn App() -> Element {
         }
 
         let queue_snapshot = queue.read().clone();
-        let queue_state = if queue_snapshot.is_empty() {
-            None
-        } else {
-            let current_idx = (*current_queue_index.read()).min(queue_snapshot.len() - 1);
-            let progress_secs = queue_snapshot
-                .get(current_idx)
-                .map(|track| (*current_song_progress.read()).min(track.duration))
-                .unwrap_or(0);
+        let queue_state = build_queue_state_snapshot(
+            &queue_snapshot,
+            *current_queue_index.read(),
+            *current_song_progress.read(),
+            *is_playing.read(),
+        );
 
-            Some(PersistedQueueState {
-                version: 1,
-                queue: queue_snapshot,
-                current_queue_index: current_idx,
-                progress_secs,
-            })
-        };
+        if *pending_queue_state_snapshot.peek() != queue_state {
+            pending_queue_state_snapshot.set(queue_state);
+            pending_queue_state_revision.with_mut(|revision| *revision += 1);
+        }
+    });
 
-        persist_queue_state_snapshot(queue_state, queue_state_path());
+    use_future(move || {
+        let path = queue_state_path();
+        async move {
+            let mut flushed_revision = 0u64;
+
+            loop {
+                let pending_revision = *pending_queue_state_revision.read();
+                if pending_revision == flushed_revision {
+                    utils::sleep(std::time::Duration::from_millis(250)).await;
+                    continue;
+                }
+
+                utils::sleep(std::time::Duration::from_millis(
+                    QUEUE_STATE_SAVE_DEBOUNCE_MS,
+                ))
+                .await;
+
+                let latest_revision = *pending_queue_state_revision.read();
+                if latest_revision != pending_revision {
+                    continue;
+                }
+
+                let snapshot = pending_queue_state_snapshot.read().clone();
+                persist_queue_state_snapshot(snapshot, path.clone()).await;
+                flushed_revision = latest_revision;
+            }
+        }
     });
 
     use_hook(move || {

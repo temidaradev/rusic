@@ -148,17 +148,21 @@ impl PlayerController {
         }
     }
 
-    fn take_pending_resume_seek(&mut self, track: &Track) -> Option<u64> {
+    fn pending_resume_seek(&self, track: &Track) -> (Option<u64>, bool) {
         let pending = self.pending_resume.read().clone();
-        self.pending_resume.set(None);
-
-        pending.and_then(|pending| {
+        let restore_seek_secs = pending.as_ref().and_then(|pending| {
             if pending.track_path == Self::track_key(track) {
                 Some(pending.progress_secs.min(track.duration))
             } else {
                 None
             }
-        })
+        });
+
+        (restore_seek_secs, pending.is_some())
+    }
+
+    fn clear_pending_resume(&mut self) {
+        self.pending_resume.set(None);
     }
 
     fn apply_restore_seek(&mut self, seek_secs: u64) {
@@ -206,7 +210,8 @@ impl PlayerController {
 
         if let Some(track) = self.current_track(idx) {
             let path_str = track.path.to_string_lossy().to_string();
-            let restore_seek_secs = self.take_pending_resume_seek(&track);
+            let (restore_seek_secs, clear_pending_resume_on_success) =
+                self.pending_resume_seek(&track);
             let scheme = path_str
                 .split(':')
                 .next()
@@ -288,6 +293,7 @@ impl PlayerController {
                     let play_generation = self.play_generation;
                     let volume = self.volume;
                     let mut current_song_progress = self.current_song_progress;
+                    let mut pending_resume = self.pending_resume;
                     let cfg_signal = self.config;
 
                     self.hydrate_current_track_metadata(idx, 0);
@@ -326,6 +332,9 @@ impl PlayerController {
                                         player.write().seek(Duration::from_secs(seek_secs));
                                         current_song_progress.set(seek_secs);
                                     }
+                                }
+                                if clear_pending_resume_on_success {
+                                    pending_resume.set(None);
                                 }
                                 is_loading.set(false);
                                 is_playing.set(true);
@@ -459,92 +468,105 @@ impl PlayerController {
                                 artwork: Some(cover_url.clone()),
                             };
 
-                            player.write().play_url(stream_url, meta);
-                            player.write().set_volume(*volume.peek());
-                            if let Some(seek_secs) = restore_seek_secs {
-                                if seek_secs > 0 {
-                                    player.write().seek(Duration::from_secs(seek_secs));
-                                    current_song_progress.set(seek_secs);
+                            let started = {
+                                let mut player = player.write();
+                                player.play_url(stream_url, meta);
+                                player.set_volume(*volume.peek());
+                                if let Some(seek_secs) = restore_seek_secs {
+                                    if seek_secs > 0 && player.can_resume() {
+                                        player.seek(Duration::from_secs(seek_secs));
+                                        current_song_progress.set(seek_secs);
+                                    }
                                 }
+                                player.can_resume()
+                            };
+                            if started && clear_pending_resume_on_success {
+                                pending_resume.set(None);
                             }
                             is_loading.set(false);
-                            is_playing.set(true);
+                            is_playing.set(started);
                             skip_in_progress.set(false);
 
-                            let scrobble_track = track.clone();
-                            let scrobble_gen = current_gen;
-                            let scrobble_play_gen = play_generation;
-                            let scrobble_cfg = cfg_signal;
-                            let duration_secs = scrobble_track.duration;
-                            let threshold_secs = std::cmp::min(240, (duration_secs / 2) as u64);
+                            if started {
+                                let scrobble_track = track.clone();
+                                let scrobble_gen = current_gen;
+                                let scrobble_play_gen = play_generation;
+                                let scrobble_cfg = cfg_signal;
+                                let duration_secs = scrobble_track.duration;
+                                let threshold_secs =
+                                    std::cmp::min(240, (duration_secs / 2) as u64);
 
-                            spawn(async move {
-                                let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
-                                if !token_raw.is_empty() {
+                                spawn(async move {
+                                    let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
+                                    if !token_raw.is_empty() {
+                                        let auth = if token_raw.contains(' ') {
+                                            token_raw.clone()
+                                        } else {
+                                            format!("Token {}", token_raw)
+                                        };
+
+                                        let playing_now = scrobble::musicbrainz::make_playing_now(
+                                            &scrobble_track.artist,
+                                            &scrobble_track.title,
+                                            Some(&scrobble_track.album),
+                                        );
+
+                                        if let Err(e) = scrobble::musicbrainz::submit_listens(
+                                            &auth,
+                                            vec![playing_now],
+                                            "playing_now",
+                                        )
+                                        .await
+                                        {
+                                            tracing::warn!(
+                                                "Jellyfin: failed to submit playing_now: {}",
+                                                e
+                                            );
+                                        }
+                                    }
+
+                                    utils::sleep(std::time::Duration::from_secs(threshold_secs))
+                                        .await;
+
+                                    if *scrobble_play_gen.read() != scrobble_gen {
+                                        return;
+                                    }
+
+                                    let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
+                                    if token_raw.is_empty() {
+                                        return;
+                                    }
+
                                     let auth = if token_raw.contains(' ') {
-                                        token_raw.clone()
+                                        token_raw
                                     } else {
                                         format!("Token {}", token_raw)
                                     };
 
-                                    let playing_now = scrobble::musicbrainz::make_playing_now(
+                                    let listen = scrobble::musicbrainz::make_listen(
                                         &scrobble_track.artist,
                                         &scrobble_track.title,
                                         Some(&scrobble_track.album),
                                     );
 
-                                    if let Err(e) = scrobble::musicbrainz::submit_listens(
+                                    match scrobble::musicbrainz::submit_listens(
                                         &auth,
-                                        vec![playing_now],
-                                        "playing_now",
+                                        vec![listen],
+                                        "single",
                                     )
                                     .await
                                     {
-                                        tracing::warn!(
-                                            "Jellyfin: failed to submit playing_now: {}",
-                                            e
-                                        );
+                                        Ok(_) => tracing::info!(
+                                            "Jellyfin scrobbled: {} - {}",
+                                            scrobble_track.artist,
+                                            scrobble_track.title
+                                        ),
+                                        Err(e) => {
+                                            tracing::warn!("Jellyfin scrobble failed: {}", e)
+                                        }
                                     }
-                                }
-
-                                utils::sleep(std::time::Duration::from_secs(threshold_secs)).await;
-
-                                if *scrobble_play_gen.read() != scrobble_gen {
-                                    return;
-                                }
-
-                                let token_raw = scrobble_cfg.read().musicbrainz_token.clone();
-                                if token_raw.is_empty() {
-                                    return;
-                                }
-
-                                let auth = if token_raw.contains(' ') {
-                                    token_raw
-                                } else {
-                                    format!("Token {}", token_raw)
-                                };
-
-                                let listen = scrobble::musicbrainz::make_listen(
-                                    &scrobble_track.artist,
-                                    &scrobble_track.title,
-                                    Some(&scrobble_track.album),
-                                );
-
-                                match scrobble::musicbrainz::submit_listens(
-                                    &auth,
-                                    vec![listen],
-                                    "single",
-                                )
-                                .await
-                                {
-                                    Ok(_) => tracing::info!(
-                                        "Jellyfin scrobbled: {} - {}",
-                                        scrobble_track.artist,
-                                        scrobble_track.title
-                                    ),
-                                    Err(e) => tracing::warn!("Jellyfin scrobble failed: {}", e),
-                                }
-                            });
+                                });
+                            }
                         } else {
                             is_loading.set(false);
                             skip_in_progress.set(false);
@@ -599,6 +621,9 @@ impl PlayerController {
                             if seek_secs > 0 {
                                 self.apply_restore_seek(seek_secs);
                             }
+                        }
+                        if clear_pending_resume_on_success {
+                            self.clear_pending_resume();
                         }
 
                         let cfg_signal = self.config;
