@@ -702,6 +702,11 @@ impl Player {
         st.paused
     }
 
+    pub fn can_resume(&self) -> bool {
+        let st = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        !st.stopped && !st.finished && self._stream.is_some()
+    }
+
     pub fn stop(&mut self) {
         self.stop_internal();
         self.now_playing = None;
@@ -951,6 +956,10 @@ impl Player {
 
     pub fn is_paused(&self) -> bool {
         self.audio.paused()
+    }
+
+    pub fn can_resume(&self) -> bool {
+        self.has_source && !self.audio.ended() && self.audio.error().is_none()
     }
 
     pub fn get_position(&self) -> Duration {

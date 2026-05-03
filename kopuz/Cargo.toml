@@ -39,6 +39,7 @@ hooks = { workspace = true }
 percent-encoding = { workspace = true }
 utils = { workspace = true }
 rand = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 i18n = { workspace = true }
 urlencoding = "2.1.3"
