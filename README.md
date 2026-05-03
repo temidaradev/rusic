@@ -99,22 +99,46 @@ flatpak run com.temidaradev.kopuz
 
 You can also click on the file and open it with an app provider, for example KDE discover
 
+### AppImage
+
+> **Note:** The AppImage requires `webkit2gtk-4.1` and `gtk3` installed on your system — these are **not** bundled. On most distros with a modern desktop environment these are already present.
+
+On Arch-based distros, if the AppImage crashes with a `WebKitNetworkProcess` error, either run it with:
+
+```bash
+LD_LIBRARY_PATH=/usr/lib ./rusic_*.AppImage
+```
+
+Or create symlinks once (requires sudo):
+
+```bash
+sudo mkdir -p /usr/libexec/webkit2gtk-4.1
+sudo ln -s /usr/lib/webkit2gtk-4.1/WebKitNetworkProcess /usr/libexec/webkit2gtk-4.1/
+sudo ln -s /usr/lib/webkit2gtk-4.1/WebKitWebProcess /usr/libexec/webkit2gtk-4.1/
+sudo ln -s /usr/lib/webkit2gtk-4.1/WebKitGPUProcess /usr/libexec/webkit2gtk-4.1/
+```
+
 ### Build from Source
 
 #### Dependencies
 **Arch Linux Based Systems**
 ```bash
-sudo pacman -S rust cargo dioxus-cli base-devel pkgconf opus alsa-lib xdotool webkit2gtk-4.1 gtk3 libsoup3 openssl
+sudo pacman -S rust cargo dioxus-cli base-devel cmake pkgconf opus alsa-lib xdotool webkit2gtk-4.1 gtk3 libsoup3 openssl
 ```
 **Debian Based Systems**
 ```bash
-sudo apt install rustc cargo build-essential pkg-config libopus-dev libasound2-dev libxdo-dev libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libssl-dev
+sudo apt install rustc cargo build-essential cmake pkg-config libopus-dev libasound2-dev libxdo-dev libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libssl-dev
 cargo install dioxus-cli
 ```
 **Fedora Based Systems**
 ```bash
 sudo dnf groupinstall "Development Tools" "Development Libraries"
-sudo dnf install rust cargo pkgconf-pkg-config opus-devel alsa-lib-devel libxdo-devel webkit2gtk4.1-devel gtk3-devel libsoup3-devel openssl-devel
+sudo dnf install rust cargo cmake pkgconf-pkg-config opus-devel alsa-lib-devel libxdo-devel webkit2gtk4.1-devel gtk3-devel libsoup3-devel openssl-devel
+cargo install dioxus-cli
+```
+**openSUSE Based Systems**
+```bash
+sudo zypper install rust cargo cmake pkg-config libopus-devel alsa-devel xdotool webkit2gtk3-soup2-devel gtk3-devel libsoup3-devel libopenssl-devel
 cargo install dioxus-cli
 ```
 
