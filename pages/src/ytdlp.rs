@@ -78,13 +78,71 @@ impl AudioFormat {
     }
 }
 
+fn find_ytdlp() -> String {
+    let static_candidates: &[&str] = &[
+        "/opt/homebrew/bin/yt-dlp",
+        "/usr/local/bin/yt-dlp",
+        "/usr/bin/yt-dlp",
+        "/snap/bin/yt-dlp",
+        "/usr/local/sbin/yt-dlp",
+    ];
+
+    for path in static_candidates {
+        if std::path::Path::new(path).exists() {
+            return path.to_string();
+        }
+    }
+
+    if let Some(home) = std::env::var_os("HOME") {
+        let p = std::path::PathBuf::from(&home).join(".local/bin/yt-dlp");
+        if p.exists() {
+            return p.to_string_lossy().into_owned();
+        }
+        for ver in &["3.13", "3.12", "3.11", "3.10", "3.9"] {
+            let p =
+                std::path::PathBuf::from(&home).join(format!("Library/Python/{}/bin/yt-dlp", ver));
+            if p.exists() {
+                return p.to_string_lossy().into_owned();
+            }
+        }
+    }
+
+    let extra_path = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
+    if let Ok(out) = std::process::Command::new("sh")
+        .args(["-c", "which yt-dlp"])
+        .env(
+            "PATH",
+            format!(
+                "{}:{}",
+                extra_path,
+                std::env::var("PATH").unwrap_or_default()
+            ),
+        )
+        .output()
+    {
+        let found = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !found.is_empty() && std::path::Path::new(&found).exists() {
+            return found;
+        }
+    }
+
+    "yt-dlp".to_string()
+}
+
 fn build_command(
     url: &str,
     out: &str,
     fmt: AudioFormat,
     opts: &YtdlpOptions,
 ) -> std::process::Command {
-    let mut cmd = std::process::Command::new("yt-dlp");
+    let binary = find_ytdlp();
+    let mut cmd = std::process::Command::new(&binary);
+
+    let augmented_path = format!(
+        "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:{}",
+        std::env::var("PATH").unwrap_or_default()
+    );
+    cmd.env("PATH", augmented_path);
 
     cmd.arg("--newline")
         .arg("--no-warnings")
@@ -814,13 +872,18 @@ fn JobRow(props: JobRowProps) -> Element {
     };
 
     let status_text = match &job.status {
-        JobStatus::Downloading if !job.speed.is_empty() => {
-            i18n::t_with(
-                "ytdlp_status_downloading_eta",
-                &[("percent", format!("{pct:.0}")), ("speed", job.speed.clone()), ("eta", job.eta.clone())],
-            )
-        }
-        JobStatus::Downloading => i18n::t_with("ytdlp_status_downloading", &[("percent", format!("{pct:.0}"))]),
+        JobStatus::Downloading if !job.speed.is_empty() => i18n::t_with(
+            "ytdlp_status_downloading_eta",
+            &[
+                ("percent", format!("{pct:.0}")),
+                ("speed", job.speed.clone()),
+                ("eta", job.eta.clone()),
+            ],
+        ),
+        JobStatus::Downloading => i18n::t_with(
+            "ytdlp_status_downloading",
+            &[("percent", format!("{pct:.0}"))],
+        ),
         JobStatus::Processing => i18n::t("ytdlp_status_processing"),
         JobStatus::Completed => i18n::t("ytdlp_status_completed"),
         JobStatus::Pending => i18n::t("ytdlp_status_waiting"),
