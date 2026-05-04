@@ -174,6 +174,7 @@ pub fn LocalArtist(
                                 div {
                                     key: "{artist}",
                                     class: "group cursor-pointer flex flex-col items-center",
+                                    style: "content-visibility: auto; contain-intrinsic-size: 0 180px;",
                                     onclick: move |_| artist_name.set(art.clone()),
                                     div { class: "aspect-square w-full rounded-full bg-stone-800 mb-4 overflow-hidden relative transition-all",
                                         if let Some(url) = cover_url {

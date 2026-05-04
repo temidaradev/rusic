@@ -202,6 +202,31 @@ pub fn Settings(config: Signal<AppConfig>) -> Element {
                                 }
                             }
                         }
+                        if cfg!(target_os = "linux") {
+                            SettingItem {
+                                title: i18n::t("titlebar_mode").to_string(),
+                                control: rsx! {
+                                    select {
+                                        class: "bg-stone-800 text-white rounded-lg px-3 py-2 text-sm border border-white/10 focus:outline-none focus:border-indigo-500",
+                                        value: match config.read().titlebar_mode {
+                                            config::TitlebarMode::Custom => "custom",
+                                            config::TitlebarMode::System => "system",
+                                            config::TitlebarMode::Off => "off",
+                                        },
+                                        onchange: move |evt| {
+                                            config.write().titlebar_mode = match evt.value().as_str() {
+                                                "system" => config::TitlebarMode::System,
+                                                "off" => config::TitlebarMode::Off,
+                                                _ => config::TitlebarMode::Custom,
+                                            };
+                                        },
+                                        option { value: "custom", "{i18n::t(\"titlebar_custom\")}" }
+                                        option { value: "system", "{i18n::t(\"titlebar_system\")}" }
+                                        option { value: "off", "{i18n::t(\"titlebar_off\")}" }
+                                    }
+                                }
+                            }
+                        }
                         SettingItem {
                             title: i18n::t("back_behavior").to_string(),
                             control: rsx! {

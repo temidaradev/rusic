@@ -1,6 +1,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 use dioxus::desktop::use_window;
 use dioxus::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
+use config::AppConfig;
 
 #[component]
 pub fn Titlebar() -> Element {
@@ -11,6 +13,10 @@ pub fn Titlebar() -> Element {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
+        let config = use_context::<Signal<AppConfig>>();
+        if config.read().titlebar_mode != config::TitlebarMode::Custom {
+            return rsx! {};
+        }
         let minimize_text = i18n::t("minimize").to_string();
         let maximize_text = i18n::t("maximize").to_string();
         let close_text = i18n::t("close").to_string();

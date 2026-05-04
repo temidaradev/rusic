@@ -206,6 +206,16 @@ fn build_queue_state_snapshot(
     })
 }
 
+#[cfg(target_os = "linux")]
+fn read_titlebar_mode_from_disk() -> config::TitlebarMode {
+    directories::ProjectDirs::from("com", "temidaradev", "kopuz")
+        .map(|d| d.config_dir().join("config.json"))
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str::<config::AppConfig>(&s).ok())
+        .map(|c| c.titlebar_mode)
+        .unwrap_or_default()
+}
+
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -262,7 +272,10 @@ fn main() {
 
         #[cfg(target_os = "linux")]
         {
-            window = window.with_decorations(false);
+            let initial_titlebar_mode = read_titlebar_mode_from_disk();
+            window = window.with_decorations(
+                initial_titlebar_mode == config::TitlebarMode::System
+            );
         }
 
         let config = dioxus::desktop::Config::new()
@@ -534,6 +547,13 @@ fn App() -> Element {
         let mut config_snapshot = config.peek().clone();
         config_snapshot.volume = committed_volume;
         persist_config_snapshot(config_snapshot, config_path());
+    });
+
+    #[cfg(all(not(target_arch = "wasm32"), target_os = "linux"))]
+    use_effect(move || {
+        let mode = config.read().titlebar_mode;
+        let win = dioxus::desktop::use_window();
+        win.set_decorations(mode == config::TitlebarMode::System);
     });
 
     use_effect(move || {

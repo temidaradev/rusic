@@ -63,10 +63,12 @@ pub fn LocalFavorites(
             let is_selected = selected_tracks.read().contains(&track_path);
 
             rsx! {
-                TrackRow {
+                div {
                     key: "{track_key}",
-                    track: track.clone(),
-                    cover_url: cover_url.clone(),
+                    style: "content-visibility: auto; contain-intrinsic-size: 0 60px;",
+                    TrackRow {
+                        track: track.clone(),
+                        cover_url: cover_url.clone(),
                     is_menu_open,
                     is_selection_mode: is_selection_mode(),
                     is_selected,
@@ -107,6 +109,7 @@ pub fn LocalFavorites(
                         queue.set(queue_source.clone());
                         ctrl.play_track(idx);
                     },
+                }
                 }
             }
         });

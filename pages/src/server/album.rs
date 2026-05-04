@@ -93,6 +93,7 @@ pub fn JellyfinAlbum(
                                 div {
                                     key: "{album_id_val}",
                                     class: "group relative p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors",
+                                    style: "content-visibility: auto; contain-intrinsic-size: 0 230px;",
                                     oncontextmenu: {
                                         let id = id_for_menu.clone();
                                         move |evt| {

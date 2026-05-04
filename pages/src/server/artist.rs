@@ -164,6 +164,7 @@ pub fn JellyfinArtist(
                                 div {
                                     key: "{artist}",
                                     class: "group cursor-pointer flex flex-col items-center",
+                                    style: "content-visibility: auto; contain-intrinsic-size: 0 180px;",
                                     onclick: move |_| artist_name.set(art.clone()),
                                     div { class: "aspect-square w-full rounded-full bg-stone-800 mb-4 overflow-hidden relative transition-all",
                                         if let Some(url) = cover_url {
@@ -476,6 +477,7 @@ pub fn JellyfinArtist(
                                                     div {
                                                         key: "{album.id}",
                                                         class: "group relative p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors",
+                                                        style: "content-visibility: auto; contain-intrinsic-size: 0 230px;",
                                                         onclick: move |_| on_navigate.call(id_for_navigate.clone()),
                                                         oncontextmenu: {
                                                             let id = id_for_menu.clone();

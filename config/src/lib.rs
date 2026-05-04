@@ -271,6 +271,14 @@ impl Default for EqualizerSettings {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Default)]
+pub enum TitlebarMode {
+    #[default]
+    Custom,
+    System,
+    Off,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
@@ -319,6 +327,8 @@ pub struct AppConfig {
     pub ytdlp_options: YtdlpOptions,
     #[serde(default)]
     pub ytdlp_history: Vec<YtdlpHistoryEntry>,
+    #[serde(default)]
+    pub titlebar_mode: TitlebarMode,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -441,6 +451,7 @@ impl Default for AppConfig {
             ytdlp_output_dir: String::new(),
             ytdlp_options: YtdlpOptions::default(),
             ytdlp_history: Vec::new(),
+            titlebar_mode: TitlebarMode::Custom,
         }
     }
 }

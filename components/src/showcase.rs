@@ -157,6 +157,7 @@ pub fn Showcase(props: ShowcaseProps) -> Element {
                                  div {
                                      key: "{track.path.display()}",
                                      class: "flex items-center group",
+                                     style: "content-visibility: auto; contain-intrinsic-size: 0 60px;",
                                      div { class: "flex-1 min-w-0",
                                          TrackRow {
                                              track: track.clone(),
