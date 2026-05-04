@@ -37,6 +37,7 @@ pub struct PlayerController {
     pub history: Signal<Vec<usize>>,
     pub queue: Signal<Vec<Track>>,
     pub shuffle: Signal<bool>,
+    pub shuffle_order: Signal<Vec<usize>>,
     pub loop_mode: Signal<LoopMode>,
     pub current_queue_index: Signal<usize>,
     pub current_song_title: Signal<String>,
@@ -728,13 +729,19 @@ impl PlayerController {
             }
             _ => {
                 if shuffle && queue_len > 1 {
-                    let mut rng = rand::thread_rng();
-                    use rand::Rng;
-                    let mut next_idx = rng.gen_range(0..queue_len);
-                    while next_idx == idx {
-                        next_idx = rng.gen_range(0..queue_len);
+                    let next_idx = self.shuffle_order.with_mut(|order| order.pop());
+                    match next_idx {
+                        Some(i) => self.play_track(i),
+                        None => {
+                            if loop_mode == LoopMode::Queue {
+                                self.rebuild_shuffle_order();
+                                let i = self.shuffle_order.with_mut(|order| order.pop()).unwrap_or(0);
+                                self.play_track(i);
+                            } else {
+                                self.is_playing.set(false);
+                            }
+                        }
                     }
-                    self.play_track(next_idx);
                 } else if shuffle && queue_len == 1 {
                     self.play_track(0);
                 } else if idx + 1 < queue_len {
@@ -779,8 +786,21 @@ impl PlayerController {
         }
     }
 
+    fn rebuild_shuffle_order(&mut self) {
+        use rand::seq::SliceRandom;
+        let queue_len = self.queue.peek().len();
+        let current = *self.current_queue_index.peek();
+        let mut order: Vec<usize> = (0..queue_len).filter(|&i| i != current).collect();
+        order.shuffle(&mut rand::thread_rng());
+        self.shuffle_order.set(order);
+    }
+
     pub fn toggle_shuffle(&mut self) {
-        self.shuffle.with_mut(|s| *s = !*s);
+        let now_on = !*self.shuffle.peek();
+        self.shuffle.set(now_on);
+        if now_on {
+            self.rebuild_shuffle_order();
+        }
     }
 
     pub fn toggle_loop(&mut self) {
@@ -889,6 +909,7 @@ pub fn use_player_controller(
     let skip_in_progress = use_signal(|| false);
     let history = use_signal(|| Vec::new());
     let shuffle = use_signal(|| false);
+    let shuffle_order = use_signal(|| Vec::<usize>::new());
     let loop_mode = use_signal(|| LoopMode::None);
     let pending_resume = use_signal(|| None::<PendingResumeState>);
 
@@ -900,6 +921,7 @@ pub fn use_player_controller(
         history,
         queue,
         shuffle,
+        shuffle_order,
         loop_mode,
         current_queue_index,
         current_song_title,

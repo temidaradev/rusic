@@ -130,14 +130,15 @@ pub fn JellyfinLibrary(
             .collect::<Vec<_>>()
     });
 
-    let is_empty = displayed_tracks().is_empty();
+    let all_tracks = displayed_tracks();
+    let is_empty = all_tracks.is_empty();
     let queue_source = std::sync::Arc::new(queue_tracks());
     let mut container_height = use_signal(|| 800.0);
     let scroll_top = *scroll_stat.read();
     let row_height = ITEM_HEIGHT;
     let window_size = (*container_height.read() / row_height).ceil() as usize;
     let buffer_size = 10;
-    let total_tracks = displayed_tracks().len();
+    let total_tracks = all_tracks.len();
 
     let start_index = {
         let calc = (scroll_top - (buffer_size as f64) * row_height) / row_height;
@@ -168,7 +169,7 @@ pub fn JellyfinLibrary(
         (total_height - rendered_height - top_pad).max(0.0)
     };
 
-    let tracks_nodes = displayed_tracks()
+    let tracks_nodes = all_tracks
         .into_iter()
         .enumerate()
         .skip(start_index)
@@ -467,10 +468,11 @@ pub fn JellyfinLibrary(
                     });
                 },
                 onscroll: move |event| {
-                    let scroll_y = event.scroll_top();
+                    scroll_stat.set(event.scroll_top());
                     let height = event.client_height() as f64;
-                    scroll_stat.set(scroll_y);
-                    container_height.set(height);
+                    if (height - *container_height.peek()).abs() > 1.0 {
+                        container_height.set(height);
+                    }
                 },
                 if is_empty {
                     if *is_loading.read() {
