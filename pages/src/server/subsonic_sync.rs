@@ -11,6 +11,7 @@ pub struct SubsonicLibraryData {
     pub albums: Vec<Album>,
     pub tracks: Vec<Track>,
     pub genres: Vec<(String, String)>,
+    pub artist_images: std::collections::HashMap<String, String>,
 }
 
 pub async fn sync_server_library(
@@ -184,6 +185,7 @@ pub async fn sync_server_library(
             lib_write.jellyfin_albums = data.albums;
             lib_write.jellyfin_tracks = data.tracks;
             lib_write.jellyfin_genres = data.genres;
+            lib_write.server_artist_images = data.artist_images;
         }
     }
 
@@ -207,6 +209,17 @@ pub async fn fetch_subsonic_library(
     let mut tracks_out = Vec::new();
     let mut seen_track_ids = HashSet::new();
     let mut genres = HashSet::new();
+
+    let mut artist_images = std::collections::HashMap::new();
+    if let Ok(artists) = remote.get_artists().await {
+        for artist in artists {
+            if let Some(cover_art_id) = &artist.cover_art {
+                if let Ok(url) = remote.cover_art_url(cover_art_id, Some(512)) {
+                    artist_images.insert(artist.name, url);
+                }
+            }
+        }
+    }
 
     let mut offset = 0usize;
     let batch = 250usize;
@@ -311,6 +324,7 @@ pub async fn fetch_subsonic_library(
         albums: albums_out,
         tracks: tracks_out,
         genres: genres_out,
+        artist_images,
     })
 }
 

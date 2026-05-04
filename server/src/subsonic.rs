@@ -69,9 +69,38 @@ pub struct SubsonicPlaylist {
     pub song_count: Option<u32>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubsonicArtist {
+    pub id: String,
+    pub name: String,
+    pub cover_art: Option<String>,
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EmptyData {}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ArtistIndex {
+    #[serde(default)]
+    artist: Vec<SubsonicArtist>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ArtistsContainer {
+    #[serde(default)]
+    index: Vec<ArtistIndex>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GetArtistsData {
+    #[serde(default)]
+    artists: ArtistsContainer,
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -282,6 +311,18 @@ impl SubsonicClient {
         self.call::<EmptyData>("updatePlaylist.view", params)
             .await
             .map(|_| ())
+    }
+
+    pub async fn get_artists(&self) -> Result<Vec<SubsonicArtist>, String> {
+        let data = self
+            .call::<GetArtistsData>("getArtists.view", vec![])
+            .await?;
+        Ok(data
+            .artists
+            .index
+            .into_iter()
+            .flat_map(|idx| idx.artist)
+            .collect())
     }
 
     pub async fn get_starred_song_ids(&self) -> Result<Vec<String>, String> {

@@ -53,6 +53,10 @@ pub fn jellyfin_image_url_from_path(
     max_width: u32,
     quality: u32,
 ) -> Option<String> {
+    if let Some(url) = path_str.strip_prefix("directurl:") {
+        return Some(url.to_string());
+    }
+
     let (id, tag) = parse_jellyfin_path(path_str)?;
     if tag == Some("none") {
         return None;

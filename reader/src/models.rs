@@ -47,7 +47,9 @@ pub struct Library {
     #[serde(default)]
     pub jellyfin_albums: Vec<Album>,
     #[serde(default)]
-    pub jellyfin_genres: Vec<(String, String)>, // (Name, ID)
+    pub jellyfin_genres: Vec<(String, String)>,
+    #[serde(default)]
+    pub server_artist_images: std::collections::HashMap<String, String>,
 }
 
 fn deserialize_root_paths<'de, D>(deserializer: D) -> Result<Vec<PathBuf>, D::Error>
